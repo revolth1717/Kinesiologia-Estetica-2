@@ -1,0 +1,35 @@
+<svg width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="200" height="200" rx="20" fill="url(#gradient4)"/>
+  <defs>
+    <linearGradient id="gradient4" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f472b6;stop-opacity:0.8" />
+      <stop offset="100%" style="stop-color:#8b5cf6;stop-opacity:0.8" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Central wellness symbol -->
+  <circle cx="100" cy="100" r="40" fill="white" opacity="0.9"/>
+  <circle cx="100" cy="100" r="25" fill="none" stroke="#ec4899" stroke-width="3"/>
+  
+  <!-- Wellness cross -->
+  <line x1="100" y1="85" x2="100" y2="115" stroke="#ec4899" stroke-width="4"/>
+  <line x1="85" y1="100" x2="115" y2="100" stroke="#ec4899" stroke-width="4"/>
+  
+  <!-- Decorative elements -->
+  <circle cx="70" cy="70" r="8" fill="white" opacity="0.7"/>
+  <circle cx="130" cy="70" r="8" fill="white" opacity="0.7"/>
+  <circle cx="70" cy="130" r="8" fill="white" opacity="0.7"/>
+  <circle cx="130" cy="130" r="8" fill="white" opacity="0.7"/>
+  
+  <!-- Small wellness symbols -->
+  <circle cx="70" cy="70" r="3" fill="#ec4899"/>
+  <circle cx="130" cy="70" r="3" fill="#ec4899"/>
+  <circle cx="70" cy="130" r="3" fill="#ec4899"/>
+  <circle cx="130" cy="130" r="3" fill="#ec4899"/>
+  
+  <!-- Sparkles -->
+  <circle cx="50" cy="50" r="2" fill="white"/>
+  <circle cx="150" cy="50" r="2" fill="white"/>
+  <circle cx="50" cy="150" r="2" fill="white"/>
+  <circle cx="150" cy="150" r="2" fill="white"/>
+</svg>
