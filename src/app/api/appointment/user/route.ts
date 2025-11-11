@@ -20,12 +20,18 @@ function readTokenFromRequest(req: Request): string | undefined {
 
 export async function GET(req: Request): Promise<Response> {
   try {
+    const url = new URL(req.url);
+    const debug = url.searchParams.get("debug") === "1";
     const token = readTokenFromRequest(req);
     if (!token) {
-      return NextResponse.json({ message: "Authentication Required" }, { status: 401 });
+      const body = debug
+        ? { message: "Authentication Required", debug: { hasToken: false } }
+        : { message: "Authentication Required" };
+      return NextResponse.json(body, { status: 401 });
     }
 
-    const res = await fetch(`${XANO_API_BASE}/appointment/user`, {
+    const target = `${XANO_API_BASE}/appointment/user`;
+    const res = await fetch(target, {
       method: "GET",
       headers: {
         Authorization: `Bearer ${token}`,
@@ -36,6 +42,9 @@ export async function GET(req: Request): Promise<Response> {
     const text = await res.text();
     let data: any = null;
     try { data = JSON.parse(text); } catch { data = { raw: text }; }
+    if (debug) {
+      return NextResponse.json({ data, debug: { upstreamStatus: res.status, target } }, { status: res.status });
+    }
     return NextResponse.json(data, { status: res.status });
   } catch (err) {
     return NextResponse.json({ message: "Unexpected error", detail: String(err) }, { status: 500 });
