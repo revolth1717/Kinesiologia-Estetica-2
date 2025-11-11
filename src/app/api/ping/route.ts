@@ -1,21 +1,5 @@
 import { NextResponse } from "next/server";
 
-export async function GET() {
-  const env = {
-    NODE_ENV: process.env.NODE_ENV || null,
-    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || null,
-    XANO_GENERAL_API_URL: process.env.XANO_GENERAL_API_URL || null,
-    XANO_APPOINTMENTS_API_URL: process.env.XANO_APPOINTMENTS_API_URL || null,
-  };
-
-  return NextResponse.json({
-    ok: true,
-    route: "/api/ping",
-    ts: new Date().toISOString(),
-    env,
-  });
-}
-
 export async function GET(): Promise<Response> {
   const payload = {
     ok: true,
