@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 
 const clean = (s?: string) => String(s || "").trim().replace(/^`+|`+$/g, "").replace(/^"+|"+$/g, "").replace(/^'+|'+$/g, "");
-const XANO_API_BASE = clean(process.env.XANO_GENERAL_API_URL) || clean(process.env.NEXT_PUBLIC_API_URL) || "https://x8ki-letl-twmt.n7.xano.io/api:SzJNIj2V";
+const XANO_GENERAL = clean(process.env.XANO_GENERAL_API_URL) || clean(process.env.NEXT_PUBLIC_API_URL) || "https://x8ki-letl-twmt.n7.xano.io/api:SzJNIj2V";
+const XANO_AUTH = clean(process.env.XANO_AUTH_API_URL) || clean(process.env.NEXT_PUBLIC_AUTH_URL) || "https://x8ki-letl-twmt.n7.xano.io/api:-E-1dvfg";
 
 function readTokenFromRequest(req: Request): string | undefined {
   const cookieHeader = req.headers.get("cookie") || "";
@@ -31,22 +32,43 @@ export async function GET(req: Request): Promise<Response> {
       return NextResponse.json(body, { status: 401 });
     }
 
-    const target = `${XANO_API_BASE}/appointment/user`;
-    const res = await fetch(target, {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        Accept: "application/json, text/plain, */*",
-      },
-    });
+    const candidates = [
+      `${XANO_GENERAL}/appointment/user`,
+      `${XANO_AUTH}/appointment/user`,
+    ];
 
-    const text = await res.text();
-    let data: any = null;
-    try { data = JSON.parse(text); } catch { data = { raw: text }; }
-    if (debug) {
-      return NextResponse.json({ data, debug: { upstreamStatus: res.status, target } }, { status: res.status });
+    let last: { status: number; data: any; target: string } | null = null;
+    for (const target of candidates) {
+      const res = await fetch(target, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: "application/json, text/plain, */*",
+        },
+      });
+      const text = await res.text();
+      let data: any = null;
+      try { data = JSON.parse(text); } catch { data = { raw: text }; }
+      if (res.ok) {
+        if (debug) {
+          return NextResponse.json({ data, debug: { upstreamStatus: res.status, target } }, { status: res.status });
+        }
+        return NextResponse.json(data, { status: res.status });
+      }
+      last = { status: res.status, data, target };
+      if (res.status !== 404) {
+        if (debug) {
+          return NextResponse.json({ data, debug: { upstreamStatus: res.status, target } }, { status: res.status });
+        }
+        return NextResponse.json(data, { status: res.status });
+      }
     }
-    return NextResponse.json(data, { status: res.status });
+
+    const fallback = last ?? { status: 404, data: { message: "Not Found" }, target: candidates[candidates.length - 1] };
+    if (debug) {
+      return NextResponse.json({ data: fallback.data, debug: { upstreamStatus: fallback.status, target: fallback.target } }, { status: fallback.status });
+    }
+    return NextResponse.json(fallback.data, { status: fallback.status });
   } catch (err) {
     return NextResponse.json({ message: "Unexpected error", detail: String(err) }, { status: 500 });
   }
