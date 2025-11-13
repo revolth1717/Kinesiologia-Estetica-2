@@ -25,15 +25,17 @@ export default function RootLayout({
   return (
     <html lang="es">
       <body
-        className={`${poppins.variable} font-poppins min-h-screen flex flex-col bg-gray-50`}
+        className={`${poppins.variable} font-poppins min-h-screen flex flex-col bg-gray-50 overflow-x-auto`}
       >
         <AuthProvider>
           <CartProvider>
-            <Navbar />
-            <main className="flex-grow">
-              {children}
-            </main>
-            <Footer />
+            <div className="lg:min-w-[1200px] flex flex-col min-h-screen">
+              <Navbar />
+              <main className="flex-grow">
+                {children}
+              </main>
+              <Footer />
+            </div>
           </CartProvider>
         </AuthProvider>
       </body>

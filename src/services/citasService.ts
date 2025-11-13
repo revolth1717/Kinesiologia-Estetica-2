@@ -200,6 +200,8 @@ class CitasService {
         const errorText = await response.text().catch(() => "");
         throw new Error(`Error ${response.status}: ${response.statusText}${errorText ? ` - ${errorText}` : ""}`);
       }
+      // Invalidar caché para que la disponibilidad del usuario se actualice inmediatamente
+      this.lastUserCitasCache = null;
       // No retornamos cuerpo específico; la UI refresca lista de citas
     } catch (error) {
       console.error("Error al cancelar cita:", error);

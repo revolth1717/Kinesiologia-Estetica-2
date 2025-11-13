@@ -7,7 +7,7 @@ export default function TrustBadges() {
     { src: "/images/logos/redcompra.svg", alt: "RedCompra" },
   ];
   return (
-    <div className="mt-8 flex flex-wrap items-center justify-center gap-6">
+    <div className="mt-8 flex flex-wrap items-center justify-center gap-4 sm:gap-6">
       {logos.map((l) => (
         <img key={l.alt} src={l.src} alt={l.alt} className="h-8 w-auto select-none" />
       ))}

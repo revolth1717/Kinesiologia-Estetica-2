@@ -40,8 +40,8 @@ const Footer = () => {
                 </Link>
               </li>
               <li>
-                <Link href="/agendar" className="hover:text-pink-400 transition-colors">
-                  Agendar Cita
+                <Link href="/tratamientos" className="hover:text-pink-400 transition-colors">
+                  Productos
                 </Link>
               </li>
               <li>
@@ -56,7 +56,7 @@ const Footer = () => {
           <div>
             <h3 className="text-xl font-semibold mb-4 text-pink-400">Síguenos</h3>
             <div className="flex space-x-4">
-              <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" className="hover:text-pink-400 transition-colors">
+              <a href="https://www.instagram.com/kine.estetica.sb" target="_blank" rel="noopener noreferrer" className="hover:text-pink-400 transition-colors">
                 <Instagram className="h-6 w-6" />
               </a>
               <a href="https://facebook.com" target="_blank" rel="noopener noreferrer" className="hover:text-pink-400 transition-colors">
