@@ -27,8 +27,8 @@ const Navbar = () => {
             <Link href="/tratamientos" className="px-3 py-2 text-gray-700 hover:text-pink-600 transition-colors">
               Tratamientos
             </Link>
-            <Link href="/agendar" className="px-3 py-2 text-gray-700 hover:text-pink-600 transition-colors">
-              Agendar Cita
+            <Link href="/productos" className="px-3 py-2 text-gray-700 hover:text-pink-600 transition-colors">
+              Productos
             </Link>
             <Link href="/contacto" className="px-3 py-2 text-gray-700 hover:text-pink-600 transition-colors">
               Contacto
@@ -99,8 +99,8 @@ const Navbar = () => {
             <Link href="/tratamientos" className="block px-3 py-2 text-gray-700 hover:text-pink-600 transition-colors">
               Tratamientos
             </Link>
-            <Link href="/agendar" className="block px-3 py-2 text-gray-700 hover:text-pink-600 transition-colors">
-              Agendar Cita
+            <Link href="/productos" className="block px-3 py-2 text-gray-700 hover:text-pink-600 transition-colors">
+              Productos
             </Link>
             <Link href="/contacto" className="block px-3 py-2 text-gray-700 hover:text-pink-600 transition-colors">
               Contacto

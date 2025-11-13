@@ -75,7 +75,7 @@ export default function PagoPage() {
                 {items.map((it) => (
                   <div key={it.id} className="flex justify-between text-sm">
                     <span className="text-gray-600">{it.tratamiento}{it.zona ? ` - ${it.zona}` : ""} ({it.sesiones === 1 ? "1 sesión" : "8 sesiones"})</span>
-                    <span className="font-medium">${it.precioAgenda.toLocaleString()}</span>
+                    <span className="font-medium">${("precioTotal" in it ? it.precioTotal : 0).toLocaleString()}</span>
                   </div>
                 ))}
                 <div className="border-t pt-3 mt-3">
