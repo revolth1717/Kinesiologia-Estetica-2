@@ -5,7 +5,7 @@ import { Calendar, Clock, User, CheckCircle } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { citasService, type NuevaCita } from "@/services/citasService";
 import { useCart } from "@/context/CartContext";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { generateSlots, isPastSlot } from "@/utils/timeSlots";
 
 // Horarios disponibles (simulados)
@@ -21,7 +21,7 @@ export default function AgendarPage() {
   const { user, isLoggedIn } = useAuth();
   const router = useRouter();
   const { addItem } = useCart();
-  
+
   const [selectedDate, setSelectedDate] = useState("");
   const [selectedTime, setSelectedTime] = useState("");
   const [bookedTimes, setBookedTimes] = useState<string[]>([]);
@@ -33,6 +33,7 @@ export default function AgendarPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [submitError, setSubmitError] = useState("");
+  const searchParams = useSearchParams();
 
   type TratamientoItem = {
     id: number;
@@ -57,13 +58,14 @@ export default function AgendarPage() {
     if (!name) return undefined;
     return name
       .toLowerCase()
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .replace(/[^a-z0-9]+/g, '');
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9]+/g, "");
   }
 
-// Por defecto en false para preferir las imágenes reales del tratamiento
-const USE_LOCAL_IMAGES_ONLY = ((process.env.NEXT_PUBLIC_USE_LOCAL_TREATMENT_IMAGES ?? 'false') === 'true');
+  // Por defecto en false para preferir las imágenes reales del tratamiento
+  const USE_LOCAL_IMAGES_ONLY =
+    (process.env.NEXT_PUBLIC_USE_LOCAL_TREATMENT_IMAGES ?? "false") === "true";
 
   function getLocalFallback(t?: TratamientoItem): string | undefined {
     if (!t) return undefined;
@@ -79,12 +81,12 @@ const USE_LOCAL_IMAGES_ONLY = ((process.env.NEXT_PUBLIC_USE_LOCAL_TREATMENT_IMAG
     if (!t) return undefined;
     const img = t.imagen_url;
     if (!img) return getLocalFallback(t);
-    if (typeof img === 'string') return img || getLocalFallback(t);
-    if (typeof img === 'object') {
-      if (img.url && typeof img.url === 'string') return img.url;
-      if (img.path && typeof img.path === 'string') {
-        if (img.path.startsWith('http')) return img.path;
-        const base = process.env.NEXT_PUBLIC_CONTENT_API_URL || '';
+    if (typeof img === "string") return img || getLocalFallback(t);
+    if (typeof img === "object") {
+      if (img.url && typeof img.url === "string") return img.url;
+      if (img.path && typeof img.path === "string") {
+        if (img.path.startsWith("http")) return img.path;
+        const base = process.env.NEXT_PUBLIC_CONTENT_API_URL || "";
         return base ? `${base}${img.path}` : img.path;
       }
     }
@@ -93,13 +95,17 @@ const USE_LOCAL_IMAGES_ONLY = ((process.env.NEXT_PUBLIC_USE_LOCAL_TREATMENT_IMAG
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL;
   const CONTENT_API_URL = process.env.NEXT_PUBLIC_CONTENT_API_URL || API_URL;
-  const TREATMENTS_PATH = process.env.NEXT_PUBLIC_TREATMENTS_PATH || "/tratamientos";
+  const TREATMENTS_PATH =
+    process.env.NEXT_PUBLIC_TREATMENTS_PATH || "/tratamientos";
   const LOCAL_TREATMENTS_URL = "/api/tratamientos";
   const ZONES_SEGMENT = process.env.NEXT_PUBLIC_ZONES_SEGMENT || "zonas";
-  const ZONES_BY_TREATMENT_PATH = process.env.NEXT_PUBLIC_ZONES_BY_TREATMENT_PATH || "/zonas-por-tratamiento";
+  const ZONES_BY_TREATMENT_PATH =
+    process.env.NEXT_PUBLIC_ZONES_BY_TREATMENT_PATH || "/zonas-por-tratamiento";
   const LOCAL_ZONES_BY_TREATMENT = "/api/zonas-por-tratamiento";
 
-  const [tratamientosList, setTratamientosList] = useState<TratamientoItem[]>([]);
+  const [tratamientosList, setTratamientosList] = useState<TratamientoItem[]>(
+    []
+  );
   const [loadingTrat, setLoadingTrat] = useState(true);
   const [errorTrat, setErrorTrat] = useState<string | null>(null);
 
@@ -108,24 +114,32 @@ const USE_LOCAL_IMAGES_ONLY = ((process.env.NEXT_PUBLIC_USE_LOCAL_TREATMENT_IMAG
     nombre: string;
     precio_1_sesion?: number;
     precio_8_sesiones?: number;
-  };const [zonasList, setZonasList] = useState<ZonaItem[]>([]);
+  };
+  const [zonasList, setZonasList] = useState<ZonaItem[]>([]);
   const [zonaId, setZonaId] = useState<string>("");
   const [loadingZonas, setLoadingZonas] = useState(false);
   const [errorZonas, setErrorZonas] = useState<string | null>(null);
   const [selectedSessions, setSelectedSessions] = useState<1 | 8>(1);
-  
+
   // Formateador de CLP sin decimales
   const formatCLP = (value?: number) => {
     if (typeof value !== "number") return "—";
     try {
-      return new Intl.NumberFormat("es-CL", { style: "currency", currency: "CLP", maximumFractionDigits: 0 }).format(value);
+      return new Intl.NumberFormat("es-CL", {
+        style: "currency",
+        currency: "CLP",
+        maximumFractionDigits: 0,
+      }).format(value);
     } catch {
       return `$${value.toLocaleString()}`;
     }
   };
 
   // Helper: fetch con timeout para evitar bloqueos cuando el API no responde
-  const fetchWithTimeout = async (url: string, ms = 1500): Promise<Response> => {
+  const fetchWithTimeout = async (
+    url: string,
+    ms = 1500
+  ): Promise<Response> => {
     const controller = new AbortController();
     const id = setTimeout(() => controller.abort(), ms);
     try {
@@ -135,7 +149,7 @@ const USE_LOCAL_IMAGES_ONLY = ((process.env.NEXT_PUBLIC_USE_LOCAL_TREATMENT_IMAG
       clearTimeout(id);
     }
   };
-  
+
   // Estados para manejo de imágenes
   const [imageError, setImageError] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
@@ -145,9 +159,18 @@ const USE_LOCAL_IMAGES_ONLY = ((process.env.NEXT_PUBLIC_USE_LOCAL_TREATMENT_IMAG
     if (isLoggedIn && user) {
       setName(user.nombre || "");
       setEmail(user.email || "");
-      setPhone(user.telefono || "");
+      setPhone(user.phone || "");
+      console.log("Agendar prefill:", { user, phoneSelected: user.phone });
     }
   }, [isLoggedIn, user]);
+
+  // Preseleccionar tratamiento desde query param
+  useEffect(() => {
+    const q = searchParams.get("tratamiento");
+    if (q && !tratamiento) {
+      setTratamiento(q);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -159,7 +182,9 @@ const USE_LOCAL_IMAGES_ONLY = ((process.env.NEXT_PUBLIC_USE_LOCAL_TREATMENT_IMAG
         return;
       }
       try {
-        const res = await fetch(LOCAL_TREATMENTS_URL, { signal: controller.signal });
+        const res = await fetch(LOCAL_TREATMENTS_URL, {
+          signal: controller.signal,
+        });
         if (res.status === 404) {
           setTratamientosList([]);
           setErrorTrat(null);
@@ -167,23 +192,32 @@ const USE_LOCAL_IMAGES_ONLY = ((process.env.NEXT_PUBLIC_USE_LOCAL_TREATMENT_IMAG
         }
         if (res.status === 429) {
           // Esperar breve y reintentar una vez para evitar límite por doble render
-          await new Promise((r) => setTimeout(r, 800));
-          const retry = await fetch(LOCAL_TREATMENTS_URL, { signal: controller.signal });
+          await new Promise(r => setTimeout(r, 800));
+          const retry = await fetch(LOCAL_TREATMENTS_URL, {
+            signal: controller.signal,
+          });
           if (!retry.ok) throw new Error(`Error ${retry.status}`);
           const data = await retry.json();
-          const list = Array.isArray(data) ? data : (data.items ?? data.results ?? []);
+          const list = Array.isArray(data)
+            ? data
+            : data.items ?? data.results ?? [];
           console.log("Tratamientos cargados (retry):", list);
           setTratamientosList(list);
           return;
         }
         if (!res.ok) throw new Error(`Error ${res.status}`);
         const data = await res.json();
-        const list = Array.isArray(data) ? data : (data.items ?? data.results ?? []);
-        
+        const list = Array.isArray(data)
+          ? data
+          : data.items ?? data.results ?? [];
+
         console.log("Tratamientos cargados:", list);
         setTratamientosList(list);
       } catch (e: any) {
-        if (e?.name === 'AbortError' || (typeof e?.message === 'string' && e.message.includes('Abort'))) {
+        if (
+          e?.name === "AbortError" ||
+          (typeof e?.message === "string" && e.message.includes("Abort"))
+        ) {
           // Ignorar abortos provocados por doble render en modo desarrollo
           return;
         }
@@ -203,13 +237,20 @@ const USE_LOCAL_IMAGES_ONLY = ((process.env.NEXT_PUBLIC_USE_LOCAL_TREATMENT_IMAG
   }, []);
 
   // Tratamiento seleccionado (por slug o id)
-  const selectedTrat = tratamientosList.find((t) => (t.slug ?? t.id).toString() === tratamiento);
+  const selectedTrat = tratamientosList.find(
+    t => (t.slug ?? t.id).toString() === tratamiento
+  );
 
   // Imagen del tratamiento seleccionado (mismas fuentes que en /tratamientos)
-  const localFallback = useMemo(() => getLocalFallback(selectedTrat), [selectedTrat]);
+  const localFallback = useMemo(
+    () => getLocalFallback(selectedTrat),
+    [selectedTrat]
+  );
   const selectedImgSrc = useMemo(() => {
     if (!selectedTrat) return null;
-    const src = USE_LOCAL_IMAGES_ONLY ? localFallback : (getImageSrc(selectedTrat) || localFallback);
+    const src = USE_LOCAL_IMAGES_ONLY
+      ? localFallback
+      : getImageSrc(selectedTrat) || localFallback;
     return src ?? null;
   }, [selectedTrat, localFallback]);
 
@@ -225,7 +266,7 @@ const USE_LOCAL_IMAGES_ONLY = ((process.env.NEXT_PUBLIC_USE_LOCAL_TREATMENT_IMAG
       setLoadingZonas(true);
       setErrorZonas(null);
       setZonaId("");
-      
+
       const loadZonas = async () => {
         const url = `${LOCAL_ZONES_BY_TREATMENT}?id=${selectedTrat.id}`;
         try {
@@ -235,7 +276,7 @@ const USE_LOCAL_IMAGES_ONLY = ((process.env.NEXT_PUBLIC_USE_LOCAL_TREATMENT_IMAG
           const data = await res.json();
           const list = Array.isArray(data)
             ? data
-            : (data.items ?? data.results ?? data.data ?? (data.zonas ?? []));
+            : data.items ?? data.results ?? data.data ?? data.zonas ?? [];
           if (Array.isArray(list)) {
             setZonasList(list);
             setErrorZonas(null);
@@ -262,8 +303,8 @@ const USE_LOCAL_IMAGES_ONLY = ((process.env.NEXT_PUBLIC_USE_LOCAL_TREATMENT_IMAG
   // Helper para formatear YYYY-MM-DD en horario LOCAL
   const toLocalYMD = (date: Date) => {
     const y = date.getFullYear();
-    const m = String(date.getMonth() + 1).padStart(2, '0');
-    const d = String(date.getDate()).padStart(2, '0');
+    const m = String(date.getMonth() + 1).padStart(2, "0");
+    const d = String(date.getDate()).padStart(2, "0");
     return `${y}-${m}-${d}`;
   };
 
@@ -275,7 +316,9 @@ const USE_LOCAL_IMAGES_ONLY = ((process.env.NEXT_PUBLIC_USE_LOCAL_TREATMENT_IMAG
   });
 
   const getPlaceholderImage = (treatmentName: string) => {
-    return `https://via.placeholder.com/400x400/f3f4f6/9ca3af?text=${encodeURIComponent(treatmentName || 'Tratamiento')}`;
+    return `https://via.placeholder.com/400x400/f3f4f6/9ca3af?text=${encodeURIComponent(
+      treatmentName || "Tratamiento"
+    )}`;
   };
 
   const handleDateSelect = (date: string) => {
@@ -314,26 +357,38 @@ const USE_LOCAL_IMAGES_ONLY = ((process.env.NEXT_PUBLIC_USE_LOCAL_TREATMENT_IMAG
         const selectedZona = zonasList.find(z => z.id.toString() === zonaId);
         servicioNombre += ` - ${selectedZona?.nombre || ""}`;
       }
-      servicioNombre += ` (${selectedSessions} ${selectedSessions === 1 ? 'sesión' : 'sesiones'})`;
+      servicioNombre += ` (${selectedSessions} ${
+        selectedSessions === 1 ? "sesión" : "sesiones"
+      })`;
 
       // Construir fecha y hora en horario LOCAL para evitar desfases por UTC
       const [year, month, day] = selectedDate.split("-").map(Number);
       const [hour, minute] = selectedTime.split(":").map(Number);
-      const localDate = new Date(year, (month - 1), day, hour, minute, 0, 0);
+      const localDate = new Date(year, month - 1, day, hour, minute, 0, 0);
 
       const nuevaCita: NuevaCita = {
         // Enviar milisegundos locales para que el backend los registre correctamente
         appointment_date: localDate.getTime(),
         service: servicioNombre,
-        comments: `Tratamiento: ${selectedTrat.nombre}${selectedTrat.tipo === "multi_zona" && zonaId ? ` - Zona: ${zonasList.find(z => z.id.toString() === zonaId)?.nombre}` : ""}\nSesiones: ${selectedSessions}\nContacto: ${name} - ${email} - ${phone}`
+        comments: `Tratamiento: ${selectedTrat.nombre}${
+          selectedTrat.tipo === "multi_zona" && zonaId
+            ? ` - Zona: ${
+                zonasList.find(z => z.id.toString() === zonaId)?.nombre
+              }`
+            : ""
+        }\nSesiones: ${selectedSessions}\nContacto: ${name} - ${email} - ${phone}`,
       };
       // Calcular precios
       let price: number | undefined;
       if (selectedTrat.tipo === "multi_zona") {
         const z = zonasList.find(z => z.id.toString() === zonaId);
-        price = selectedSessions === 1 ? z?.precio_1_sesion : z?.precio_8_sesiones;
+        price =
+          selectedSessions === 1 ? z?.precio_1_sesion : z?.precio_8_sesiones;
       } else {
-        price = selectedSessions === 1 ? selectedTrat.precio_1_sesion : selectedTrat.precio_8_sesiones;
+        price =
+          selectedSessions === 1
+            ? selectedTrat.precio_1_sesion
+            : selectedTrat.precio_8_sesiones;
       }
       const deposit = typeof price === "number" ? Math.round(price * 0.5) : 0;
 
@@ -341,7 +396,10 @@ const USE_LOCAL_IMAGES_ONLY = ((process.env.NEXT_PUBLIC_USE_LOCAL_TREATMENT_IMAG
       addItem({
         id: `${Date.now()}`,
         tratamiento: selectedTrat.nombre,
-        zona: selectedTrat.tipo === "multi_zona" ? zonasList.find(z => z.id.toString() === zonaId)?.nombre : undefined,
+        zona:
+          selectedTrat.tipo === "multi_zona"
+            ? zonasList.find(z => z.id.toString() === zonaId)?.nombre
+            : undefined,
         sesiones: selectedSessions,
         fecha: selectedDate,
         hora: selectedTime,
@@ -351,7 +409,6 @@ const USE_LOCAL_IMAGES_ONLY = ((process.env.NEXT_PUBLIC_USE_LOCAL_TREATMENT_IMAG
       });
 
       router.push("/carrito");
-      
     } catch (error) {
       console.error("Error al crear cita:", error);
       setSubmitError("Error al agendar la cita. Por favor intenta nuevamente.");
@@ -364,7 +421,10 @@ const USE_LOCAL_IMAGES_ONLY = ((process.env.NEXT_PUBLIC_USE_LOCAL_TREATMENT_IMAG
   useEffect(() => {
     const loadBooked = async () => {
       try {
-        if (!selectedDate) { setBookedTimes([]); return; }
+        if (!selectedDate) {
+          setBookedTimes([]);
+          return;
+        }
         const times: string[] = [];
         // Horas del carrito para esa fecha
         try {
@@ -374,7 +434,10 @@ const USE_LOCAL_IMAGES_ONLY = ((process.env.NEXT_PUBLIC_USE_LOCAL_TREATMENT_IMAG
             const arr = JSON.parse(raw);
             if (Array.isArray(arr)) {
               for (const it of arr) {
-                if (String(it?.fecha) === selectedDate && typeof it?.hora === 'string') {
+                if (
+                  String(it?.fecha) === selectedDate &&
+                  typeof it?.hora === "string"
+                ) {
                   times.push(it.hora);
                 }
               }
@@ -384,10 +447,14 @@ const USE_LOCAL_IMAGES_ONLY = ((process.env.NEXT_PUBLIC_USE_LOCAL_TREATMENT_IMAG
 
         // Horas ya agendadas por el usuario autenticado
         if (isLoggedIn) {
-          const citas = await citasService.obtenerCitasUsuario().catch(() => []);
+          const citas = await citasService
+            .obtenerCitasUsuario()
+            .catch(() => []);
           for (const c of citas) {
+            if ((c.status || '').toLowerCase().trim() === 'cancelada') continue;
             const d = (() => {
-              if (typeof c.appointment_date === 'number') return new Date(c.appointment_date);
+              if (typeof c.appointment_date === "number")
+                return new Date(c.appointment_date);
               const s = String(c.appointment_date).trim();
               if (/^\d+$/.test(s)) {
                 const num = parseInt(s, 10);
@@ -399,19 +466,23 @@ const USE_LOCAL_IMAGES_ONLY = ((process.env.NEXT_PUBLIC_USE_LOCAL_TREATMENT_IMAG
             const y = d.getFullYear();
             const m = d.getMonth() + 1;
             const day = d.getDate();
-            const ymd = `${y}-${String(m).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+            const ymd = `${y}-${String(m).padStart(2, "0")}-${String(
+              day
+            ).padStart(2, "0")}`;
             if (ymd === selectedDate) {
-              const hh = String(d.getHours()).padStart(2,'0');
-              const mm = String(d.getMinutes()).padStart(2,'0');
+              const hh = String(d.getHours()).padStart(2, "0");
+              const mm = String(d.getMinutes()).padStart(2, "0");
               times.push(`${hh}:${mm}`);
             }
           }
         }
 
         // Horarios ocupados globales desde backend (Xano)
-        const takenGlobal = await citasService.obtenerDisponibilidad(selectedDate).catch(() => []);
+        const takenGlobal = await citasService
+          .obtenerDisponibilidad(selectedDate)
+          .catch(() => []);
         for (const t of takenGlobal) {
-          if (typeof t === 'string') times.push(t);
+          if (typeof t === "string") times.push(t);
         }
 
         // Normalizar y deduplicar
@@ -437,7 +508,9 @@ const USE_LOCAL_IMAGES_ONLY = ((process.env.NEXT_PUBLIC_USE_LOCAL_TREATMENT_IMAG
     ) {
       // Requerir autenticación para continuar a confirmar
       if (!isLoggedIn) {
-        setSubmitError("Debes iniciar sesión para confirmar y agendar tu cita.");
+        setSubmitError(
+          "Debes iniciar sesión para confirmar y agendar tu cita."
+        );
         return;
       }
       setStep(3); // Nuevo paso de confirmación
@@ -451,31 +524,63 @@ const USE_LOCAL_IMAGES_ONLY = ((process.env.NEXT_PUBLIC_USE_LOCAL_TREATMENT_IMAG
           <div className="bg-white rounded-lg shadow-md p-8 text-center">
             <div className="mb-6">
               <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
-              <h1 className="text-3xl font-bold text-gray-800 mb-2">¡Cita Agendada Exitosamente!</h1>
+              <h1 className="text-3xl font-bold text-gray-800 mb-2">
+                ¡Cita Agendada Exitosamente!
+              </h1>
               <p className="text-gray-600">
                 Tu cita ha sido programada correctamente
               </p>
             </div>
-            
+
             <div className="bg-green-50 p-6 rounded-lg mb-6">
-              <h3 className="font-semibold text-gray-800 mb-4">Detalles de tu cita:</h3>
+              <h3 className="font-semibold text-gray-800 mb-4">
+                Detalles de tu cita:
+              </h3>
               <div className="text-left space-y-2">
-                <p><span className="font-medium">Fecha:</span> {(() => { const [yy, mm, dd] = selectedDate.split("-").map(Number); const d = new Date(yy, mm - 1, dd); return d.toLocaleDateString("es-ES", { weekday: "long", year: "numeric", month: "long", day: "numeric" }); })()}</p>
-                <p><span className="font-medium">Hora:</span> {selectedTime}</p>
-                <p><span className="font-medium">Tratamiento:</span> {selectedTrat?.nombre}</p>
+                <p>
+                  <span className="font-medium">Fecha:</span>{" "}
+                  {(() => {
+                    const [yy, mm, dd] = selectedDate.split("-").map(Number);
+                    const d = new Date(yy, mm - 1, dd);
+                    return d.toLocaleDateString("es-ES", {
+                      weekday: "long",
+                      year: "numeric",
+                      month: "long",
+                      day: "numeric",
+                    });
+                  })()}
+                </p>
+                <p>
+                  <span className="font-medium">Hora:</span> {selectedTime}
+                </p>
+                <p>
+                  <span className="font-medium">Tratamiento:</span>{" "}
+                  {selectedTrat?.nombre}
+                </p>
                 {selectedTrat?.tipo === "multi_zona" && zonaId && (
-                  <p><span className="font-medium">Zona:</span> {zonasList.find(z => z.id.toString() === zonaId)?.nombre}</p>
+                  <p>
+                    <span className="font-medium">Zona:</span>{" "}
+                    {zonasList.find(z => z.id.toString() === zonaId)?.nombre}
+                  </p>
                 )}
-                <p><span className="font-medium">Sesiones:</span> {selectedSessions}</p>
+                <p>
+                  <span className="font-medium">Sesiones:</span>{" "}
+                  {selectedSessions}
+                </p>
               </div>
             </div>
 
             <div className="space-y-4">
               {isLoggedIn ? (
-                <p className="text-gray-600">Serás redirigido a tu perfil en unos segundos...</p>
+                <p className="text-gray-600">
+                  Serás redirigido a tu perfil en unos segundos...
+                </p>
               ) : (
                 <div>
-                  <p className="text-gray-600 mb-4">¿Quieres ver todas tus citas? Crea una cuenta o inicia sesión</p>
+                  <p className="text-gray-600 mb-4">
+                    ¿Quieres ver todas tus citas? Crea una cuenta o inicia
+                    sesión
+                  </p>
                   <div className="space-x-4">
                     <button
                       onClick={() => router.push("/login")}
@@ -497,19 +602,32 @@ const USE_LOCAL_IMAGES_ONLY = ((process.env.NEXT_PUBLIC_USE_LOCAL_TREATMENT_IMAG
               {selectedTrat && (
                 <div className="mb-6">
                   <div className="flex items-center justify-between mb-2">
-                    <h4 className="text-sm font-semibold text-gray-700">Detalle de precio</h4>
-                    <div className="inline-flex rounded-md shadow-sm" role="group">
+                    <h4 className="text-sm font-semibold text-gray-700">
+                      Detalle de precio
+                    </h4>
+                    <div
+                      className="inline-flex rounded-md shadow-sm"
+                      role="group"
+                    >
                       <button
                         type="button"
                         onClick={() => setSelectedSessions(1)}
-                        className={`px-3 py-1 text-sm border ${selectedSessions === 1 ? "bg-pink-600 text-white border-pink-600" : "bg-white text-gray-700 border-gray-300"} rounded-l-md`}
+                        className={`px-3 py-1 text-sm border ${
+                          selectedSessions === 1
+                            ? "bg-pink-600 text-white border-pink-600"
+                            : "bg-white text-gray-700 border-gray-300"
+                        } rounded-l-md`}
                       >
                         1 sesión
                       </button>
                       <button
                         type="button"
                         onClick={() => setSelectedSessions(8)}
-                        className={`px-3 py-1 text-sm border ${selectedSessions === 8 ? "bg-pink-600 text-white border-pink-600" : "bg-white text-gray-700 border-gray-300"} rounded-r-md`}
+                        className={`px-3 py-1 text-sm border ${
+                          selectedSessions === 8
+                            ? "bg-pink-600 text-white border-pink-600"
+                            : "bg-white text-gray-700 border-gray-300"
+                        } rounded-r-md`}
                       >
                         8 sesiones
                       </button>
@@ -518,11 +636,14 @@ const USE_LOCAL_IMAGES_ONLY = ((process.env.NEXT_PUBLIC_USE_LOCAL_TREATMENT_IMAG
 
                   <div className="border rounded-md p-4 bg-gray-50">
                     <p className="text-gray-800 mb-1">
-                      <span className="font-medium">Tratamiento:</span> {selectedTrat.nombre}
+                      <span className="font-medium">Tratamiento:</span>{" "}
+                      {selectedTrat.nombre}
                     </p>
                     {selectedTrat.tipo === "multi_zona" && (
                       <p className="text-gray-800 mb-2">
-                        <span className="font-medium">Zona:</span> {zonasList.find((z) => z.id.toString() === zonaId)?.nombre || "—"}
+                        <span className="font-medium">Zona:</span>{" "}
+                        {zonasList.find(z => z.id.toString() === zonaId)
+                          ?.nombre || "—"}
                       </p>
                     )}
 
@@ -530,54 +651,92 @@ const USE_LOCAL_IMAGES_ONLY = ((process.env.NEXT_PUBLIC_USE_LOCAL_TREATMENT_IMAG
                       <>
                         <div className="flex justify-between">
                           <span>1 sesión</span>
-                          <span className="text-pink-600 font-semibold">{formatCLP(zonasList.find((z) => z.id.toString() === zonaId)?.precio_1_sesion)}</span>
+                          <span className="text-pink-600 font-semibold">
+                            {formatCLP(
+                              zonasList.find(z => z.id.toString() === zonaId)
+                                ?.precio_1_sesion
+                            )}
+                          </span>
                         </div>
                         <div className="flex justify-between mt-1">
                           <span>8 sesiones</span>
-                          <span className="text-pink-600 font-semibold">{formatCLP(zonasList.find((z) => z.id.toString() === zonaId)?.precio_8_sesiones)}</span>
+                          <span className="text-pink-600 font-semibold">
+                            {formatCLP(
+                              zonasList.find(z => z.id.toString() === zonaId)
+                                ?.precio_8_sesiones
+                            )}
+                          </span>
                         </div>
                       </>
                     ) : (
                       <>
                         <div className="flex justify-between">
                           <span>1 sesión</span>
-                          <span className="text-pink-600 font-semibold">{formatCLP(selectedTrat.precio_1_sesion)}</span>
+                          <span className="text-pink-600 font-semibold">
+                            {formatCLP(selectedTrat.precio_1_sesion)}
+                          </span>
                         </div>
                         <div className="flex justify-between mt-1">
                           <span>8 sesiones</span>
-                          <span className="text-pink-600 font-semibold">{formatCLP(selectedTrat.precio_8_sesiones)}</span>
+                          <span className="text-pink-600 font-semibold">
+                            {formatCLP(selectedTrat.precio_8_sesiones)}
+                          </span>
                         </div>
                       </>
                     )}
 
                     <div className="border-t mt-3 pt-3">
                       <div className="flex justify-between">
-                        <span className="font-medium">Precio total ({selectedSessions === 1 ? "1 sesión" : "8 sesiones"})</span>
+                        <span className="font-medium">
+                          Precio total (
+                          {selectedSessions === 1 ? "1 sesión" : "8 sesiones"})
+                        </span>
                         <span className="text-pink-700 font-semibold">
                           {(() => {
                             if (selectedTrat.tipo === "multi_zona") {
-                              const z = zonasList.find((z) => z.id.toString() === zonaId);
-                              const value = selectedSessions === 1 ? z?.precio_1_sesion : z?.precio_8_sesiones;
+                              const z = zonasList.find(
+                                z => z.id.toString() === zonaId
+                              );
+                              const value =
+                                selectedSessions === 1
+                                  ? z?.precio_1_sesion
+                                  : z?.precio_8_sesiones;
                               return formatCLP(value);
                             } else {
-                              const value = selectedSessions === 1 ? selectedTrat.precio_1_sesion : selectedTrat.precio_8_sesiones;
+                              const value =
+                                selectedSessions === 1
+                                  ? selectedTrat.precio_1_sesion
+                                  : selectedTrat.precio_8_sesiones;
                               return formatCLP(value);
                             }
                           })()}
                         </span>
                       </div>
                       <div className="flex justify-between mt-1">
-                        <span className="text-sm text-gray-700">Precio agenda (50%)</span>
+                        <span className="text-sm text-gray-700">
+                          Precio agenda (50%)
+                        </span>
                         <span className="text-pink-600 font-semibold">
                           {(() => {
                             let value: number | undefined;
                             if (selectedTrat.tipo === "multi_zona") {
-                              const z = zonasList.find((z) => z.id.toString() === zonaId);
-                              value = selectedSessions === 1 ? z?.precio_1_sesion : z?.precio_8_sesiones;
+                              const z = zonasList.find(
+                                z => z.id.toString() === zonaId
+                              );
+                              value =
+                                selectedSessions === 1
+                                  ? z?.precio_1_sesion
+                                  : z?.precio_8_sesiones;
                             } else {
-                              value = selectedSessions === 1 ? selectedTrat.precio_1_sesion : selectedTrat.precio_8_sesiones;
+                              value =
+                                selectedSessions === 1
+                                  ? selectedTrat.precio_1_sesion
+                                  : selectedTrat.precio_8_sesiones;
                             }
-                            const deposit = typeof value === "number" ? Math.round(value * 0.5) : undefined;
+                            const deposit =
+                              typeof value === "number"
+                                ? Math.round(value * 0.5)
+                                : undefined;
                             return formatCLP(deposit);
                           })()}
                         </span>
@@ -586,7 +745,7 @@ const USE_LOCAL_IMAGES_ONLY = ((process.env.NEXT_PUBLIC_USE_LOCAL_TREATMENT_IMAG
                   </div>
                 </div>
               )}
-              
+
               {/* Eliminado botón adicional de "Volver al inicio" para evitar duplicado en el paso 3 */}
             </div>
           </div>
@@ -599,10 +758,15 @@ const USE_LOCAL_IMAGES_ONLY = ((process.env.NEXT_PUBLIC_USE_LOCAL_TREATMENT_IMAG
     <div className="py-12 bg-gray-50 min-h-screen">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">Agenda tu Cita</h1>
+          <h1 className="text-3xl font-bold text-gray-800 mb-2">
+            Agenda tu Cita
+          </h1>
           <div className="mb-6 bg-pink-50 border border-pink-100 text-pink-800 px-4 py-3 rounded">
-            ¿Dudas sobre pago, cambios de cita o cobertura?{' '}
-            <a href="/faq" className="underline font-medium">Consulta las Preguntas Frecuentes</a>.
+            ¿Dudas sobre pago, cambios de cita o cobertura?{" "}
+            <a href="/faq" className="underline font-medium">
+              Consulta las Preguntas Frecuentes
+            </a>
+            .
           </div>
           <p className="text-gray-600">
             Selecciona la fecha y hora que prefieras para tu tratamiento
@@ -613,7 +777,8 @@ const USE_LOCAL_IMAGES_ONLY = ((process.env.NEXT_PUBLIC_USE_LOCAL_TREATMENT_IMAG
               {(() => {
                 const nombre = user?.nombre?.trim();
                 const email = user?.email?.trim();
-                if (nombre && email) return `Agendando como: ${nombre} (${email})`;
+                if (nombre && email)
+                  return `Agendando como: ${nombre} (${email})`;
                 if (nombre) return `Agendando como: ${nombre}`;
                 if (email) return `Agendando como: ${email}`;
                 return "Agendando como: Usuario";
@@ -625,26 +790,66 @@ const USE_LOCAL_IMAGES_ONLY = ((process.env.NEXT_PUBLIC_USE_LOCAL_TREATMENT_IMAG
         <div className="bg-white rounded-lg shadow-md p-6">
           {/* Pasos actualizados */}
           <div className="flex items-center justify-center mb-8">
-            <div className={`flex items-center ${step >= 1 ? "text-pink-600" : "text-gray-400"}`}>
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center ${step >= 1 ? "bg-pink-600 text-white" : "bg-gray-200 text-gray-600"}`}>
+            <div
+              className={`flex items-center ${
+                step >= 1 ? "text-pink-600" : "text-gray-400"
+              }`}
+            >
+              <div
+                className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                  step >= 1
+                    ? "bg-pink-600 text-white"
+                    : "bg-gray-200 text-gray-600"
+                }`}
+              >
                 1
               </div>
               <span className="ml-2 font-medium">Fecha y Hora</span>
             </div>
             <div className="w-16 h-1 mx-4 bg-gray-200">
-              <div className={`h-full ${step >= 2 ? "bg-pink-600" : "bg-gray-200"}`} style={{ width: step >= 2 ? "100%" : "0%" }}></div>
+              <div
+                className={`h-full ${
+                  step >= 2 ? "bg-pink-600" : "bg-gray-200"
+                }`}
+                style={{ width: step >= 2 ? "100%" : "0%" }}
+              ></div>
             </div>
-            <div className={`flex items-center ${step >= 2 ? "text-pink-600" : "text-gray-400"}`}>
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center ${step >= 2 ? "bg-pink-600 text-white" : "bg-gray-200 text-gray-600"}`}>
+            <div
+              className={`flex items-center ${
+                step >= 2 ? "text-pink-600" : "text-gray-400"
+              }`}
+            >
+              <div
+                className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                  step >= 2
+                    ? "bg-pink-600 text-white"
+                    : "bg-gray-200 text-gray-600"
+                }`}
+              >
                 2
               </div>
               <span className="ml-2 font-medium">Datos Personales</span>
             </div>
             <div className="w-16 h-1 mx-4 bg-gray-200">
-              <div className={`h-full ${step >= 3 ? "bg-pink-600" : "bg-gray-200"}`} style={{ width: step >= 3 ? "100%" : "0%" }}></div>
+              <div
+                className={`h-full ${
+                  step >= 3 ? "bg-pink-600" : "bg-gray-200"
+                }`}
+                style={{ width: step >= 3 ? "100%" : "0%" }}
+              ></div>
             </div>
-            <div className={`flex items-center ${step >= 3 ? "text-pink-600" : "text-gray-400"}`}>
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center ${step >= 3 ? "bg-pink-600 text-white" : "bg-gray-200 text-gray-600"}`}>
+            <div
+              className={`flex items-center ${
+                step >= 3 ? "text-pink-600" : "text-gray-400"
+              }`}
+            >
+              <div
+                className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                  step >= 3
+                    ? "bg-pink-600 text-white"
+                    : "bg-gray-200 text-gray-600"
+                }`}
+              >
                 3
               </div>
               <span className="ml-2 font-medium">Confirmar</span>
@@ -654,20 +859,27 @@ const USE_LOCAL_IMAGES_ONLY = ((process.env.NEXT_PUBLIC_USE_LOCAL_TREATMENT_IMAG
           {/* Paso 3: Confirmación */}
           {step === 3 && (
             <div>
-              <h3 className="text-lg font-semibold mb-6 text-center">Confirma tu cita</h3>
-              
+              <h3 className="text-lg font-semibold mb-6 text-center">
+                Confirma tu cita
+              </h3>
+
               {submitError && (
                 <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md">
                   {submitError}
                 </div>
               )}
-              
+
               <div className="bg-pink-50 p-6 rounded-md mb-6">
-                <h4 className="font-medium text-gray-800 mb-4">Resumen de tu cita:</h4>
+                <h4 className="font-medium text-gray-800 mb-4">
+                  Resumen de tu cita:
+                </h4>
                 <div className="space-y-2">
                   <p className="text-gray-700">
-                    <span className="font-medium">Fecha:</span> {(() => {
-                      const [yy, mm, dd] = String(selectedDate).split("-").map(Number);
+                    <span className="font-medium">Fecha:</span>{" "}
+                    {(() => {
+                      const [yy, mm, dd] = String(selectedDate)
+                        .split("-")
+                        .map(Number);
                       const d = new Date(yy, mm - 1, dd);
                       return d.toLocaleDateString("es-ES", {
                         weekday: "long",
@@ -681,25 +893,39 @@ const USE_LOCAL_IMAGES_ONLY = ((process.env.NEXT_PUBLIC_USE_LOCAL_TREATMENT_IMAG
                     <span className="font-medium">Hora:</span> {selectedTime}
                   </p>
                   <p className="text-gray-700">
-                    <span className="font-medium">Tratamiento:</span> {selectedTrat?.nombre || "—"}
+                    <span className="font-medium">Tratamiento:</span>{" "}
+                    {selectedTrat?.nombre || "—"}
                   </p>
                   {selectedTrat?.tipo === "multi_zona" && zonaId && (
                     <p className="text-gray-700">
-                      <span className="font-medium">Zona:</span> {zonasList.find((z) => z.id.toString() === zonaId)?.nombre || "—"}
+                      <span className="font-medium">Zona:</span>{" "}
+                      {zonasList.find(z => z.id.toString() === zonaId)
+                        ?.nombre || "—"}
                     </p>
                   )}
                   <p className="text-gray-700">
-                    <span className="font-medium">Sesiones:</span> {selectedSessions} {selectedSessions === 1 ? 'sesión' : 'sesiones'}
+                    <span className="font-medium">Sesiones:</span>{" "}
+                    {selectedSessions}{" "}
+                    {selectedSessions === 1 ? "sesión" : "sesiones"}
                   </p>
                   <p className="text-gray-700">
-                    <span className="font-medium">Precio:</span> {(() => {
+                    <span className="font-medium">Precio:</span>{" "}
+                    {(() => {
                       if (!selectedTrat) return "—";
                       if (selectedTrat.tipo === "multi_zona") {
-                        const z = zonasList.find((z) => z.id.toString() === zonaId);
-                        const value = selectedSessions === 1 ? z?.precio_1_sesion : z?.precio_8_sesiones;
+                        const z = zonasList.find(
+                          z => z.id.toString() === zonaId
+                        );
+                        const value =
+                          selectedSessions === 1
+                            ? z?.precio_1_sesion
+                            : z?.precio_8_sesiones;
                         return formatCLP(value);
                       } else {
-                        const value = selectedSessions === 1 ? selectedTrat.precio_1_sesion : selectedTrat.precio_8_sesiones;
+                        const value =
+                          selectedSessions === 1
+                            ? selectedTrat.precio_1_sesion
+                            : selectedTrat.precio_8_sesiones;
                         return formatCLP(value);
                       }
                     })()}
@@ -751,7 +977,7 @@ const USE_LOCAL_IMAGES_ONLY = ((process.env.NEXT_PUBLIC_USE_LOCAL_TREATMENT_IMAG
                   Selecciona una fecha
                 </h3>
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
-                  {availableDates.map((date) => (
+                  {availableDates.map(date => (
                     <button
                       key={date}
                       onClick={() => handleDateSelect(date)}
@@ -782,15 +1008,15 @@ const USE_LOCAL_IMAGES_ONLY = ((process.env.NEXT_PUBLIC_USE_LOCAL_TREATMENT_IMAG
                     Selecciona una hora
                   </h3>
                   <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
-                    {generateSlots({ dateYMD: selectedDate }).map((time) => {
+                    {generateSlots({ dateYMD: selectedDate }).map(time => {
                       const isTaken = bookedTimes.includes(time);
                       const isPast = isPastSlot(selectedDate, time);
                       const disabled = isTaken || isPast;
                       const classes = disabled
                         ? "p-3 rounded-md border bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed"
                         : selectedTime === time
-                          ? "p-3 rounded-md border bg-pink-600 text-white border-pink-600"
-                          : "p-3 rounded-md border bg-white text-gray-700 border-gray-300 hover:border-pink-400";
+                        ? "p-3 rounded-md border bg-pink-600 text-white border-pink-600"
+                        : "p-3 rounded-md border bg-white text-gray-700 border-gray-300 hover:border-pink-400";
                       return (
                         <button
                           key={time}
@@ -798,7 +1024,13 @@ const USE_LOCAL_IMAGES_ONLY = ((process.env.NEXT_PUBLIC_USE_LOCAL_TREATMENT_IMAG
                           disabled={disabled}
                           aria-disabled={disabled}
                           className={classes}
-                          title={isTaken ? "Horario ocupado" : isPast ? "Horario pasado" : "Seleccionar horario"}
+                          title={
+                            isTaken
+                              ? "Horario ocupado"
+                              : isPast
+                              ? "Horario pasado"
+                              : "Seleccionar horario"
+                          }
                         >
                           {time}
                         </button>
@@ -808,12 +1040,27 @@ const USE_LOCAL_IMAGES_ONLY = ((process.env.NEXT_PUBLIC_USE_LOCAL_TREATMENT_IMAG
                   <div className="mt-3 text-sm text-gray-600">
                     {bookedTimes.length > 0 && (
                       <p>
-                        {bookedTimes.length} horario{bookedTimes.length === 1 ? "" : "s"} ya ocupado{bookedTimes.length === 1 ? "" : "s"} hoy.
+                        {bookedTimes.length} horario
+                        {bookedTimes.length === 1 ? "" : "s"} ya ocupado
+                        {bookedTimes.length === 1 ? "" : "s"} hoy.
                       </p>
                     )}
                     {selectedTime && (
                       <p>
-                        Selección: {(() => { const [yy, mm, dd] = selectedDate.split("-").map(Number); const d = new Date(yy, mm - 1, dd); return d.toLocaleDateString("es-ES", { weekday: "long", year: "numeric", month: "long", day: "numeric" }); })()} a las {selectedTime}.
+                        Selección:{" "}
+                        {(() => {
+                          const [yy, mm, dd] = selectedDate
+                            .split("-")
+                            .map(Number);
+                          const d = new Date(yy, mm - 1, dd);
+                          return d.toLocaleDateString("es-ES", {
+                            weekday: "long",
+                            year: "numeric",
+                            month: "long",
+                            day: "numeric",
+                          });
+                        })()}{" "}
+                        a las {selectedTime}.
                       </p>
                     )}
                   </div>
@@ -827,7 +1074,10 @@ const USE_LOCAL_IMAGES_ONLY = ((process.env.NEXT_PUBLIC_USE_LOCAL_TREATMENT_IMAG
               {/* Aviso de autenticación requerida */}
               {!isLoggedIn && (
                 <div className="mb-6 bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded-md">
-                  <p className="mb-3">Para agendar una cita necesitas iniciar sesión o crear una cuenta.</p>
+                  <p className="mb-3">
+                    Para agendar una cita necesitas iniciar sesión o crear una
+                    cuenta.
+                  </p>
                   <div className="flex gap-3">
                     <button
                       type="button"
@@ -847,24 +1097,31 @@ const USE_LOCAL_IMAGES_ONLY = ((process.env.NEXT_PUBLIC_USE_LOCAL_TREATMENT_IMAG
                 </div>
               )}
               <div className="mb-6">
-                <label htmlFor="tratamiento" className="block text-sm font-medium text-gray-700 mb-1">
+                <label
+                  htmlFor="tratamiento"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
                   Tratamiento
                 </label>
                 <select
                   id="tratamiento"
                   value={tratamiento}
-                  onChange={(e) => setTratamiento(e.target.value)}
+                  onChange={e => setTratamiento(e.target.value)}
                   className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
                   required
                 >
                   <option value="">Selecciona un tratamiento</option>
-                  {loadingTrat && <option disabled>Cargando tratamientos…</option>}
+                  {loadingTrat && (
+                    <option disabled>Cargando tratamientos…</option>
+                  )}
                   {errorTrat && <option disabled>Error al cargar</option>}
-                  {!loadingTrat && !errorTrat && tratamientosList.map((t) => (
-                    <option key={t.id} value={(t.slug ?? t.id).toString()}>
-                      {t.nombre}
-                    </option>
-                  ))}
+                  {!loadingTrat &&
+                    !errorTrat &&
+                    tratamientosList.map(t => (
+                      <option key={t.id} value={(t.slug ?? t.id).toString()}>
+                        {t.nombre}
+                      </option>
+                    ))}
                 </select>
               </div>
 
@@ -873,11 +1130,16 @@ const USE_LOCAL_IMAGES_ONLY = ((process.env.NEXT_PUBLIC_USE_LOCAL_TREATMENT_IMAG
                   <div className="relative w-full h-48 md:h-64 rounded-lg overflow-hidden bg-gray-100">
                     <img
                       src={selectedImgSrc}
-                      alt={`Tratamiento: ${selectedTrat?.nombre ?? "seleccionado"}`}
+                      alt={`Tratamiento: ${
+                        selectedTrat?.nombre ?? "seleccionado"
+                      }`}
                       className="w-full h-full object-cover"
                       referrerPolicy="no-referrer"
-                      onError={(e) => {
-                        if (localFallback && e.currentTarget.src !== localFallback) {
+                      onError={e => {
+                        if (
+                          localFallback &&
+                          e.currentTarget.src !== localFallback
+                        ) {
                           e.currentTarget.src = localFallback;
                         }
                       }}
@@ -888,24 +1150,31 @@ const USE_LOCAL_IMAGES_ONLY = ((process.env.NEXT_PUBLIC_USE_LOCAL_TREATMENT_IMAG
 
               {selectedTrat?.tipo === "multi_zona" && (
                 <div className="mb-6">
-                  <label htmlFor="zona" className="block text-sm font-medium text-gray-700 mb-1">
+                  <label
+                    htmlFor="zona"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
                     Zona
                   </label>
                   <select
                     id="zona"
                     value={zonaId}
-                    onChange={(e) => setZonaId(e.target.value)}
+                    onChange={e => setZonaId(e.target.value)}
                     className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
                     required
                   >
                     <option value="">Selecciona una zona</option>
                     {loadingZonas && <option disabled>Cargando zonas…</option>}
-                    {errorZonas && <option disabled>Error al cargar zonas</option>}
-                    {!loadingZonas && !errorZonas && zonasList.map((z) => (
-                      <option key={z.id} value={z.id.toString()}>
-                        {z.nombre}
-                      </option>
-                    ))}
+                    {errorZonas && (
+                      <option disabled>Error al cargar zonas</option>
+                    )}
+                    {!loadingZonas &&
+                      !errorZonas &&
+                      zonasList.map(z => (
+                        <option key={z.id} value={z.id.toString()}>
+                          {z.nombre}
+                        </option>
+                      ))}
                   </select>
                 </div>
               )}
@@ -914,19 +1183,32 @@ const USE_LOCAL_IMAGES_ONLY = ((process.env.NEXT_PUBLIC_USE_LOCAL_TREATMENT_IMAG
               {selectedTrat && (
                 <div className="mb-6">
                   <div className="flex items-center justify-between mb-2">
-                    <h4 className="text-sm font-semibold text-gray-700">Detalle de precio</h4>
-                    <div className="inline-flex rounded-md shadow-sm" role="group">
+                    <h4 className="text-sm font-semibold text-gray-700">
+                      Detalle de precio
+                    </h4>
+                    <div
+                      className="inline-flex rounded-md shadow-sm"
+                      role="group"
+                    >
                       <button
                         type="button"
                         onClick={() => setSelectedSessions(1)}
-                        className={`px-3 py-1 text-sm border ${selectedSessions === 1 ? "bg-pink-600 text-white border-pink-600" : "bg-white text-gray-700 border-gray-300"} rounded-l-md`}
+                        className={`px-3 py-1 text-sm border ${
+                          selectedSessions === 1
+                            ? "bg-pink-600 text-white border-pink-600"
+                            : "bg-white text-gray-700 border-gray-300"
+                        } rounded-l-md`}
                       >
                         1 sesión
                       </button>
                       <button
                         type="button"
                         onClick={() => setSelectedSessions(8)}
-                        className={`px-3 py-1 text-sm border ${selectedSessions === 8 ? "bg-pink-600 text-white border-pink-600" : "bg-white text-gray-700 border-gray-300"} rounded-r-md`}
+                        className={`px-3 py-1 text-sm border ${
+                          selectedSessions === 8
+                            ? "bg-pink-600 text-white border-pink-600"
+                            : "bg-white text-gray-700 border-gray-300"
+                        } rounded-r-md`}
                       >
                         8 sesiones
                       </button>
@@ -935,11 +1217,14 @@ const USE_LOCAL_IMAGES_ONLY = ((process.env.NEXT_PUBLIC_USE_LOCAL_TREATMENT_IMAG
 
                   <div className="border rounded-md p-4 bg-gray-50">
                     <p className="text-gray-800 mb-1">
-                      <span className="font-medium">Tratamiento:</span> {selectedTrat.nombre}
+                      <span className="font-medium">Tratamiento:</span>{" "}
+                      {selectedTrat.nombre}
                     </p>
                     {selectedTrat.tipo === "multi_zona" && (
                       <p className="text-gray-800 mb-2">
-                        <span className="font-medium">Zona:</span> {zonasList.find((z) => z.id.toString() === zonaId)?.nombre || (zonaId ? "—" : "Selecciona una zona")}
+                        <span className="font-medium">Zona:</span>{" "}
+                        {zonasList.find(z => z.id.toString() === zonaId)
+                          ?.nombre || (zonaId ? "—" : "Selecciona una zona")}
                       </p>
                     )}
 
@@ -948,58 +1233,98 @@ const USE_LOCAL_IMAGES_ONLY = ((process.env.NEXT_PUBLIC_USE_LOCAL_TREATMENT_IMAG
                         <>
                           <div className="flex justify-between">
                             <span>1 sesión</span>
-                            <span className="text-pink-600 font-semibold">{formatCLP(zonasList.find((z) => z.id.toString() === zonaId)?.precio_1_sesion)}</span>
+                            <span className="text-pink-600 font-semibold">
+                              {formatCLP(
+                                zonasList.find(z => z.id.toString() === zonaId)
+                                  ?.precio_1_sesion
+                              )}
+                            </span>
                           </div>
                           <div className="flex justify-between mt-1">
                             <span>8 sesiones</span>
-                            <span className="text-pink-600 font-semibold">{formatCLP(zonasList.find((z) => z.id.toString() === zonaId)?.precio_8_sesiones)}</span>
+                            <span className="text-pink-600 font-semibold">
+                              {formatCLP(
+                                zonasList.find(z => z.id.toString() === zonaId)
+                                  ?.precio_8_sesiones
+                              )}
+                            </span>
                           </div>
                         </>
                       ) : (
-                        <div className="text-gray-600 italic">Elige una zona para ver precios</div>
+                        <div className="text-gray-600 italic">
+                          Elige una zona para ver precios
+                        </div>
                       )
                     ) : (
                       <>
                         <div className="flex justify-between">
                           <span>1 sesión</span>
-                          <span className="text-pink-600 font-semibold">{formatCLP(selectedTrat.precio_1_sesion)}</span>
+                          <span className="text-pink-600 font-semibold">
+                            {formatCLP(selectedTrat.precio_1_sesion)}
+                          </span>
                         </div>
                         <div className="flex justify-between mt-1">
                           <span>8 sesiones</span>
-                          <span className="text-pink-600 font-semibold">{formatCLP(selectedTrat.precio_8_sesiones)}</span>
+                          <span className="text-pink-600 font-semibold">
+                            {formatCLP(selectedTrat.precio_8_sesiones)}
+                          </span>
                         </div>
                       </>
                     )}
 
                     <div className="border-t mt-3 pt-3">
                       <div className="flex justify-between">
-                        <span className="font-medium">Precio total ({selectedSessions === 1 ? "1 sesión" : "8 sesiones"})</span>
+                        <span className="font-medium">
+                          Precio total (
+                          {selectedSessions === 1 ? "1 sesión" : "8 sesiones"})
+                        </span>
                         <span className="text-pink-700 font-semibold">
                           {(() => {
                             if (selectedTrat.tipo === "multi_zona") {
-                              const z = zonasList.find((z) => z.id.toString() === zonaId);
-                              const value = selectedSessions === 1 ? z?.precio_1_sesion : z?.precio_8_sesiones;
+                              const z = zonasList.find(
+                                z => z.id.toString() === zonaId
+                              );
+                              const value =
+                                selectedSessions === 1
+                                  ? z?.precio_1_sesion
+                                  : z?.precio_8_sesiones;
                               return zonaId ? formatCLP(value) : "—";
                             } else {
-                              const value = selectedSessions === 1 ? selectedTrat.precio_1_sesion : selectedTrat.precio_8_sesiones;
+                              const value =
+                                selectedSessions === 1
+                                  ? selectedTrat.precio_1_sesion
+                                  : selectedTrat.precio_8_sesiones;
                               return formatCLP(value);
                             }
                           })()}
                         </span>
                       </div>
                       <div className="flex justify-between mt-1">
-                        <span className="text-sm text-gray-700">Precio agenda (50%)</span>
+                        <span className="text-sm text-gray-700">
+                          Precio agenda (50%)
+                        </span>
                         <span className="text-pink-600 font-semibold">
                           {(() => {
                             let value: number | undefined;
                             if (selectedTrat.tipo === "multi_zona") {
-                              const z = zonasList.find((z) => z.id.toString() === zonaId);
-                              value = selectedSessions === 1 ? z?.precio_1_sesion : z?.precio_8_sesiones;
+                              const z = zonasList.find(
+                                z => z.id.toString() === zonaId
+                              );
+                              value =
+                                selectedSessions === 1
+                                  ? z?.precio_1_sesion
+                                  : z?.precio_8_sesiones;
                               if (!zonaId) return "—";
                             } else {
-                              value = selectedSessions === 1 ? selectedTrat.precio_1_sesion : selectedTrat.precio_8_sesiones;
+                              value =
+                                selectedSessions === 1
+                                  ? selectedTrat.precio_1_sesion
+                                  : selectedTrat.precio_8_sesiones;
                             }
-                            const deposit = typeof value === "number" ? Math.round(value * 0.5) : undefined;
+                            const deposit =
+                              typeof value === "number"
+                                ? Math.round(value * 0.5)
+                                : undefined;
                             return formatCLP(deposit);
                           })()}
                         </span>
@@ -1011,14 +1336,17 @@ const USE_LOCAL_IMAGES_ONLY = ((process.env.NEXT_PUBLIC_USE_LOCAL_TREATMENT_IMAG
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                 <div>
-                  <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
+                  <label
+                    htmlFor="name"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
                     Nombre completo
                   </label>
                   <input
                     type="text"
                     id="name"
                     value={name}
-                    onChange={(e) => setName(e.target.value)}
+                    onChange={e => setName(e.target.value)}
                     className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
                     required
                     disabled={isLoggedIn}
@@ -1026,14 +1354,17 @@ const USE_LOCAL_IMAGES_ONLY = ((process.env.NEXT_PUBLIC_USE_LOCAL_TREATMENT_IMAG
                 </div>
 
                 <div>
-                  <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+                  <label
+                    htmlFor="email"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
                     Correo electrónico
                   </label>
                   <input
                     type="email"
                     id="email"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={e => setEmail(e.target.value)}
                     className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
                     required
                     disabled={isLoggedIn}
@@ -1042,14 +1373,17 @@ const USE_LOCAL_IMAGES_ONLY = ((process.env.NEXT_PUBLIC_USE_LOCAL_TREATMENT_IMAG
               </div>
 
               <div className="mb-6">
-                <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">
+                <label
+                  htmlFor="phone"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
                   Teléfono
                 </label>
                 <input
                   type="tel"
                   id="phone"
                   value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
+                  onChange={e => setPhone(e.target.value)}
                   className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
                   required
                 />
@@ -1057,7 +1391,9 @@ const USE_LOCAL_IMAGES_ONLY = ((process.env.NEXT_PUBLIC_USE_LOCAL_TREATMENT_IMAG
 
               {isLoggedIn && (
                 <div className="mb-6 bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded-md">
-                  <p className="text-sm">Los datos se han llenado automáticamente desde tu perfil.</p>
+                  <p className="text-sm">
+                    Los datos se han llenado automáticamente desde tu perfil.
+                  </p>
                 </div>
               )}
             </div>
@@ -1072,17 +1408,29 @@ const USE_LOCAL_IMAGES_ONLY = ((process.env.NEXT_PUBLIC_USE_LOCAL_TREATMENT_IMAG
                 Volver
               </button>
             )}
-            
+
             {step < 3 && (
               <button
                 onClick={handleNextStep}
                 disabled={
                   (step === 1 && (!selectedDate || !selectedTime)) ||
-                  (step === 2 && (!name || !email || !phone || !tratamiento || (selectedTrat?.tipo === "multi_zona" && !zonaId) || !isLoggedIn))
+                  (step === 2 &&
+                    (!name ||
+                      !email ||
+                      !phone ||
+                      !tratamiento ||
+                      (selectedTrat?.tipo === "multi_zona" && !zonaId) ||
+                      !isLoggedIn))
                 }
                 className={`px-6 py-3 rounded-md font-medium ${
                   (step === 1 && (!selectedDate || !selectedTime)) ||
-                  (step === 2 && (!name || !email || !phone || !tratamiento || (selectedTrat?.tipo === "multi_zona" && !zonaId) || !isLoggedIn))
+                  (step === 2 &&
+                    (!name ||
+                      !email ||
+                      !phone ||
+                      !tratamiento ||
+                      (selectedTrat?.tipo === "multi_zona" && !zonaId) ||
+                      !isLoggedIn))
                     ? "bg-gray-300 text-gray-500 cursor-not-allowed"
                     : "bg-pink-600 text-white hover:bg-pink-700"
                 } ${step === 1 ? "ml-auto" : ""}`}
@@ -1096,4 +1444,3 @@ const USE_LOCAL_IMAGES_ONLY = ((process.env.NEXT_PUBLIC_USE_LOCAL_TREATMENT_IMAG
     </div>
   );
 }
-

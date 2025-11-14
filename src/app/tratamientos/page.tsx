@@ -143,7 +143,7 @@ export default function TratamientosPage() {
                 key={t.id}
                 className="bg-white rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-shadow"
               >
-                <div className="h-48 bg-pink-200 relative overflow-hidden">
+                <div className="h-40 sm:h-48 md:h-56 lg:h-64 bg-pink-200 relative overflow-hidden">
                   {(() => {
                     const fallback = getLocalFallback(t);
                     const src = USE_LOCAL_IMAGES_ONLY && fallback ? fallback : (getImageSrc(t) || fallback);

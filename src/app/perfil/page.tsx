@@ -18,7 +18,7 @@ export default function PerfilPage() {
   const [editForm, setEditForm] = useState({
     nombre: "",
     email: "",
-    telefono: ""
+    phone: ""
   });
   const [updateLoading, setUpdateLoading] = useState(false);
   const [updateError, setUpdateError] = useState("");
@@ -45,12 +45,12 @@ export default function PerfilPage() {
       console.log("DEBUG - Setting editForm with user data:", {
         nombre: user.nombre,
         email: user.email,
-        telefono: user.telefono
+        phone: user.phone
       });
       setEditForm({
         nombre: user.nombre || "",
         email: user.email || "",
-        telefono: user.telefono || ""
+        phone: user.phone || ""
       });
       
       // Cargar citas del usuario
@@ -89,10 +89,10 @@ export default function PerfilPage() {
           errors.email = "Ingresa un email válido";
         }
         break;
-      case 'telefono':
+      case 'phone':
         const phoneRegex = /^[+]?[\d\s\-\(\)]{8,15}$/;
         if (value && !phoneRegex.test(value)) {
-          errors.telefono = "Ingresa un teléfono válido";
+          errors.phone = "Ingresa un teléfono válido";
         }
         break;
     }
@@ -124,7 +124,7 @@ export default function PerfilPage() {
     return (
       editForm.nombre.length >= 2 &&
       /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(editForm.email) &&
-      (!editForm.telefono || /^[+]?[\d\s\-\(\)]{8,15}$/.test(editForm.telefono)) &&
+      (!editForm.phone || /^[+]?[\d\s\-\(\)]{8,15}$/.test(editForm.phone)) &&
       Object.values(fieldErrors).every(error => !error)
     );
   };
@@ -164,7 +164,7 @@ export default function PerfilPage() {
     setEditForm({
       nombre: user?.nombre || "",
       email: user?.email || "",
-      telefono: user?.telefono || ""
+      phone: user?.phone || ""
     });
     setFieldErrors({});
     setUpdateError("");
@@ -467,7 +467,7 @@ export default function PerfilPage() {
                       <User className="h-5 w-5 text-purple-600 mr-2" />
                       <div>
                         <p className="text-sm font-medium text-purple-900">Tipo de cuenta</p>
-                        <p className="text-sm text-purple-700 capitalize">Cliente</p>
+                        <p className="text-sm text-purple-700 capitalize">{user.role || 'cliente'}</p>
                       </div>
                     </div>
                   </div>

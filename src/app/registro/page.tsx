@@ -13,7 +13,7 @@ export default function RegistroPage() {
   const [formData, setFormData] = useState({
     nombre: "",
     email: "",
-    telefono: "",
+    phone: "",
     password: "",
     confirmPassword: ""
   });
@@ -38,10 +38,10 @@ export default function RegistroPage() {
           errors.email = "Ingresa un email válido";
         }
         break;
-      case 'telefono':
+      case 'phone':
         const phoneRegex = /^[+]?[\d\s\-\(\)]{8,15}$/;
         if (value && !phoneRegex.test(value)) {
-          errors.telefono = "Ingresa un teléfono válido";
+          errors.phone = "Ingresa un teléfono válido";
         }
         break;
       case 'password':
@@ -101,7 +101,7 @@ export default function RegistroPage() {
     const result = await register({
       nombre: formData.nombre,
       email: formData.email,
-      telefono: formData.telefono,
+      phone: formData.phone,
       password: formData.password
     });
     
@@ -185,26 +185,26 @@ export default function RegistroPage() {
           </div>
 
           <div>
-            <label htmlFor="telefono" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
               Teléfono (opcional)
             </label>
             <div className="relative">
               <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
               <input
                 type="tel"
-                id="telefono"
-                name="telefono"
-                value={formData.telefono}
+                id="phone"
+                name="phone"
+                value={formData.phone}
                 onChange={handleChange}
                 className={`w-full pl-10 pr-4 py-3 border rounded-md focus:ring-2 focus:ring-pink-500 focus:border-transparent ${
-                  fieldErrors.telefono ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                  fieldErrors.phone ? 'border-red-300 bg-red-50' : 'border-gray-300'
                 }`}
                 placeholder="+1 234 567 8900"
               />
-              {fieldErrors.telefono && (
+              {fieldErrors.phone && (
                 <p className="mt-1 text-sm text-red-600 flex items-center">
                   <XCircle className="h-4 w-4 mr-1" />
-                  {fieldErrors.telefono}
+                  {fieldErrors.phone}
                 </p>
               )}
             </div>
