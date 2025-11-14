@@ -6,14 +6,15 @@ type User = {
   id?: string | number;
   email: string;
   nombre?: string;
-  telefono?: string;
+  phone?: string;
+  role?: string;
 };
 
 type AuthContextType = {
   user: User | null;
   isLoggedIn: boolean;
   login: (email: string, password: string) => Promise<{success: boolean, error?: string}>;
-  register: (userData: { email: string; nombre: string; telefono?: string; password: string }) => Promise<{success: boolean, error?: string}>;
+  register: (userData: { email: string; nombre: string; phone?: string; password: string }) => Promise<{success: boolean, error?: string}>;
   logout: () => void;
   loading: boolean;
   refreshUser: () => Promise<void>;
@@ -45,12 +46,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw new Error(data?.message || "No autorizado");
       }
 
+      console.log("auth/me raw:", data);
+      const emailRaw = (data?.email ?? data?.user?.email ?? data?.profile?.email);
+      const nombreRaw = (data?.name ?? data?.nombre ?? data?.user?.name ?? data?.user?.nombre ?? data?.profile?.name ?? data?.profile?.nombre);
+      const phoneRaw = (data?.phone ?? data?.user?.phone ?? data?.profile?.phone ?? data?.phone_number ?? data?.user?.phone_number);
+      const roleRaw = (data?.role ?? data?.user?.role ?? data?.profile?.role ?? data?.roles ?? data?.user?.roles ?? data?.is_admin);
+      const roleNorm = (() => {
+        const r = roleRaw as any;
+        if (typeof r === 'string') {
+          const s = r.toLowerCase();
+          if (s.includes('admin')) return 'administrador';
+          return 'cliente';
+        }
+        if (typeof r === 'boolean') {
+          return r ? 'administrador' : 'cliente';
+        }
+        if (Array.isArray(r)) {
+          const hasAdmin = r.some((x: any) => typeof x === 'string' && x.toLowerCase().includes('admin'));
+          return hasAdmin ? 'administrador' : 'cliente';
+        }
+        return undefined;
+      })();
       const userData = {
-        id: data.id,
-        email: data.email,
-        nombre: data.name ?? data.nombre,
-        telefono: data.phone ?? data.telefono ?? "",
+        id: (data?.id ?? data?.user?.id ?? undefined),
+        email: typeof emailRaw === 'string' ? emailRaw : String(emailRaw ?? ''),
+        nombre: typeof nombreRaw === 'string' ? nombreRaw : (nombreRaw ? String(nombreRaw) : undefined),
+        phone: typeof phoneRaw === 'string' ? phoneRaw : String(phoneRaw ?? ''),
+        role: roleNorm,
       } as User;
+      console.log("auth/me normalized:", userData);
 
       setUser(userData);
       setIsLoggedIn(true);
@@ -96,7 +120,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const register = async (userData: { email: string; nombre: string; telefono?: string; password: string }) => {
+  const register = async (userData: { email: string; nombre: string; phone?: string; password: string }) => {
     setLoading(true);
     try {
       const response = await fetch(`${AUTH_LOCAL}/signup`, {
@@ -108,8 +132,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           email: userData.email,
           password: userData.password,
           name: userData.nombre,
-          phone: userData.telefono || '',
-          telefono: userData.telefono || ''
+          phone: userData.phone || ''
         }),
         credentials: 'include',
       });

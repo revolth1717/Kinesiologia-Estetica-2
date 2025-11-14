@@ -29,38 +29,14 @@ export default function Home() {
   return (
     <div className="flex flex-col min-h-screen">
       {/* Hero Section */}
-      <section className="bg-gradient-to-r from-pink-500 to-purple-600 text-white py-20">
+      <section className="bg-gradient-to-r from-pink-500 to-purple-600 text-white py-6 sm:py-8 md:py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col md:flex-row items-center justify-between">
-            <div className="md:w-1/2 mb-10 md:mb-0">
-              <h1 className="text-4xl md:text-5xl font-bold mb-4">
-                Kinesiología Estética Profesional
-              </h1>
-              <p className="text-xl mb-8">
-                Servicios de estética y bienestar para todos los tipos de clientes.
-                Mejora tu calidad de vida con nuestros tratamientos personalizados.
-              </p>
-              <div className="flex flex-col sm:flex-row gap-4">
-                <Link
-                  href="/tratamientos"
-                  className="bg-white text-pink-600 hover:bg-gray-100 px-6 py-3 rounded-md font-medium text-center"
-                >
-                  Ver Tratamientos
-                </Link>
-                <Link
-                  href="/agendar"
-                  className="bg-transparent border-2 border-white hover:bg-white hover:text-pink-600 px-6 py-3 rounded-md font-medium transition-colors text-center"
-                >
-                  Agendar Cita
-                </Link>
-              </div>
-            </div>
-            <div className="md:w-1/2 flex justify-center">
-              <div className="relative w-full h-64 md:h-96">
-                <div className="absolute inset-0 bg-pink-200 rounded-lg transform rotate-3"></div>
-                <div className="absolute inset-0 bg-white rounded-lg">
-                  <div className="w-full h-full relative overflow-hidden rounded-lg">
-                    {/* Slides */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 items-start gap-6 md:gap-8">
+            <div className="flex justify-center mb-8 md:mb-0 z-10">
+              <div className="relative w-full h-64 sm:h-72 md:h-96 overflow-hidden rounded-lg">
+                <div className="absolute inset-0 bg-pink-200 rounded-lg transform rotate-1 sm:rotate-2 md:rotate-3"></div>
+                <div className="absolute inset-0 bg-white rounded-lg shadow-lg">
+                  <div className="w-full h-full relative">
                     {heroImages.map((img, idx) => (
                       <Image
                         key={img.src}
@@ -71,8 +47,6 @@ export default function Home() {
                         className={`object-cover transition-opacity duration-700 ${idx === active ? "opacity-100" : "opacity-0"}`}
                       />
                     ))}
-
-                    {/* Controles */}
                     <button
                       aria-label="Anterior"
                       onClick={() => setActive((active - 1 + heroImages.length) % heroImages.length)}
@@ -87,8 +61,6 @@ export default function Home() {
                     >
                       <ChevronRight className="w-5 h-5" />
                     </button>
-
-                    {/* Indicadores */}
                     <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-2">
                       {heroImages.map((_, i) => (
                         <button
@@ -101,6 +73,29 @@ export default function Home() {
                     </div>
                   </div>
                 </div>
+              </div>
+            </div>
+            <div className="mb-10 md:mb-0">
+              <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4">
+                Kinesiología Estética Profesional
+              </h1>
+              <p className="text-xl mb-8">
+                Servicios de estética y bienestar para todos los tipos de clientes.
+                Mejora tu calidad de vida con nuestros tratamientos personalizados.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-4">
+                <Link
+                  href="/tratamientos"
+                  className="bg-white text-pink-600 hover:bg-gray-100 px-6 py-3 rounded-md font-medium text-center"
+                >
+                  Ver Tratamientos
+                </Link>
+                <Link
+                  href="/tratamientos"
+                  className="bg-transparent border-2 border-white hover:bg-white hover:text-pink-600 px-6 py-3 rounded-md font-medium transition-colors text-center"
+                >
+                  Ver Productos
+                </Link>
               </div>
             </div>
           </div>
@@ -170,7 +165,7 @@ export default function Home() {
           <p className="text-center text-gray-600 mb-12 max-w-3xl mx-auto">
             Conoce nuestros tratamientos más solicitados y accede a sus detalles.
           </p>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-8">
             {[
               { name: "Laserlipolisis", slug: "laserlipolisis", img: "/images/tratamientos/laserlipolisis.jpg" },
               { name: "Cavitación", slug: "cavitacion", img: "/images/tratamientos/cavitacion.jpg" },
@@ -178,7 +173,7 @@ export default function Home() {
               { name: "Depilación Láser", slug: "depilacionlaser", img: "/images/tratamientos/depilacionlaser.jpg" },
             ].map((t) => (
               <div key={t.slug} className="bg-white rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-shadow">
-                <div className="h-40 bg-pink-200 relative overflow-hidden">
+                <div className="h-36 sm:h-48 md:h-56 bg-pink-200 relative overflow-hidden">
                   <Image src={t.img} alt={t.name} fill className="object-cover" />
                 </div>
                 <div className="p-5">
