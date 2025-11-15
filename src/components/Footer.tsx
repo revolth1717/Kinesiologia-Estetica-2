@@ -8,7 +8,9 @@ const Footer = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {/* Información de contacto */}
           <div>
-            <h3 className="text-xl font-semibold mb-4 text-pink-400">Kinesiología Estética</h3>
+            <h3 className="text-xl font-semibold mb-4 text-pink-400">
+              Kinesiología Estética
+            </h3>
             <ul className="space-y-3">
               <li className="flex items-center">
                 <Phone className="h-5 w-5 mr-2 text-pink-400" />
@@ -27,25 +29,39 @@ const Footer = () => {
 
           {/* Enlaces rápidos */}
           <div>
-            <h3 className="text-xl font-semibold mb-4 text-pink-400">Enlaces Rápidos</h3>
+            <h3 className="text-xl font-semibold mb-4 text-pink-400">
+              Enlaces Rápidos
+            </h3>
             <ul className="space-y-2">
               <li>
-                <Link href="/" className="hover:text-pink-400 transition-colors">
+                <Link
+                  href="/"
+                  className="hover:text-pink-400 transition-colors"
+                >
                   Inicio
                 </Link>
               </li>
               <li>
-                <Link href="/tratamientos" className="hover:text-pink-400 transition-colors">
+                <Link
+                  href="/tratamientos"
+                  className="hover:text-pink-400 transition-colors"
+                >
                   Tratamientos
                 </Link>
               </li>
               <li>
-                <Link href="/tratamientos" className="hover:text-pink-400 transition-colors">
+                <Link
+                  href="/tratamientos"
+                  className="hover:text-pink-400 transition-colors"
+                >
                   Productos
                 </Link>
               </li>
               <li>
-                <Link href="/contacto" className="hover:text-pink-400 transition-colors">
+                <Link
+                  href="/contacto"
+                  className="hover:text-pink-400 transition-colors"
+                >
                   Contacto
                 </Link>
               </li>
@@ -54,25 +70,42 @@ const Footer = () => {
 
           {/* Redes sociales */}
           <div>
-            <h3 className="text-xl font-semibold mb-4 text-pink-400">Síguenos</h3>
+            <h3 className="text-xl font-semibold mb-4 text-pink-400">
+              Síguenos
+            </h3>
             <div className="flex space-x-4">
-              <a href="https://www.instagram.com/kine.estetica.sb" target="_blank" rel="noopener noreferrer" className="hover:text-pink-400 transition-colors">
+              <a
+                href="https://www.instagram.com/kine.estetica.sb"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-pink-400 transition-colors"
+              >
                 <Instagram className="h-6 w-6" />
               </a>
-              <a href="https://facebook.com" target="_blank" rel="noopener noreferrer" className="hover:text-pink-400 transition-colors">
+              <a
+                href="https://facebook.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-pink-400 transition-colors"
+              >
                 <Facebook className="h-6 w-6" />
               </a>
             </div>
             <p className="mt-4">
-              Horario de atención:<br />
-              Lunes a Viernes: 9:00 - 19:00<br />
+              Horario de atención:
+              <br />
+              Lunes a Viernes: 9:00 - 19:00
+              <br />
               Sábados: 10:00 - 14:00
             </p>
           </div>
         </div>
 
         <div className="border-t border-gray-700 mt-8 pt-8 text-center text-sm">
-          <p>&copy; {new Date().getFullYear()} Kinesiología Estética. Todos los derechos reservados.</p>
+          <p>
+            &copy; {new Date().getFullYear()} Kinesiología Estética. Todos los
+            derechos reservados.
+          </p>
         </div>
       </div>
     </footer>

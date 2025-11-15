@@ -1,6 +1,12 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+} from "react";
 
 type User = {
   id?: string | number;
@@ -13,14 +19,24 @@ type User = {
 type AuthContextType = {
   user: User | null;
   isLoggedIn: boolean;
-  login: (email: string, password: string) => Promise<{success: boolean, error?: string}>;
-  register: (userData: { email: string; nombre: string; phone?: string; password: string }) => Promise<{success: boolean, error?: string}>;
+  login: (
+    email: string,
+    password: string
+  ) => Promise<{ success: boolean; error?: string }>;
+  register: (userData: {
+    email: string;
+    nombre: string;
+    phone?: string;
+    password: string;
+  }) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
   loading: boolean;
   refreshUser: () => Promise<void>;
 };
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://x8ki-letl-twmt.n7.xano.io/api:SzJNIj2V";
+const API_URL =
+  process.env.NEXT_PUBLIC_API_URL ||
+  "https://x8ki-letl-twmt.n7.xano.io/api:SzJNIj2V";
 // Usar rutas locales que proxian a Xano y gestionan cookies HttpOnly
 const AUTH_LOCAL = "/api/auth";
 
@@ -37,7 +53,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       setLoading(true);
       const response = await fetch(`${AUTH_LOCAL}/me`, {
-        credentials: 'include',
+        credentials: "include",
       });
 
       const data = await response.json();
@@ -47,31 +63,56 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       console.log("auth/me raw:", data);
-      const emailRaw = (data?.email ?? data?.user?.email ?? data?.profile?.email);
-      const nombreRaw = (data?.name ?? data?.nombre ?? data?.user?.name ?? data?.user?.nombre ?? data?.profile?.name ?? data?.profile?.nombre);
-      const phoneRaw = (data?.phone ?? data?.user?.phone ?? data?.profile?.phone ?? data?.phone_number ?? data?.user?.phone_number);
-      const roleRaw = (data?.role ?? data?.user?.role ?? data?.profile?.role ?? data?.roles ?? data?.user?.roles ?? data?.is_admin);
+      const emailRaw = data?.email ?? data?.user?.email ?? data?.profile?.email;
+      const nombreRaw =
+        data?.name ??
+        data?.nombre ??
+        data?.user?.name ??
+        data?.user?.nombre ??
+        data?.profile?.name ??
+        data?.profile?.nombre;
+      const phoneRaw =
+        data?.phone ??
+        data?.user?.phone ??
+        data?.profile?.phone ??
+        data?.phone_number ??
+        data?.user?.phone_number;
+      const roleRaw =
+        data?.role ??
+        data?.user?.role ??
+        data?.profile?.role ??
+        data?.roles ??
+        data?.user?.roles ??
+        data?.is_admin;
       const roleNorm = (() => {
         const r = roleRaw as any;
-        if (typeof r === 'string') {
+        if (typeof r === "string") {
           const s = r.toLowerCase();
-          if (s.includes('admin')) return 'administrador';
-          return 'cliente';
+          if (s.includes("admin")) return "administrador";
+          return "cliente";
         }
-        if (typeof r === 'boolean') {
-          return r ? 'administrador' : 'cliente';
+        if (typeof r === "boolean") {
+          return r ? "administrador" : "cliente";
         }
         if (Array.isArray(r)) {
-          const hasAdmin = r.some((x: any) => typeof x === 'string' && x.toLowerCase().includes('admin'));
-          return hasAdmin ? 'administrador' : 'cliente';
+          const hasAdmin = r.some(
+            (x: any) =>
+              typeof x === "string" && x.toLowerCase().includes("admin")
+          );
+          return hasAdmin ? "administrador" : "cliente";
         }
         return undefined;
       })();
       const userData = {
-        id: (data?.id ?? data?.user?.id ?? undefined),
-        email: typeof emailRaw === 'string' ? emailRaw : String(emailRaw ?? ''),
-        nombre: typeof nombreRaw === 'string' ? nombreRaw : (nombreRaw ? String(nombreRaw) : undefined),
-        phone: typeof phoneRaw === 'string' ? phoneRaw : String(phoneRaw ?? ''),
+        id: data?.id ?? data?.user?.id ?? undefined,
+        email: typeof emailRaw === "string" ? emailRaw : String(emailRaw ?? ""),
+        nombre:
+          typeof nombreRaw === "string"
+            ? nombreRaw
+            : nombreRaw
+            ? String(nombreRaw)
+            : undefined,
+        phone: typeof phoneRaw === "string" ? phoneRaw : String(phoneRaw ?? ""),
         role: roleNorm,
       } as User;
       console.log("auth/me normalized:", userData);
@@ -96,18 +137,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setLoading(true);
     try {
       const response = await fetch(`${AUTH_LOCAL}/login`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({ email, password }),
-        credentials: 'include',
+        credentials: "include",
       });
       const data = await response.json();
 
       if (!response.ok) {
         setLoading(false);
-        return { success: false, error: data.message || 'Error al iniciar sesión' };
+        return {
+          success: false,
+          error: data.message || "Error al iniciar sesión",
+        };
       }
 
       // Obtener los datos reales del usuario desde el backend usando cookie
@@ -116,31 +160,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       console.error("Error de inicio de sesión:", error);
       setLoading(false);
-      return { success: false, error: 'No se pudo conectar. Intenta nuevamente.' };
+      return {
+        success: false,
+        error: "No se pudo conectar. Intenta nuevamente.",
+      };
     }
   };
 
-  const register = async (userData: { email: string; nombre: string; phone?: string; password: string }) => {
+  const register = async (userData: {
+    email: string;
+    nombre: string;
+    phone?: string;
+    password: string;
+  }) => {
     setLoading(true);
     try {
       const response = await fetch(`${AUTH_LOCAL}/signup`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           email: userData.email,
           password: userData.password,
           name: userData.nombre,
-          phone: userData.phone || ''
+          phone: userData.phone || "",
         }),
-        credentials: 'include',
+        credentials: "include",
       });
       const data = await response.json();
 
       if (!response.ok) {
         setLoading(false);
-        return { success: false, error: data.message || 'Error al registrar usuario' };
+        return {
+          success: false,
+          error: data.message || "Error al registrar usuario",
+        };
       }
 
       // Tras registrar, obtener datos frescos del usuario con cookie
@@ -149,13 +204,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       console.error("Error de registro:", error);
       setLoading(false);
-      return { success: false, error: 'No se pudo conectar. Intenta nuevamente.' };
+      return {
+        success: false,
+        error: "No se pudo conectar. Intenta nuevamente.",
+      };
     }
   };
 
   const logout = () => {
     // Intentar logout de backend si existe
-    fetch(`${AUTH_LOCAL}/logout`, { method: 'POST', credentials: 'include' }).catch(() => {});
+    fetch(`${AUTH_LOCAL}/logout`, {
+      method: "POST",
+      credentials: "include",
+    }).catch(() => {});
     setUser(null);
     setIsLoggedIn(false);
   };
@@ -165,7 +226,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, isLoggedIn, login, register, logout, loading, refreshUser }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        isLoggedIn,
+        login,
+        register,
+        logout,
+        loading,
+        refreshUser,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

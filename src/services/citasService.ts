@@ -30,7 +30,10 @@ class CitasService {
   // Normalizar una cita para asegurar consistencia en el estado
   private normalizarCita(cita: any): Cita {
     // Clonar y normalizar el campo status (puede venir en mayúsculas desde backend)
-    const status = typeof cita?.status === "string" ? cita.status.toLowerCase().trim() : "pendiente";
+    const status =
+      typeof cita?.status === "string"
+        ? cita.status.toLowerCase().trim()
+        : "pendiente";
     return {
       id: cita.id,
       appointment_date: cita.appointment_date,
@@ -47,14 +50,17 @@ class CitasService {
     try {
       // Usar caché corto para evitar saturar el backend
       const now = Date.now();
-      if (this.lastUserCitasCache && (now - this.lastUserCitasCache.ts) < this.USER_CITAS_TTL_MS) {
+      if (
+        this.lastUserCitasCache &&
+        now - this.lastUserCitasCache.ts < this.USER_CITAS_TTL_MS
+      ) {
         return this.lastUserCitasCache.data;
       }
       // Consultar citas del usuario a través del backend local
       const response = await fetch(`${API_LOCAL_BASE}/user`, {
         method: "GET",
         headers: this.getAuthHeaders(),
-        credentials: 'include',
+        credentials: "include",
       });
 
       if (!response.ok) {
@@ -90,7 +96,10 @@ class CitasService {
   async obtenerDisponibilidad(date: string): Promise<string[]> {
     try {
       // Feature flag para activar/desactivar disponibilidad global
-      const enableGlobal = (process.env.NEXT_PUBLIC_ENABLE_GLOBAL_AVAILABILITY || "false").toLowerCase() === "true";
+      const enableGlobal =
+        (
+          process.env.NEXT_PUBLIC_ENABLE_GLOBAL_AVAILABILITY || "false"
+        ).toLowerCase() === "true";
       if (!enableGlobal) {
         return [];
       }
@@ -104,7 +113,7 @@ class CitasService {
       const res = await fetch(`/api/availability?${qs.toString()}`, {
         method: "GET",
         headers: { Accept: "application/json" },
-        credentials: 'include',
+        credentials: "include",
       });
       if (!res.ok) {
         // Silenciar a debug para no llenar la consola en la UI
@@ -112,8 +121,10 @@ class CitasService {
         return [];
       }
       const data = await res.json();
-      const taken = Array.isArray((data as any)?.taken_times) ? (data as any).taken_times : [];
-      return taken.filter((t: any) => typeof t === 'string');
+      const taken = Array.isArray((data as any)?.taken_times)
+        ? (data as any).taken_times
+        : [];
+      return taken.filter((t: any) => typeof t === "string");
     } catch (err) {
       console.debug("Error obteniendo disponibilidad global:", err);
       return [];
@@ -125,7 +136,7 @@ class CitasService {
     try {
       // Convertir siempre a ISO UTC para el backend (evita desfases de día)
       const toIso = (v: string | number) => {
-        if (typeof v === 'number') return new Date(v).toISOString();
+        if (typeof v === "number") return new Date(v).toISOString();
         const s = String(v).trim();
         if (/^\d+$/.test(s)) {
           const num = parseInt(s, 10);
@@ -142,13 +153,15 @@ class CitasService {
       const response = await fetch(`${API_LOCAL_BASE}`, {
         method: "POST",
         headers: this.getAuthHeaders(),
-        credentials: 'include',
+        credentials: "include",
         body: JSON.stringify(payload),
       });
 
       if (!response.ok) {
         if ([401, 403].includes(response.status)) {
-          throw new Error("No autorizado. Inicia sesión para agendar una cita.");
+          throw new Error(
+            "No autorizado. Inicia sesión para agendar una cita."
+          );
         }
         throw new Error(`Error ${response.status}: ${response.statusText}`);
       }
@@ -162,13 +175,16 @@ class CitasService {
   }
 
   // Actualizar una cita existente
-  async actualizarCita(id: number, datosActualizados: Partial<Cita>): Promise<Cita> {
+  async actualizarCita(
+    id: number,
+    datosActualizados: Partial<Cita>
+  ): Promise<Cita> {
     try {
       // Actualizar cita a través del backend local
       const response = await fetch(`${API_LOCAL_BASE}/${id}`, {
         method: "PATCH",
         headers: this.getAuthHeaders(),
-        credentials: 'include',
+        credentials: "include",
         body: JSON.stringify(datosActualizados),
       });
 
@@ -191,14 +207,18 @@ class CitasService {
       const response = await fetch(`${API_LOCAL_BASE}/${id}`, {
         method: "PATCH",
         headers: this.getAuthHeaders(),
-        credentials: 'include',
+        credentials: "include",
         body: JSON.stringify({ status: "cancelada" }),
       });
 
       if (!response.ok) {
         // Propagar errores de negocio (403, 404, 409, etc.)
         const errorText = await response.text().catch(() => "");
-        throw new Error(`Error ${response.status}: ${response.statusText}${errorText ? ` - ${errorText}` : ""}`);
+        throw new Error(
+          `Error ${response.status}: ${response.statusText}${
+            errorText ? ` - ${errorText}` : ""
+          }`
+        );
       }
       // Invalidar caché para que la disponibilidad del usuario se actualice inmediatamente
       this.lastUserCitasCache = null;
@@ -215,12 +235,16 @@ class CitasService {
       const response = await fetch(`${API_LOCAL_BASE}/${id}`, {
         method: "DELETE",
         headers: this.getAuthHeaders(),
-        credentials: 'include',
+        credentials: "include",
       });
 
       if (!response.ok) {
         const errorText = await response.text().catch(() => "");
-        throw new Error(`Error ${response.status}: ${response.statusText}${errorText ? ` - ${errorText}` : ""}`);
+        throw new Error(
+          `Error ${response.status}: ${response.statusText}${
+            errorText ? ` - ${errorText}` : ""
+          }`
+        );
       }
       // Invalidar caché para que la lista se actualice inmediatamente
       this.lastUserCitasCache = null;
@@ -234,7 +258,8 @@ class CitasService {
   formatearFecha(appointmentDate: string | number): string {
     try {
       const date = (() => {
-        if (typeof appointmentDate === 'number') return new Date(appointmentDate);
+        if (typeof appointmentDate === "number")
+          return new Date(appointmentDate);
         const s = String(appointmentDate).trim();
         // Si viene como YYYY-MM-DD (sin hora), parsear como fecha LOCAL
         const m = s.match(/^([0-9]{4})-([0-9]{2})-([0-9]{2})$/);
@@ -252,11 +277,11 @@ class CitasService {
         }
         return new Date(s);
       })();
-      return date.toLocaleDateString('es-ES', {
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
+      return date.toLocaleDateString("es-ES", {
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric",
       });
     } catch (error) {
       return String(appointmentDate);
@@ -267,7 +292,8 @@ class CitasService {
   formatearHora(appointmentDate: string | number): string {
     try {
       const date = (() => {
-        if (typeof appointmentDate === 'number') return new Date(appointmentDate);
+        if (typeof appointmentDate === "number")
+          return new Date(appointmentDate);
         const s = String(appointmentDate).trim();
         // Si viene como YYYY-MM-DD (sin hora), mostrar hora vacía/00:00 local implícita
         const m = s.match(/^([0-9]{4})-([0-9]{2})-([0-9]{2})$/);
@@ -284,10 +310,10 @@ class CitasService {
         }
         return new Date(s);
       })();
-      return date.toLocaleTimeString('es-ES', {
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: false
+      return date.toLocaleTimeString("es-ES", {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
       });
     } catch (error) {
       return String(appointmentDate);
@@ -326,4 +352,3 @@ class CitasService {
 }
 
 export const citasService = new CitasService();
-

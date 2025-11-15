@@ -1,7 +1,16 @@
 "use client";
 import Image from "next/image";
 import Link from "next/link";
-import { Calendar, Star, Award, Users, ChevronLeft, ChevronRight, CreditCard, ShieldCheck } from "lucide-react";
+import {
+  Calendar,
+  Star,
+  Award,
+  Users,
+  ChevronLeft,
+  ChevronRight,
+  CreditCard,
+  ShieldCheck,
+} from "lucide-react";
 import TrustBadges from "@/components/TrustBadges";
 import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
@@ -12,18 +21,25 @@ export default function Home() {
     () => [
       { src: "/images/tratamientos/laserlipolisis.jpg", alt: "Laserlipolisis" },
       { src: "/images/tratamientos/cavitacion.jpg", alt: "Cavitación" },
-      { src: "/images/tratamientos/facialconradiofrecuencia.jpg", alt: "Facial con radiofrecuencia" },
-      { src: "/images/tratamientos/depilacionlaser.jpg", alt: "Depilación láser" },
+      {
+        src: "/images/tratamientos/facialconradiofrecuencia.jpg",
+        alt: "Facial con radiofrecuencia",
+      },
+      {
+        src: "/images/tratamientos/depilacionlaser.jpg",
+        alt: "Depilación láser",
+      },
     ],
     []
   );
 
   const [active, setActive] = useState(0);
-  const ROTATION_MS = Number(process.env.NEXT_PUBLIC_HOME_HERO_ROTATION_MS) || 5000;
+  const ROTATION_MS =
+    Number(process.env.NEXT_PUBLIC_HOME_HERO_ROTATION_MS) || 5000;
   // Auto-rotación suave cada 4s
   useEffect(() => {
     const id = setInterval(() => {
-      setActive((prev) => (prev + 1) % heroImages.length);
+      setActive(prev => (prev + 1) % heroImages.length);
     }, ROTATION_MS);
     return () => clearInterval(id);
   }, [heroImages.length, ROTATION_MS]);
@@ -31,7 +47,8 @@ export default function Home() {
   useEffect(() => {
     const controller = new AbortController();
     const CONTENT_API_URL = process.env.NEXT_PUBLIC_CONTENT_API_URL || "";
-    const PRODUCT_DIR = process.env.NEXT_PUBLIC_PRODUCT_IMAGES_DIR || "/productos";
+    const PRODUCT_DIR =
+      process.env.NEXT_PUBLIC_PRODUCT_IMAGES_DIR || "/productos";
 
     const LOCAL_TREATMENT_IMAGES: Record<string, string> = {
       laserlipolisis: "laserlipolisis.jpg",
@@ -49,14 +66,22 @@ export default function Home() {
         .replace(/[^a-z0-9]+/g, "");
     };
 
-    const getLocalTreatmentFallback = (t: Record<string, unknown>): string | undefined => {
+    const getLocalTreatmentFallback = (
+      t: Record<string, unknown>
+    ): string | undefined => {
       const slugKey = typeof t.slug === "string" ? t.slug : undefined;
-      const nameKey = normalizeName(typeof t.nombre === "string" ? t.nombre : undefined);
-      const fileName = (slugKey ? LOCAL_TREATMENT_IMAGES[slugKey] : undefined) || (nameKey ? LOCAL_TREATMENT_IMAGES[nameKey] : undefined);
+      const nameKey = normalizeName(
+        typeof t.nombre === "string" ? t.nombre : undefined
+      );
+      const fileName =
+        (slugKey ? LOCAL_TREATMENT_IMAGES[slugKey] : undefined) ||
+        (nameKey ? LOCAL_TREATMENT_IMAGES[nameKey] : undefined);
       return fileName ? `/api/local-images?file=${fileName}` : undefined;
     };
 
-    const getTreatmentImageSrc = (t: Record<string, unknown>): string | undefined => {
+    const getTreatmentImageSrc = (
+      t: Record<string, unknown>
+    ): string | undefined => {
       const fallback = getLocalTreatmentFallback(t);
       const img = t.imagen_url;
       if (typeof img === "string" && img) return img;
@@ -83,12 +108,22 @@ export default function Home() {
 
     const getProductCandidates = (item: Record<string, unknown>): string[] => {
       const candidates: string[] = [];
-      const direct = typeof item.imagen_url === "string" ? (item.imagen_url as string) : undefined;
+      const direct =
+        typeof item.imagen_url === "string"
+          ? (item.imagen_url as string)
+          : undefined;
       if (direct) candidates.push(direct);
-      const imgObj = item.imagen_url && typeof item.imagen_url === "object" ? (item.imagen_url as Record<string, unknown>) : undefined;
-      const objUrl = imgObj && typeof imgObj.url === "string" ? (imgObj.url as string) : undefined;
+      const imgObj =
+        item.imagen_url && typeof item.imagen_url === "object"
+          ? (item.imagen_url as Record<string, unknown>)
+          : undefined;
+      const objUrl =
+        imgObj && typeof imgObj.url === "string"
+          ? (imgObj.url as string)
+          : undefined;
       if (objUrl) candidates.push(objUrl);
-      const name = typeof item.nombre === "string" ? (item.nombre as string) : "producto";
+      const name =
+        typeof item.nombre === "string" ? (item.nombre as string) : "producto";
       const base = slugify(name);
       ["jpg", "jpeg", "png", "webp"].forEach(ext => {
         candidates.push(`${PRODUCT_DIR}/${base}.${ext}`);
@@ -120,15 +155,21 @@ export default function Home() {
 
     const prefetch = async () => {
       try {
-        const trRes = await fetch("/api/tratamientos", { signal: controller.signal });
+        const trRes = await fetch("/api/tratamientos", {
+          signal: controller.signal,
+        });
         if (trRes.ok) {
           const trData = await trRes.json();
           const trList = safeList(trData);
-          trList.slice(0, 12).forEach(t => prefetchImage(getTreatmentImageSrc(t)));
+          trList
+            .slice(0, 12)
+            .forEach(t => prefetchImage(getTreatmentImageSrc(t)));
         }
       } catch {}
       try {
-        const prRes = await fetch("/api/productos", { signal: controller.signal });
+        const prRes = await fetch("/api/productos", {
+          signal: controller.signal,
+        });
         if (prRes.ok) {
           const prData = await prRes.json();
           const prList = safeList(prData);
@@ -140,7 +181,10 @@ export default function Home() {
       } catch {}
       if (isLoggedIn) {
         try {
-          await fetch("/api/appointment/user", { signal: controller.signal, credentials: "include" });
+          await fetch("/api/appointment/user", {
+            signal: controller.signal,
+            credentials: "include",
+          });
         } catch {}
       }
     };
@@ -165,19 +209,27 @@ export default function Home() {
                         alt={img.alt}
                         fill
                         priority={idx === active}
-                        className={`object-cover transition-opacity duration-700 ${idx === active ? "opacity-100" : "opacity-0"}`}
+                        className={`object-cover transition-opacity duration-700 ${
+                          idx === active ? "opacity-100" : "opacity-0"
+                        }`}
                       />
                     ))}
                     <button
                       aria-label="Anterior"
-                      onClick={() => setActive((active - 1 + heroImages.length) % heroImages.length)}
+                      onClick={() =>
+                        setActive(
+                          (active - 1 + heroImages.length) % heroImages.length
+                        )
+                      }
                       className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/70 hover:bg-white text-pink-700 rounded-full p-2 shadow"
                     >
                       <ChevronLeft className="w-5 h-5" />
                     </button>
                     <button
                       aria-label="Siguiente"
-                      onClick={() => setActive((active + 1) % heroImages.length)}
+                      onClick={() =>
+                        setActive((active + 1) % heroImages.length)
+                      }
                       className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/70 hover:bg-white text-pink-700 rounded-full p-2 shadow"
                     >
                       <ChevronRight className="w-5 h-5" />
@@ -188,7 +240,9 @@ export default function Home() {
                           key={i}
                           aria-label={`Ir a la imagen ${i + 1}`}
                           onClick={() => setActive(i)}
-                          className={`w-2.5 h-2.5 rounded-full ${i === active ? "bg-pink-600" : "bg-pink-300"}`}
+                          className={`w-2.5 h-2.5 rounded-full ${
+                            i === active ? "bg-pink-600" : "bg-pink-300"
+                          }`}
                         />
                       ))}
                     </div>
@@ -201,8 +255,9 @@ export default function Home() {
                 Kinesiología Estética Profesional
               </h1>
               <p className="text-xl mb-8">
-                Servicios de estética y bienestar para todos los tipos de clientes.
-                Mejora tu calidad de vida con nuestros tratamientos personalizados.
+                Servicios de estética y bienestar para todos los tipos de
+                clientes. Mejora tu calidad de vida con nuestros tratamientos
+                personalizados.
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
                 <Link
@@ -236,40 +291,51 @@ export default function Home() {
               <div className="mx-auto w-12 h-12 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mb-4">
                 <Star className="h-6 w-6 text-gray-600 dark:text-gray-300" />
               </div>
-              <h3 className="text-xl font-semibold mb-2 text-gray-800 dark:text-gray-100">Experiencia Profesional</h3>
+              <h3 className="text-xl font-semibold mb-2 text-gray-800 dark:text-gray-100">
+                Experiencia Profesional
+              </h3>
               <p className="text-gray-600 dark:text-gray-300">
-                Contamos con profesionales altamente calificados y con años de experiencia en el área.
+                Contamos con profesionales altamente calificados y con años de
+                experiencia en el área.
               </p>
             </div>
             <div className="bg-gray-50 dark:bg-gray-800 p-6 rounded-lg text-center border border-gray-200 dark:border-gray-700 transition-shadow hover:shadow-md">
               <div className="mx-auto w-12 h-12 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mb-4">
                 <Award className="h-6 w-6 text-gray-600 dark:text-gray-300" />
               </div>
-              <h3 className="text-xl font-semibold mb-2 text-gray-800 dark:text-gray-100">Tecnología Avanzada</h3>
+              <h3 className="text-xl font-semibold mb-2 text-gray-800 dark:text-gray-100">
+                Tecnología Avanzada
+              </h3>
               <p className="text-gray-600 dark:text-gray-300">
-                Utilizamos equipos de última generación para garantizar los mejores resultados.
+                Utilizamos equipos de última generación para garantizar los
+                mejores resultados.
               </p>
             </div>
             <div className="bg-gray-50 dark:bg-gray-800 p-6 rounded-lg text-center border border-gray-200 dark:border-gray-700 transition-shadow hover:shadow-md">
               <div className="mx-auto w-12 h-12 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mb-4">
                 <Users className="h-6 w-6 text-gray-600 dark:text-gray-300" />
               </div>
-              <h3 className="text-xl font-semibold mb-2 text-gray-800 dark:text-gray-100">Atención Personalizada</h3>
+              <h3 className="text-xl font-semibold mb-2 text-gray-800 dark:text-gray-100">
+                Atención Personalizada
+              </h3>
               <p className="text-gray-600 dark:text-gray-300">
-                Cada tratamiento se adapta a las necesidades específicas de cada cliente.
+                Cada tratamiento se adapta a las necesidades específicas de cada
+                cliente.
               </p>
             </div>
           </div>
         </div>
       </section>
 
-
       {/* CTA Agendar */}
       <section className="py-16 bg-pink-600 text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl font-bold mb-4">¿Listo para mejorar tu bienestar?</h2>
+          <h2 className="text-3xl font-bold mb-4">
+            ¿Listo para mejorar tu bienestar?
+          </h2>
           <p className="text-xl mb-8 max-w-3xl mx-auto">
-            Agenda una cita hoy mismo y comienza tu camino hacia una mejor versión de ti.
+            Agenda una cita hoy mismo y comienza tu camino hacia una mejor
+            versión de ti.
           </p>
           <Link
             href="/agendar"
@@ -285,23 +351,52 @@ export default function Home() {
       {/* Tratamientos al final */}
       <section className="py-16 bg-white dark:bg-gray-900">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-3xl font-bold text-center mb-4 text-gray-800 dark:text-gray-100">Tratamientos</h2>
+          <h2 className="text-3xl font-bold text-center mb-4 text-gray-800 dark:text-gray-100">
+            Tratamientos
+          </h2>
           <p className="text-center text-gray-600 dark:text-gray-300 mb-12 max-w-3xl mx-auto">
-            Conoce nuestros tratamientos más solicitados y accede a sus detalles.
+            Conoce nuestros tratamientos más solicitados y accede a sus
+            detalles.
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-8">
             {[
-              { name: "Laserlipolisis", slug: "laserlipolisis", img: "/images/tratamientos/laserlipolisis.jpg" },
-              { name: "Cavitación", slug: "cavitacion", img: "/images/tratamientos/cavitacion.jpg" },
-              { name: "Facial con Radiofrecuencia", slug: "facialconradiofrecuencia", img: "/images/tratamientos/facialconradiofrecuencia.jpg" },
-              { name: "Depilación Láser", slug: "depilacionlaser", img: "/images/tratamientos/depilacionlaser.jpg" },
-            ].map((t) => (
-              <div key={t.slug} className="bg-white dark:bg-gray-800 rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-shadow border border-pink-200 dark:border-pink-700 hover:border-pink-400 dark:hover:border-pink-500">
+              {
+                name: "Laserlipolisis",
+                slug: "laserlipolisis",
+                img: "/images/tratamientos/laserlipolisis.jpg",
+              },
+              {
+                name: "Cavitación",
+                slug: "cavitacion",
+                img: "/images/tratamientos/cavitacion.jpg",
+              },
+              {
+                name: "Facial con Radiofrecuencia",
+                slug: "facialconradiofrecuencia",
+                img: "/images/tratamientos/facialconradiofrecuencia.jpg",
+              },
+              {
+                name: "Depilación Láser",
+                slug: "depilacionlaser",
+                img: "/images/tratamientos/depilacionlaser.jpg",
+              },
+            ].map(t => (
+              <div
+                key={t.slug}
+                className="bg-white dark:bg-gray-800 rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-shadow border border-pink-200 dark:border-pink-700 hover:border-pink-400 dark:hover:border-pink-500"
+              >
                 <div className="h-36 sm:h-48 md:h-56 bg-pink-200 relative overflow-hidden">
-                  <Image src={t.img} alt={t.name} fill className="object-cover" />
+                  <Image
+                    src={t.img}
+                    alt={t.name}
+                    fill
+                    className="object-cover"
+                  />
                 </div>
                 <div className="p-5">
-                  <h3 className="text-lg font-semibold mb-2 text-gray-800 dark:text-gray-100">{t.name}</h3>
+                  <h3 className="text-lg font-semibold mb-2 text-gray-800 dark:text-gray-100">
+                    {t.name}
+                  </h3>
                   <Link
                     href={`/tratamientos/${t.slug}`}
                     className="text-pink-600 hover:text-pink-800 font-medium"
@@ -327,37 +422,53 @@ export default function Home() {
       {/* Información de pagos - Webpay */}
       <section className="py-16 bg-gray-50 dark:bg-gray-900">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-3xl font-bold text-center mb-4 text-gray-800 dark:text-gray-100">Información de Pagos</h2>
+          <h2 className="text-3xl font-bold text-center mb-4 text-gray-800 dark:text-gray-100">
+            Información de Pagos
+          </h2>
           <p className="text-center text-gray-600 dark:text-gray-300 mb-12 max-w-3xl mx-auto">
-            Aceptamos pagos seguros a través de Webpay. Puedes pagar con tarjetas
-            de crédito y débito, y contamos con medidas de seguridad para proteger tus datos.
+            Aceptamos pagos seguros a través de Webpay. Puedes pagar con
+            tarjetas de crédito y débito, y contamos con medidas de seguridad
+            para proteger tus datos.
           </p>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div className="bg-white dark:bg-gray-800 p-6 rounded-lg text-center shadow">
               <div className="mx-auto w-12 h-12 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mb-4">
                 <CreditCard className="h-6 w-6 text-gray-600 dark:text-gray-300" />
               </div>
-              <h3 className="text-xl font-semibold mb-2 text-gray-800 dark:text-gray-100">Medios de pago</h3>
-              <p className="text-gray-600 dark:text-gray-300">Tarjetas de crédito y débito (Webpay).</p>
+              <h3 className="text-xl font-semibold mb-2 text-gray-800 dark:text-gray-100">
+                Medios de pago
+              </h3>
+              <p className="text-gray-600 dark:text-gray-300">
+                Tarjetas de crédito y débito (Webpay).
+              </p>
             </div>
             <div className="bg-white dark:bg-gray-800 p-6 rounded-lg text-center shadow">
               <div className="mx-auto w-12 h-12 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mb-4">
                 <ShieldCheck className="h-6 w-6 text-gray-600 dark:text-gray-300" />
               </div>
-              <h3 className="text-xl font-semibold mb-2 text-gray-800 dark:text-gray-100">Pago seguro</h3>
-              <p className="text-gray-600 dark:text-gray-300">Transacciones protegidas y encriptadas a través de Webpay.</p>
+              <h3 className="text-xl font-semibold mb-2 text-gray-800 dark:text-gray-100">
+                Pago seguro
+              </h3>
+              <p className="text-gray-600 dark:text-gray-300">
+                Transacciones protegidas y encriptadas a través de Webpay.
+              </p>
             </div>
             <div className="bg-white dark:bg-gray-800 p-6 rounded-lg text-center shadow">
               <div className="mx-auto w-12 h-12 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mb-4">
                 <Users className="h-6 w-6 text-gray-600 dark:text-gray-300" />
               </div>
-              <h3 className="text-xl font-semibold mb-2 text-gray-800 dark:text-gray-100">Comodidad</h3>
-              <p className="text-gray-600 dark:text-gray-300">Paga rápido desde tu dispositivo sin complicaciones.</p>
+              <h3 className="text-xl font-semibold mb-2 text-gray-800 dark:text-gray-100">
+                Comodidad
+              </h3>
+              <p className="text-gray-600 dark:text-gray-300">
+                Paga rápido desde tu dispositivo sin complicaciones.
+              </p>
             </div>
           </div>
           <p className="text-center text-sm text-gray-500 dark:text-gray-400 mt-8">
-            Nota: Esta es información de referencia. La integración de pago en línea se habilita
-            en el flujo de compra y agendamiento cuando corresponda.
+            Nota: Esta es información de referencia. La integración de pago en
+            línea se habilita en el flujo de compra y agendamiento cuando
+            corresponda.
           </p>
           <TrustBadges />
         </div>
