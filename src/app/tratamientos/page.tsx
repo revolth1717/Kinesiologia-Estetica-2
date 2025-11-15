@@ -33,41 +33,42 @@ function normalizeName(name?: string): string | undefined {
   if (!name) return undefined;
   return name
     .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-z0-9]+/g, '');
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "");
 }
 
-  // Usar proxy local para evitar CORS
-  const LOCAL_TREATMENTS_URL = "/api/tratamientos";
+// Usar proxy local para evitar CORS
+const LOCAL_TREATMENTS_URL = "/api/tratamientos";
 
-  // Modo diagnóstico: usar solo imágenes locales de `public/images/tratamientos`
-  // Por defecto en false para preferir las imágenes reales de cada tratamiento
-  const USE_LOCAL_IMAGES_ONLY = ((process.env.NEXT_PUBLIC_USE_LOCAL_TREATMENT_IMAGES ?? 'false') === 'true');
+// Modo diagnóstico: usar solo imágenes locales de `public/images/tratamientos`
+// Por defecto en false para preferir las imágenes reales de cada tratamiento
+const USE_LOCAL_IMAGES_ONLY =
+  (process.env.NEXT_PUBLIC_USE_LOCAL_TREATMENT_IMAGES ?? "false") === "true";
 
-  function getLocalFallback(t: Tratamiento): string | undefined {
-    const slugKey = t.slug;
-    const nameKey = normalizeName(t.nombre);
-    const fileName =
-      (slugKey ? LOCAL_TREATMENT_IMAGES[slugKey] : undefined) ||
-      (nameKey ? LOCAL_TREATMENT_IMAGES[nameKey] : undefined);
-    return fileName ? `/api/local-images?file=${fileName}` : undefined;
-  }
+function getLocalFallback(t: Tratamiento): string | undefined {
+  const slugKey = t.slug;
+  const nameKey = normalizeName(t.nombre);
+  const fileName =
+    (slugKey ? LOCAL_TREATMENT_IMAGES[slugKey] : undefined) ||
+    (nameKey ? LOCAL_TREATMENT_IMAGES[nameKey] : undefined);
+  return fileName ? `/api/local-images?file=${fileName}` : undefined;
+}
 
 // Obtiene la URL correcta para la imagen del tratamiento
 function getImageSrc(t: Tratamiento): string | undefined {
   const img = t.imagen_url;
   if (!img) return getLocalFallback(t);
 
-  if (typeof img === 'string') return img || getLocalFallback(t);
+  if (typeof img === "string") return img || getLocalFallback(t);
 
   // Si viene como objeto de Xano, priorizar 'url'
-  if (typeof img === 'object') {
-    if (img.url && typeof img.url === 'string') return img.url;
-    if (img.path && typeof img.path === 'string') {
+  if (typeof img === "object") {
+    if (img.url && typeof img.url === "string") return img.url;
+    if (img.path && typeof img.path === "string") {
       // Si viene sólo 'path', construir URL absoluta con el CONTENT_API_URL público
-      if (img.path.startsWith('http')) return img.path;
-      const base = process.env.NEXT_PUBLIC_CONTENT_API_URL || '';
+      if (img.path.startsWith("http")) return img.path;
+      const base = process.env.NEXT_PUBLIC_CONTENT_API_URL || "";
       return base ? `${base}${img.path}` : img.path;
     }
   }
@@ -85,27 +86,38 @@ export default function TratamientosPage() {
     const didFetch = { current: false } as { current: boolean };
     const load = async () => {
       try {
-        const res = await fetch(LOCAL_TREATMENTS_URL, { signal: controller.signal });
+        const res = await fetch(LOCAL_TREATMENTS_URL, {
+          signal: controller.signal,
+        });
         if (res.status === 404) {
           setTratamientos([]);
           setError(null);
           return;
         }
         if (res.status === 429) {
-          await new Promise((r) => setTimeout(r, 800));
-          const retry = await fetch(LOCAL_TREATMENTS_URL, { signal: controller.signal });
+          await new Promise(r => setTimeout(r, 800));
+          const retry = await fetch(LOCAL_TREATMENTS_URL, {
+            signal: controller.signal,
+          });
           if (!retry.ok) throw new Error(`Error ${retry.status}`);
           const data = await retry.json();
-          const list = Array.isArray(data) ? data : (data.items ?? data.results ?? []);
+          const list = Array.isArray(data)
+            ? data
+            : data.items ?? data.results ?? [];
           setTratamientos(list);
           return;
         }
         if (!res.ok) throw new Error(`Error ${res.status}`);
         const data = await res.json();
-        const list = Array.isArray(data) ? data : (data.items ?? data.results ?? []);
+        const list = Array.isArray(data)
+          ? data
+          : data.items ?? data.results ?? [];
         setTratamientos(list);
       } catch (e: any) {
-        if (e?.name === 'AbortError' || (typeof e?.message === 'string' && e.message.includes('Abort'))) {
+        if (
+          e?.name === "AbortError" ||
+          (typeof e?.message === "string" && e.message.includes("Abort"))
+        ) {
           // Ignorar abortos provocados por doble render en modo desarrollo
           return;
         }
@@ -127,18 +139,22 @@ export default function TratamientosPage() {
     <div className="py-12 bg-gray-50 dark:bg-gray-900 dark:text-gray-100">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-gray-800 dark:text-gray-100 mb-4">Nuestros Tratamientos</h1>
+          <h1 className="text-4xl font-bold text-gray-800 dark:text-gray-100 mb-4">
+            Nuestros Tratamientos
+          </h1>
           <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
             Descubre nuestra oferta actual de tratamientos y paquetes.
           </p>
         </div>
 
-        {loading && <p className="text-center text-gray-600">Cargando tratamientos…</p>}
+        {loading && (
+          <p className="text-center text-gray-600">Cargando tratamientos…</p>
+        )}
         {error && <p className="text-center text-red-600">Error: {error}</p>}
 
         {!loading && !error && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {tratamientos.map((t) => (
+            {tratamientos.map(t => (
               <div
                 key={t.id}
                 className="bg-white dark:bg-gray-800 rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-shadow"
@@ -146,14 +162,17 @@ export default function TratamientosPage() {
                 <div className="h-40 sm:h-48 md:h-56 lg:h-64 bg-pink-200 dark:bg-gray-700 relative overflow-hidden">
                   {(() => {
                     const fallback = getLocalFallback(t);
-                    const src = USE_LOCAL_IMAGES_ONLY && fallback ? fallback : (getImageSrc(t) || fallback);
+                    const src =
+                      USE_LOCAL_IMAGES_ONLY && fallback
+                        ? fallback
+                        : getImageSrc(t) || fallback;
                     return src ? (
                       <img
                         src={src}
                         alt={t.nombre}
                         className="w-full h-full object-cover"
                         referrerPolicy="no-referrer"
-                        onError={(e) => {
+                        onError={e => {
                           if (fallback && e.currentTarget.src !== fallback) {
                             e.currentTarget.src = fallback;
                           }
@@ -167,10 +186,14 @@ export default function TratamientosPage() {
                   })()}
                 </div>
                 <div className="p-6">
-                  <h3 className="text-xl font-semibold mb-2 text-gray-800 dark:text-gray-100">{t.nombre}</h3>
+                  <h3 className="text-xl font-semibold mb-2 text-gray-800 dark:text-gray-100">
+                    {t.nombre}
+                  </h3>
                   <div className="text-gray-600 dark:text-gray-300 mb-4">
                     <div>Duración: {t.duracion_minutos} min</div>
-                    <div className="mt-1">Tipo: {t.tipo === "multi_zona" ? "Con zonas" : "Único"}</div>
+                    <div className="mt-1">
+                      Tipo: {t.tipo === "multi_zona" ? "Con zonas" : "Único"}
+                    </div>
                   </div>
                   <div className="space-y-1 mb-4">
                     {t.tipo === "multi_zona" ? (
@@ -183,11 +206,15 @@ export default function TratamientosPage() {
                       <>
                         <div className="flex justify-between">
                           <span>1 sesión</span>
-                          <span className="text-pink-600 font-semibold">${t.precio_1_sesion.toLocaleString()}</span>
+                          <span className="text-pink-600 font-semibold">
+                            ${t.precio_1_sesion.toLocaleString()}
+                          </span>
                         </div>
                         <div className="flex justify-between">
                           <span>8 sesiones</span>
-                          <span className="text-pink-600 font-semibold">${t.precio_8_sesiones.toLocaleString()}</span>
+                          <span className="text-pink-600 font-semibold">
+                            ${t.precio_8_sesiones.toLocaleString()}
+                          </span>
                         </div>
                       </>
                     )}

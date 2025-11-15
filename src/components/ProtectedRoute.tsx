@@ -11,14 +11,20 @@ interface ProtectedRouteProps {
   adminOnly?: boolean;
 }
 
-export default function ProtectedRoute({ 
-  children, 
-  redirectTo = "/login", 
+export default function ProtectedRoute({
+  children,
+  redirectTo = "/login",
   requireAuth = true,
-  adminOnly = false 
+  adminOnly = false,
 }: ProtectedRouteProps) {
   const { user, isLoggedIn, loading } = useAuth();
   const router = useRouter();
+  const isAdmin = (() => {
+    const r = (user as any)?.role;
+    if (!r) return false;
+    const s = typeof r === "string" ? r.toLowerCase() : String(r).toLowerCase();
+    return s.includes("admin") || s === "administrador";
+  })();
 
   useEffect(() => {
     if (loading) return; // Esperar a que termine de cargar
@@ -30,7 +36,7 @@ export default function ProtectedRoute({
     }
 
     // Si requiere ser admin y no lo es
-    if (adminOnly && (!user || (user as any)?.role !== "admin")) {
+    if (adminOnly && (!user || !isAdmin)) {
       router.push("/"); // Redirigir al home si no es admin
       return;
     }
@@ -60,7 +66,7 @@ export default function ProtectedRoute({
   }
 
   // Si requiere ser admin y no lo es, no mostrar nada (se redirige)
-  if (adminOnly && (!user || (user as any)?.role !== "admin")) {
+  if (adminOnly && (!user || !isAdmin)) {
     return null;
   }
 

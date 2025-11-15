@@ -451,7 +451,7 @@ function AgendarContent() {
             .obtenerCitasUsuario()
             .catch(() => []);
           for (const c of citas) {
-            if ((c.status || '').toLowerCase().trim() === 'cancelada') continue;
+            if ((c.status || "").toLowerCase().trim() === "cancelada") continue;
             const d = (() => {
               if (typeof c.appointment_date === "number")
                 return new Date(c.appointment_date);
@@ -1447,7 +1447,15 @@ function AgendarContent() {
 
 export default function AgendarPage() {
   return (
-    <Suspense fallback={<div className="py-12 bg-gray-50 min-h-screen"><div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8"><p className="text-gray-600">Cargando…</p></div></div>}>
+    <Suspense
+      fallback={
+        <div className="py-12 bg-gray-50 min-h-screen">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <p className="text-gray-600">Cargando…</p>
+          </div>
+        </div>
+      }
+    >
       <AgendarContent />
     </Suspense>
   );

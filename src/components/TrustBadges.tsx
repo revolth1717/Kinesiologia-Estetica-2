@@ -8,8 +8,13 @@ export default function TrustBadges() {
   ];
   return (
     <div className="mt-8 flex flex-wrap items-center justify-center gap-4 sm:gap-6">
-      {logos.map((l) => (
-        <img key={l.alt} src={l.src} alt={l.alt} className="h-8 w-auto select-none" />
+      {logos.map(l => (
+        <img
+          key={l.alt}
+          src={l.src}
+          alt={l.alt}
+          className="h-8 w-auto select-none"
+        />
       ))}
     </div>
   );

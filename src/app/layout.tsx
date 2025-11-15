@@ -14,7 +14,8 @@ const poppins = Poppins({
 
 export const metadata: Metadata = {
   title: "Kinesiología Estética - Servicios de Estética y Bienestar",
-  description: "Servicios profesionales de kinesiología estética para todos los tipos de clientes. Agenda tu cita y mejora tu bienestar.",
+  description:
+    "Servicios profesionales de kinesiología estética para todos los tipos de clientes. Agenda tu cita y mejora tu bienestar.",
 };
 
 export default function RootLayout({
@@ -31,9 +32,7 @@ export default function RootLayout({
           <CartProvider>
             <div className="lg:min-w-[1200px] flex flex-col min-h-screen">
               <Navbar />
-              <main className="flex-grow">
-                {children}
-              </main>
+              <main className="flex-grow">{children}</main>
               <Footer />
             </div>
           </CartProvider>
