@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, Suspense } from "react";
 import { Calendar, Clock, User, CheckCircle } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { citasService, type NuevaCita } from "@/services/citasService";
@@ -17,7 +17,7 @@ const horariosDisponibles = {
   "2023-06-05": ["10:00", "11:00", "15:00", "16:00"],
 };
 
-export default function AgendarPage() {
+function AgendarContent() {
   const { user, isLoggedIn } = useAuth();
   const router = useRouter();
   const { addItem } = useCart();
@@ -1442,5 +1442,13 @@ export default function AgendarPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function AgendarPage() {
+  return (
+    <Suspense fallback={<div className="py-12 bg-gray-50 min-h-screen"><div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8"><p className="text-gray-600">Cargando…</p></div></div>}>
+      <AgendarContent />
+    </Suspense>
   );
 }
