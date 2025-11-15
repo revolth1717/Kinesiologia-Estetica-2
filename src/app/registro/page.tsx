@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { User, Lock, Mail, Phone, Eye, EyeOff, CheckCircle, XCircle } from "lucide-react";
+import { User, Lock, Mail, Eye, EyeOff, CheckCircle, XCircle } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 
@@ -39,9 +39,10 @@ export default function RegistroPage() {
         }
         break;
       case 'phone':
-        const phoneRegex = /^[+]?[\d\s\-\(\)]{8,15}$/;
-        if (value && !phoneRegex.test(value)) {
-          errors.phone = "Ingresa un teléfono válido";
+        const digits = String(value || '').replace(/\D/g, '');
+        const validDigits = /^\d{8}$/.test(digits);
+        if (!validDigits) {
+          errors.phone = "Ingresa 8 dígitos del móvil";
         }
         break;
       case 'password':
@@ -82,6 +83,7 @@ export default function RegistroPage() {
     return (
       formData.nombre.length >= 2 &&
       /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email) &&
+      /^\d{8}$/.test(String(formData.phone || '').replace(/\D/g, '')) &&
       formData.password.length >= 6 &&
       formData.password === formData.confirmPassword &&
       Object.values(fieldErrors).every(error => !error)
@@ -98,10 +100,12 @@ export default function RegistroPage() {
       return;
     }
     
+    const phoneDigits = String(formData.phone || '').replace(/\D/g, '');
+    const phoneE164 = `+569${phoneDigits}`;
     const result = await register({
       nombre: formData.nombre,
       email: formData.email,
-      phone: formData.phone,
+      phone: phoneE164,
       password: formData.password
     });
     
@@ -115,11 +119,11 @@ export default function RegistroPage() {
 
   return (
     <ProtectedRoute requireAuth={false}>
-      <div className="min-h-screen bg-gradient-to-br from-pink-50 to-purple-50 flex items-center justify-center p-4">
-      <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8">
+      <div className="min-h-screen bg-gradient-to-br from-pink-50 to-purple-50 dark:bg-gray-900 dark:from-gray-900 dark:to-gray-900 flex items-center justify-center p-4">
+      <div className="max-w-md w-full bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8 border border-pink-200 dark:border-pink-600/40">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Crear Cuenta</h1>
-          <p className="text-gray-600">Únete a nuestra comunidad</p>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">Crear Cuenta</h1>
+          <p className="text-gray-600 dark:text-gray-300">Únete a nuestra comunidad</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -131,23 +135,27 @@ export default function RegistroPage() {
           )}
 
           <div>
-            <label htmlFor="nombre" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="nombre" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Nombre completo
             </label>
-            <div className="relative">
-              <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-              <input
-                type="text"
-                id="nombre"
-                name="nombre"
-                value={formData.nombre}
-                onChange={handleChange}
-                className={`w-full pl-10 pr-4 py-3 border rounded-md focus:ring-2 focus:ring-pink-500 focus:border-transparent ${
-                  fieldErrors.nombre ? 'border-red-300 bg-red-50' : 'border-gray-300'
-                }`}
-                placeholder="Tu nombre completo"
-                required
-              />
+            <div>
+              <div className="flex items-stretch">
+                <span className={`inline-flex items-center px-3 border border-r-0 rounded-l-md bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200 ${fieldErrors.nombre ? 'border-red-300 dark:border-red-700' : 'border-gray-300 dark:border-gray-700'}`}>
+                  <User className="h-5 w-5" />
+                </span>
+                <input
+                  type="text"
+                  id="nombre"
+                  name="nombre"
+                  value={formData.nombre}
+                  onChange={handleChange}
+                  className={`w-full pl-5 pr-4 h-12 border rounded-r-md rounded-l-none focus:ring-2 focus:ring-pink-500 focus:border-transparent ${
+                    fieldErrors.nombre ? 'border-red-300 bg-red-50 dark:bg-gray-800 dark:border-red-700 dark:text-gray-100' : 'border-gray-300 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100'
+                  }`}
+                  placeholder="Tu nombre completo"
+                  required
+                />
+              </div>
               {fieldErrors.nombre && (
                 <p className="mt-1 text-sm text-red-600 flex items-center">
                   <XCircle className="h-4 w-4 mr-1" />
@@ -158,23 +166,27 @@ export default function RegistroPage() {
           </div>
 
           <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Email
             </label>
-            <div className="relative">
-              <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-              <input
-                type="email"
-                id="email"
-                name="email"
-                value={formData.email}
-                onChange={handleChange}
-                className={`w-full pl-10 pr-4 py-3 border rounded-md focus:ring-2 focus:ring-pink-500 focus:border-transparent ${
-                  fieldErrors.email ? 'border-red-300 bg-red-50' : 'border-gray-300'
-                }`}
-                placeholder="tu@email.com"
-                required
-              />
+            <div>
+              <div className="flex items-stretch">
+                <span className={`inline-flex items-center px-3 border border-r-0 rounded-l-md bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200 ${fieldErrors.email ? 'border-red-300 dark:border-red-700' : 'border-gray-300 dark:border-gray-700'}`}>
+                  <Mail className="h-5 w-5" />
+                </span>
+                <input
+                  type="email"
+                  id="email"
+                  name="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  className={`w-full pl-5 pr-4 h-12 border rounded-r-md rounded-l-none focus:ring-2 focus:ring-pink-500 focus:border-transparent ${
+                    fieldErrors.email ? 'border-red-300 bg-red-50 dark:bg-gray-800 dark:border-red-700 dark:text-gray-100' : 'border-gray-300 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100'
+                  }`}
+                  placeholder="tu@email.com"
+                  required
+                />
+              </div>
               {fieldErrors.email && (
                 <p className="mt-1 text-sm text-red-600 flex items-center">
                   <XCircle className="h-4 w-4 mr-1" />
@@ -185,22 +197,26 @@ export default function RegistroPage() {
           </div>
 
           <div>
-            <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
-              Teléfono (opcional)
+            <label htmlFor="phone" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Teléfono
             </label>
-            <div className="relative">
-              <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-              <input
-                type="tel"
-                id="phone"
-                name="phone"
-                value={formData.phone}
-                onChange={handleChange}
-                className={`w-full pl-10 pr-4 py-3 border rounded-md focus:ring-2 focus:ring-pink-500 focus:border-transparent ${
-                  fieldErrors.phone ? 'border-red-300 bg-red-50' : 'border-gray-300'
-                }`}
-                placeholder="+1 234 567 8900"
-              />
+            <div>
+              <div className="flex items-stretch">
+                <span className={`inline-flex items-center px-3 h-12 border border-r-0 rounded-l-md bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200 ${fieldErrors.phone ? 'border-red-300 dark:border-red-700' : 'border-gray-300 dark:border-gray-700'}`}>+569</span>
+                <input
+                  type="tel"
+                  id="phone"
+                  name="phone"
+                  value={formData.phone}
+                  onChange={handleChange}
+                  inputMode="numeric"
+                  className={`w-full pl-5 pr-4 h-12 border rounded-r-md rounded-l-none focus:ring-2 focus:ring-pink-500 focus:border-transparent ${
+                    fieldErrors.phone ? 'border-red-300 bg-red-50 dark:bg-gray-800 dark:border-red-700 dark:text-gray-100' : 'border-gray-300 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100'
+                  }`}
+                  placeholder="12345678"
+                  required
+                />
+              </div>
               {fieldErrors.phone && (
                 <p className="mt-1 text-sm text-red-600 flex items-center">
                   <XCircle className="h-4 w-4 mr-1" />
@@ -211,30 +227,34 @@ export default function RegistroPage() {
           </div>
 
           <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Contraseña
             </label>
-            <div className="relative">
-              <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-              <input
-                type={showPassword ? "text" : "password"}
-                id="password"
-                name="password"
-                value={formData.password}
-                onChange={handleChange}
-                className={`w-full pl-10 pr-12 py-3 border rounded-md focus:ring-2 focus:ring-pink-500 focus:border-transparent ${
-                  fieldErrors.password ? 'border-red-300 bg-red-50' : 'border-gray-300'
-                }`}
-                placeholder="Mínimo 6 caracteres"
-                required
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-              >
-                {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-              </button>
+            <div>
+              <div className="flex items-stretch">
+                <span className={`inline-flex items-center px-3 border border-r-0 rounded-l-md bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200 ${fieldErrors.password ? 'border-red-300 dark:border-red-700' : 'border-gray-300 dark:border-gray-700'}`}>
+                  <Lock className="h-5 w-5" />
+                </span>
+                <input
+                  type={showPassword ? "text" : "password"}
+                  id="password"
+                  name="password"
+                  value={formData.password}
+                  onChange={handleChange}
+                  className={`w-full pl-5 h-12 border focus:ring-2 focus:ring-pink-500 focus:border-transparent ${
+                    fieldErrors.password ? 'border-red-300 bg-red-50 dark:bg-gray-800 dark:border-red-700 dark:text-gray-100' : 'border-gray-300 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100'
+                  }`}
+                  placeholder="Mínimo 6 caracteres"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className={`inline-flex items-center px-3 h-12 border border-l-0 rounded-r-md bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200 ${fieldErrors.password ? 'border-red-300 dark:border-red-700' : 'border-gray-300 dark:border-gray-700'}`}
+                >
+                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                </button>
+              </div>
               {fieldErrors.password && (
                 <p className="mt-1 text-sm text-red-600 flex items-center">
                   <XCircle className="h-4 w-4 mr-1" />
@@ -245,30 +265,34 @@ export default function RegistroPage() {
           </div>
 
           <div>
-            <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Confirmar contraseña
             </label>
-            <div className="relative">
-              <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-              <input
-                type={showConfirmPassword ? "text" : "password"}
-                id="confirmPassword"
-                name="confirmPassword"
-                value={formData.confirmPassword}
-                onChange={handleChange}
-                className={`w-full pl-10 pr-12 py-3 border rounded-md focus:ring-2 focus:ring-pink-500 focus:border-transparent ${
-                  fieldErrors.confirmPassword ? 'border-red-300 bg-red-50' : 'border-gray-300'
-                }`}
-                placeholder="Repite tu contraseña"
-                required
-              />
-              <button
-                type="button"
-                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-              >
-                {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-              </button>
+            <div>
+              <div className="flex items-stretch">
+                <span className={`inline-flex items-center px-3 border border-r-0 rounded-l-md bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200 ${fieldErrors.confirmPassword ? 'border-red-300 dark:border-red-700' : 'border-gray-300 dark:border-gray-700'}`}>
+                  <Lock className="h-5 w-5" />
+                </span>
+                <input
+                  type={showConfirmPassword ? "text" : "password"}
+                  id="confirmPassword"
+                  name="confirmPassword"
+                  value={formData.confirmPassword}
+                  onChange={handleChange}
+                  className={`w-full pl-5 h-12 border focus:ring-2 focus:ring-pink-500 focus:border-transparent ${
+                    fieldErrors.confirmPassword ? 'border-red-300 bg-red-50 dark:bg-gray-800 dark:border-red-700 dark:text-gray-100' : 'border-gray-300 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100'
+                  }`}
+                  placeholder="Repite tu contraseña"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className={`inline-flex items-center px-3 h-12 border border-l-0 rounded-r-md bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200 ${fieldErrors.confirmPassword ? 'border-red-300 dark:border-red-700' : 'border-gray-300 dark:border-gray-700'}`}
+                >
+                  {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                </button>
+              </div>
               {fieldErrors.confirmPassword && (
                 <p className="mt-1 text-sm text-red-600 flex items-center">
                   <XCircle className="h-4 w-4 mr-1" />
@@ -294,7 +318,7 @@ export default function RegistroPage() {
         </form>
 
         <div className="mt-6 text-center">
-          <p className="text-gray-600">
+          <p className="text-gray-600 dark:text-gray-300">
             ¿Ya tienes cuenta?{" "}
             <Link href="/login" className="text-pink-600 hover:text-pink-700 font-medium">
               Inicia sesión

@@ -8,6 +8,18 @@ export default function CarritoPage() {
   const { items: cartItems, removeItem, subtotalAgenda, subtotalProductos, updateProductQuantity } = useCart();
   const productos = cartItems.filter(i => "tipo" in i && i.tipo === "producto");
   const citas = cartItems.filter(i => !("tipo" in i));
+
+  const slugify = (s: string) => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+  const LOCAL_TREATMENT_IMAGES: Record<string, string> = {
+    laserlipolisis: "/images/tratamientos/laserlipolisis.jpg",
+    cavitacion: "/images/tratamientos/cavitacion.jpg",
+    facialconradiofrecuencia: "/images/tratamientos/facialconradiofrecuencia.jpg",
+    depilacionlaser: "/images/tratamientos/depilacionlaser.jpg",
+  };
+  const getTreatmentImageByName = (name: string) => {
+    const slug = slugify(name || "");
+    return LOCAL_TREATMENT_IMAGES[slug];
+  };
   
   return (
     <div className="py-12 bg-gray-50 min-h-screen">
@@ -32,7 +44,7 @@ export default function CarritoPage() {
           <div className="flex flex-col lg:flex-row gap-10">
             <div className="lg:w-3/4">
               <div className="bg-white rounded-lg shadow-md overflow-x-auto">
-                <table className="min-w-[1200px] w-full divide-y divide-gray-200">
+                <table className="w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
                       <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Artículo</th>
@@ -86,23 +98,39 @@ export default function CarritoPage() {
                     ))}
                     {citas.map((item) => (
                       <tr key={item.id}>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm font-medium text-gray-900">{item.tratamiento}{item.zona ? ` - ${item.zona}` : ""}</div>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-3">
+                            {(() => {
+                              const src = getTreatmentImageByName(item.tratamiento);
+                              return src ? (
+                                <img src={src} alt={item.tratamiento} className="h-12 w-12 object-cover rounded" />
+                              ) : (
+                                <div className="h-12 w-12 bg-gray-100 text-gray-600 flex items-center justify-center rounded">
+                                  <span className="font-semibold">{item.tratamiento.substring(0,1)}</span>
+                                </div>
+                              );
+                            })()}
+                            <div>
+                              <div className="text-sm font-medium text-gray-900">{item.tratamiento}</div>
+                              {item.zona && (
+                                <div className="text-xs text-gray-500">Zona: {item.zona}</div>
+                              )}
+                            </div>
+                          </div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-500">
+                        <td className="px-6 py-4">
+                          <div className="text-sm text-gray-700">
                             {(() => {
                               const [yy, mm, dd] = item.fecha.split("-").map(Number);
                               const d = new Date(yy, mm - 1, dd);
                               return d.toLocaleDateString("es-ES", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
                             })()}
-                            <br />
-                            {item.hora}
+                            <div className="text-sm text-gray-600">{item.hora}</div>
                           </div>
                         </td>
-                        <td className="px-6 py-4 whitespace-normal break-words align-top">
-                          <div className="text-sm text-gray-700 leading-5">{item.sesiones === 1 ? "1 sesión" : "8 sesiones"}</div>
-                          <div className="text-sm text-gray-800 mt-1 font-semibold">Precio total: ${item.precioTotal.toLocaleString()}</div>
+                        <td className="px-6 py-4 text-right align-top">
+                          <div className="text-sm text-gray-700">{item.sesiones === 1 ? "1 sesión" : "8 sesiones"}</div>
+                          <div className="text-sm text-gray-900 mt-1 font-semibold">${item.precioTotal.toLocaleString()}</div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                           <button onClick={() => removeItem(item.id)} className="inline-flex items-center gap-1 text-red-600 hover:text-red-800">

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Calendar, Star, Award, Users, ChevronLeft, ChevronRight, CreditCard, ShieldCheck } from "lucide-react";
 import TrustBadges from "@/components/TrustBadges";
 import { useEffect, useMemo, useState } from "react";
+import { useAuth } from "@/context/AuthContext";
 
 export default function Home() {
   // Fuentes para el carrusel del hero: 4 fotos locales de tratamientos
@@ -26,6 +27,126 @@ export default function Home() {
     }, ROTATION_MS);
     return () => clearInterval(id);
   }, [heroImages.length, ROTATION_MS]);
+  const { isLoggedIn } = useAuth();
+  useEffect(() => {
+    const controller = new AbortController();
+    const CONTENT_API_URL = process.env.NEXT_PUBLIC_CONTENT_API_URL || "";
+    const PRODUCT_DIR = process.env.NEXT_PUBLIC_PRODUCT_IMAGES_DIR || "/productos";
+
+    const LOCAL_TREATMENT_IMAGES: Record<string, string> = {
+      laserlipolisis: "laserlipolisis.jpg",
+      cavitacion: "cavitacion.jpg",
+      facialconradiofrecuencia: "facialconradiofrecuencia.jpg",
+      depilacionlaser: "depilacionlaser.jpg",
+    };
+
+    const normalizeName = (name?: string): string | undefined => {
+      if (!name) return undefined;
+      return name
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-z0-9]+/g, "");
+    };
+
+    const getLocalTreatmentFallback = (t: Record<string, unknown>): string | undefined => {
+      const slugKey = typeof t.slug === "string" ? t.slug : undefined;
+      const nameKey = normalizeName(typeof t.nombre === "string" ? t.nombre : undefined);
+      const fileName = (slugKey ? LOCAL_TREATMENT_IMAGES[slugKey] : undefined) || (nameKey ? LOCAL_TREATMENT_IMAGES[nameKey] : undefined);
+      return fileName ? `/api/local-images?file=${fileName}` : undefined;
+    };
+
+    const getTreatmentImageSrc = (t: Record<string, unknown>): string | undefined => {
+      const fallback = getLocalTreatmentFallback(t);
+      const img = t.imagen_url;
+      if (typeof img === "string" && img) return img;
+      if (img && typeof img === "object") {
+        const o = img as Record<string, unknown>;
+        const url = typeof o.url === "string" ? o.url : undefined;
+        if (url) return url;
+        const path = typeof o.path === "string" ? o.path : undefined;
+        if (path) {
+          if (path.startsWith("http")) return path;
+          return CONTENT_API_URL ? `${CONTENT_API_URL}${path}` : path;
+        }
+      }
+      return fallback;
+    };
+
+    const slugify = (s: string): string =>
+      s
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "");
+
+    const getProductCandidates = (item: Record<string, unknown>): string[] => {
+      const candidates: string[] = [];
+      const direct = typeof item.imagen_url === "string" ? (item.imagen_url as string) : undefined;
+      if (direct) candidates.push(direct);
+      const imgObj = item.imagen_url && typeof item.imagen_url === "object" ? (item.imagen_url as Record<string, unknown>) : undefined;
+      const objUrl = imgObj && typeof imgObj.url === "string" ? (imgObj.url as string) : undefined;
+      if (objUrl) candidates.push(objUrl);
+      const name = typeof item.nombre === "string" ? (item.nombre as string) : "producto";
+      const base = slugify(name);
+      ["jpg", "jpeg", "png", "webp"].forEach(ext => {
+        candidates.push(`${PRODUCT_DIR}/${base}.${ext}`);
+      });
+      return candidates;
+    };
+
+    const safeList = (data: unknown): Record<string, unknown>[] => {
+      if (Array.isArray(data)) return data as Record<string, unknown>[];
+      if (data && typeof data === "object") {
+        const o = data as Record<string, unknown>;
+        const keys = ["items", "results", "data"] as const;
+        for (const k of keys) {
+          const v = o[k];
+          if (Array.isArray(v)) return v as Record<string, unknown>[];
+        }
+      }
+      return [];
+    };
+
+    const prefetchImage = (url?: string) => {
+      if (!url) return;
+      try {
+        const img = new Image();
+        img.decoding = "async";
+        img.src = url;
+      } catch {}
+    };
+
+    const prefetch = async () => {
+      try {
+        const trRes = await fetch("/api/tratamientos", { signal: controller.signal });
+        if (trRes.ok) {
+          const trData = await trRes.json();
+          const trList = safeList(trData);
+          trList.slice(0, 12).forEach(t => prefetchImage(getTreatmentImageSrc(t)));
+        }
+      } catch {}
+      try {
+        const prRes = await fetch("/api/productos", { signal: controller.signal });
+        if (prRes.ok) {
+          const prData = await prRes.json();
+          const prList = safeList(prData);
+          prList.slice(0, 12).forEach(p => {
+            const candidates = getProductCandidates(p);
+            prefetchImage(candidates[0]);
+          });
+        }
+      } catch {}
+      if (isLoggedIn) {
+        try {
+          await fetch("/api/appointment/user", { signal: controller.signal, credentials: "include" });
+        } catch {}
+      }
+    };
+    prefetch();
+    return () => controller.abort();
+  }, [isLoggedIn]);
   return (
     <div className="flex flex-col min-h-screen">
       {/* Hero Section */}
@@ -86,13 +207,15 @@ export default function Home() {
               <div className="flex flex-col sm:flex-row gap-4">
                 <Link
                   href="/tratamientos"
-                  className="bg-white text-pink-600 hover:bg-gray-100 px-6 py-3 rounded-md font-medium text-center"
+                  className="bg-white text-pink-600 hover:bg-gray-100 dark:hover:bg-gray-100 hover:text-gray-900 px-6 py-3 rounded-md font-medium text-center border border-pink-600/40 hover:border-pink-600 dark:hover:border-white dark:hover:text-white transition-all duration-200 transform hover:scale-[1.02] hover:shadow-md"
+                  prefetch
                 >
                   Ver Tratamientos
                 </Link>
                 <Link
                   href="/tratamientos"
-                  className="bg-transparent border-2 border-white hover:bg-white hover:text-pink-600 px-6 py-3 rounded-md font-medium transition-colors text-center"
+                  className="bg-transparent border-2 border-white hover:bg-gray-100 dark:hover:bg-transparent hover:text-pink-600 dark:hover:text-white dark:hover:border-white px-6 py-3 rounded-md font-medium transition-colors text-center"
+                  prefetch
                 >
                   Ver Productos
                 </Link>
@@ -103,36 +226,36 @@ export default function Home() {
       </section>
 
       {/* Características */}
-      <section className="py-16 bg-white">
+      <section className="py-16 bg-white dark:bg-gray-900">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-3xl font-bold text-center mb-12 text-gray-800">
+          <h2 className="text-3xl font-bold text-center mb-12 text-gray-800 dark:text-gray-100">
             ¿Por qué elegirnos?
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="bg-pink-50 p-6 rounded-lg text-center">
-              <div className="mx-auto w-12 h-12 bg-pink-100 rounded-full flex items-center justify-center mb-4">
-                <Star className="h-6 w-6 text-pink-600" />
+            <div className="bg-gray-50 dark:bg-gray-800 p-6 rounded-lg text-center border border-gray-200 dark:border-gray-700 transition-shadow hover:shadow-md">
+              <div className="mx-auto w-12 h-12 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mb-4">
+                <Star className="h-6 w-6 text-gray-600 dark:text-gray-300" />
               </div>
-              <h3 className="text-xl font-semibold mb-2 text-gray-800">Experiencia Profesional</h3>
-              <p className="text-gray-600">
+              <h3 className="text-xl font-semibold mb-2 text-gray-800 dark:text-gray-100">Experiencia Profesional</h3>
+              <p className="text-gray-600 dark:text-gray-300">
                 Contamos con profesionales altamente calificados y con años de experiencia en el área.
               </p>
             </div>
-            <div className="bg-pink-50 p-6 rounded-lg text-center">
-              <div className="mx-auto w-12 h-12 bg-pink-100 rounded-full flex items-center justify-center mb-4">
-                <Award className="h-6 w-6 text-pink-600" />
+            <div className="bg-gray-50 dark:bg-gray-800 p-6 rounded-lg text-center border border-gray-200 dark:border-gray-700 transition-shadow hover:shadow-md">
+              <div className="mx-auto w-12 h-12 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mb-4">
+                <Award className="h-6 w-6 text-gray-600 dark:text-gray-300" />
               </div>
-              <h3 className="text-xl font-semibold mb-2 text-gray-800">Tecnología Avanzada</h3>
-              <p className="text-gray-600">
+              <h3 className="text-xl font-semibold mb-2 text-gray-800 dark:text-gray-100">Tecnología Avanzada</h3>
+              <p className="text-gray-600 dark:text-gray-300">
                 Utilizamos equipos de última generación para garantizar los mejores resultados.
               </p>
             </div>
-            <div className="bg-pink-50 p-6 rounded-lg text-center">
-              <div className="mx-auto w-12 h-12 bg-pink-100 rounded-full flex items-center justify-center mb-4">
-                <Users className="h-6 w-6 text-pink-600" />
+            <div className="bg-gray-50 dark:bg-gray-800 p-6 rounded-lg text-center border border-gray-200 dark:border-gray-700 transition-shadow hover:shadow-md">
+              <div className="mx-auto w-12 h-12 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mb-4">
+                <Users className="h-6 w-6 text-gray-600 dark:text-gray-300" />
               </div>
-              <h3 className="text-xl font-semibold mb-2 text-gray-800">Atención Personalizada</h3>
-              <p className="text-gray-600">
+              <h3 className="text-xl font-semibold mb-2 text-gray-800 dark:text-gray-100">Atención Personalizada</h3>
+              <p className="text-gray-600 dark:text-gray-300">
                 Cada tratamiento se adapta a las necesidades específicas de cada cliente.
               </p>
             </div>
@@ -150,7 +273,8 @@ export default function Home() {
           </p>
           <Link
             href="/agendar"
-            className="bg-white text-pink-600 hover:bg-gray-100 px-8 py-4 rounded-md font-medium inline-flex items-center"
+            className="bg-white text-pink-600 hover:bg-gray-100 dark:hover:bg-gray-100 hover:text-gray-900 px-8 py-4 rounded-md font-medium inline-flex items-center border border-pink-600/40 hover:border-pink-600 dark:hover:border-white dark:hover:text-white transition-all duration-200 transform hover:scale-[1.02] hover:shadow-md"
+            prefetch
           >
             <Calendar className="mr-2 h-5 w-5" />
             Agendar una Cita
@@ -159,10 +283,10 @@ export default function Home() {
       </section>
 
       {/* Tratamientos al final */}
-      <section className="py-16 bg-white">
+      <section className="py-16 bg-white dark:bg-gray-900">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-3xl font-bold text-center mb-4 text-gray-800">Tratamientos</h2>
-          <p className="text-center text-gray-600 mb-12 max-w-3xl mx-auto">
+          <h2 className="text-3xl font-bold text-center mb-4 text-gray-800 dark:text-gray-100">Tratamientos</h2>
+          <p className="text-center text-gray-600 dark:text-gray-300 mb-12 max-w-3xl mx-auto">
             Conoce nuestros tratamientos más solicitados y accede a sus detalles.
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-8">
@@ -172,12 +296,12 @@ export default function Home() {
               { name: "Facial con Radiofrecuencia", slug: "facialconradiofrecuencia", img: "/images/tratamientos/facialconradiofrecuencia.jpg" },
               { name: "Depilación Láser", slug: "depilacionlaser", img: "/images/tratamientos/depilacionlaser.jpg" },
             ].map((t) => (
-              <div key={t.slug} className="bg-white rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-shadow">
+              <div key={t.slug} className="bg-white dark:bg-gray-800 rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-shadow border border-pink-200 dark:border-pink-700 hover:border-pink-400 dark:hover:border-pink-500">
                 <div className="h-36 sm:h-48 md:h-56 bg-pink-200 relative overflow-hidden">
                   <Image src={t.img} alt={t.name} fill className="object-cover" />
                 </div>
                 <div className="p-5">
-                  <h3 className="text-lg font-semibold mb-2 text-gray-800">{t.name}</h3>
+                  <h3 className="text-lg font-semibold mb-2 text-gray-800 dark:text-gray-100">{t.name}</h3>
                   <Link
                     href={`/tratamientos/${t.slug}`}
                     className="text-pink-600 hover:text-pink-800 font-medium"
@@ -191,7 +315,8 @@ export default function Home() {
           <div className="text-center mt-12">
             <Link
               href="/tratamientos"
-              className="bg-pink-600 text-white hover:bg-pink-700 px-6 py-3 rounded-md font-medium inline-block"
+              className="bg-pink-600 text-white hover:bg-pink-800 px-6 py-3 rounded-md font-medium inline-block transition-transform duration-200 transform hover:scale-[1.02] shadow hover:shadow-lg"
+              prefetch
             >
               Ver todos los tratamientos
             </Link>
@@ -200,37 +325,37 @@ export default function Home() {
       </section>
 
       {/* Información de pagos - Webpay */}
-      <section className="py-16 bg-gray-50">
+      <section className="py-16 bg-gray-50 dark:bg-gray-900">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-3xl font-bold text-center mb-4 text-gray-800">Información de Pagos</h2>
-          <p className="text-center text-gray-600 mb-12 max-w-3xl mx-auto">
+          <h2 className="text-3xl font-bold text-center mb-4 text-gray-800 dark:text-gray-100">Información de Pagos</h2>
+          <p className="text-center text-gray-600 dark:text-gray-300 mb-12 max-w-3xl mx-auto">
             Aceptamos pagos seguros a través de Webpay. Puedes pagar con tarjetas
             de crédito y débito, y contamos con medidas de seguridad para proteger tus datos.
           </p>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="bg-white p-6 rounded-lg text-center shadow">
-              <div className="mx-auto w-12 h-12 bg-pink-100 rounded-full flex items-center justify-center mb-4">
-                <CreditCard className="h-6 w-6 text-pink-600" />
+            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg text-center shadow">
+              <div className="mx-auto w-12 h-12 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mb-4">
+                <CreditCard className="h-6 w-6 text-gray-600 dark:text-gray-300" />
               </div>
-              <h3 className="text-xl font-semibold mb-2 text-gray-800">Medios de pago</h3>
-              <p className="text-gray-600">Tarjetas de crédito y débito (Webpay).</p>
+              <h3 className="text-xl font-semibold mb-2 text-gray-800 dark:text-gray-100">Medios de pago</h3>
+              <p className="text-gray-600 dark:text-gray-300">Tarjetas de crédito y débito (Webpay).</p>
             </div>
-            <div className="bg-white p-6 rounded-lg text-center shadow">
-              <div className="mx-auto w-12 h-12 bg-pink-100 rounded-full flex items-center justify-center mb-4">
-                <ShieldCheck className="h-6 w-6 text-pink-600" />
+            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg text-center shadow">
+              <div className="mx-auto w-12 h-12 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mb-4">
+                <ShieldCheck className="h-6 w-6 text-gray-600 dark:text-gray-300" />
               </div>
-              <h3 className="text-xl font-semibold mb-2 text-gray-800">Pago seguro</h3>
-              <p className="text-gray-600">Transacciones protegidas y encriptadas a través de Webpay.</p>
+              <h3 className="text-xl font-semibold mb-2 text-gray-800 dark:text-gray-100">Pago seguro</h3>
+              <p className="text-gray-600 dark:text-gray-300">Transacciones protegidas y encriptadas a través de Webpay.</p>
             </div>
-            <div className="bg-white p-6 rounded-lg text-center shadow">
-              <div className="mx-auto w-12 h-12 bg-pink-100 rounded-full flex items-center justify-center mb-4">
-                <Users className="h-6 w-6 text-pink-600" />
+            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg text-center shadow">
+              <div className="mx-auto w-12 h-12 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mb-4">
+                <Users className="h-6 w-6 text-gray-600 dark:text-gray-300" />
               </div>
-              <h3 className="text-xl font-semibold mb-2 text-gray-800">Comodidad</h3>
-              <p className="text-gray-600">Paga rápido desde tu dispositivo sin complicaciones.</p>
+              <h3 className="text-xl font-semibold mb-2 text-gray-800 dark:text-gray-100">Comodidad</h3>
+              <p className="text-gray-600 dark:text-gray-300">Paga rápido desde tu dispositivo sin complicaciones.</p>
             </div>
           </div>
-          <p className="text-center text-sm text-gray-500 mt-8">
+          <p className="text-center text-sm text-gray-500 dark:text-gray-400 mt-8">
             Nota: Esta es información de referencia. La integración de pago en línea se habilita
             en el flujo de compra y agendamiento cuando corresponda.
           </p>

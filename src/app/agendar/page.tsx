@@ -869,7 +869,7 @@ export default function AgendarPage() {
                 </div>
               )}
 
-              <div className="bg-pink-50 p-6 rounded-md mb-6">
+              <div className="bg-pink-50 dark:bg-gray-800 p-6 rounded-md mb-6 border-2 border-pink-300 dark:border-pink-500 shadow">
                 <h4 className="font-medium text-gray-800 mb-4">
                   Resumen de tu cita:
                 </h4>
@@ -930,7 +930,7 @@ export default function AgendarPage() {
                       }
                     })()}
                   </p>
-                  <div className="border-t pt-2 mt-4">
+                  <div className="border-t pt-2 mt-4 border-gray-200 dark:border-gray-700">
                     <p className="text-gray-700">
                       <span className="font-medium">Nombre:</span> {name}
                     </p>
@@ -947,7 +947,7 @@ export default function AgendarPage() {
               <div className="flex justify-between">
                 <button
                   onClick={() => setStep(2)}
-                  className="px-6 py-3 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 font-medium"
+                  className="px-6 py-3 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 hover:text-gray-900 dark:hover:bg-gray-700 font-medium"
                 >
                   Volver
                 </button>
@@ -1403,7 +1403,7 @@ export default function AgendarPage() {
             {step > 1 && (
               <button
                 onClick={() => setStep(step - 1)}
-                className="px-6 py-3 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 font-medium"
+                className="px-6 py-3 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 hover:text-gray-900 dark:hover:bg-gray-700 font-medium"
               >
                 Volver
               </button>

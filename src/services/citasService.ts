@@ -209,6 +209,27 @@ class CitasService {
     }
   }
 
+  // Eliminar una cita (DB-only)
+  async eliminarCita(id: number): Promise<void> {
+    try {
+      const response = await fetch(`${API_LOCAL_BASE}/${id}`, {
+        method: "DELETE",
+        headers: this.getAuthHeaders(),
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text().catch(() => "");
+        throw new Error(`Error ${response.status}: ${response.statusText}${errorText ? ` - ${errorText}` : ""}`);
+      }
+      // Invalidar caché para que la lista se actualice inmediatamente
+      this.lastUserCitasCache = null;
+    } catch (error) {
+      console.error("Error al eliminar cita:", error);
+      throw error;
+    }
+  }
+
   // Formatear fecha para mostrar (acepta ISO string, milisegundos o segundos)
   formatearFecha(appointmentDate: string | number): string {
     try {
@@ -278,13 +299,13 @@ class CitasService {
     const e = (estado || "").toLowerCase().trim();
     switch (e) {
       case "confirmada":
-        return "bg-green-100 text-green-900 ring-1 ring-green-300";
+        return "bg-green-500 text-black ring-1 ring-green-400 dark:bg-green-500 dark:text-black dark:ring-green-400";
       case "pendiente":
-        return "bg-yellow-100 text-yellow-900 ring-1 ring-yellow-300";
+        return "bg-yellow-400 text-black ring-1 ring-yellow-300 dark:bg-yellow-400 dark:text-black dark:ring-yellow-300";
       case "cancelada":
-        return "bg-red-100 text-red-900 ring-1 ring-red-300";
+        return "bg-red-500 text-black ring-1 ring-red-400 dark:bg-red-500 dark:text-black dark:ring-red-400";
       default:
-        return "bg-gray-100 text-gray-900 ring-1 ring-gray-300";
+        return "bg-gray-100 text-gray-900 ring-1 ring-gray-300 dark:bg-gray-700 dark:text-gray-100 dark:ring-gray-600";
     }
   }
 

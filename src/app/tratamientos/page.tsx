@@ -124,11 +124,11 @@ export default function TratamientosPage() {
   }, []);
 
   return (
-    <div className="py-12 bg-gray-50">
+    <div className="py-12 bg-gray-50 dark:bg-gray-900 dark:text-gray-100">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-gray-800 mb-4">Nuestros Tratamientos</h1>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+          <h1 className="text-4xl font-bold text-gray-800 dark:text-gray-100 mb-4">Nuestros Tratamientos</h1>
+          <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
             Descubre nuestra oferta actual de tratamientos y paquetes.
           </p>
         </div>
@@ -141,9 +141,9 @@ export default function TratamientosPage() {
             {tratamientos.map((t) => (
               <div
                 key={t.id}
-                className="bg-white rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-shadow"
+                className="bg-white dark:bg-gray-800 rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-shadow"
               >
-                <div className="h-40 sm:h-48 md:h-56 lg:h-64 bg-pink-200 relative overflow-hidden">
+                <div className="h-40 sm:h-48 md:h-56 lg:h-64 bg-pink-200 dark:bg-gray-700 relative overflow-hidden">
                   {(() => {
                     const fallback = getLocalFallback(t);
                     const src = USE_LOCAL_IMAGES_ONLY && fallback ? fallback : (getImageSrc(t) || fallback);
@@ -167,8 +167,8 @@ export default function TratamientosPage() {
                   })()}
                 </div>
                 <div className="p-6">
-                  <h3 className="text-xl font-semibold mb-2 text-gray-800">{t.nombre}</h3>
-                  <div className="text-gray-600 mb-4">
+                  <h3 className="text-xl font-semibold mb-2 text-gray-800 dark:text-gray-100">{t.nombre}</h3>
+                  <div className="text-gray-600 dark:text-gray-300 mb-4">
                     <div>Duración: {t.duracion_minutos} min</div>
                     <div className="mt-1">Tipo: {t.tipo === "multi_zona" ? "Con zonas" : "Único"}</div>
                   </div>

@@ -92,40 +92,44 @@ export default function LoginPage() {
 
   return (
     <ProtectedRoute requireAuth={false}>
-      <div className="min-h-screen bg-gradient-to-br from-pink-50 to-purple-50 flex items-center justify-center p-4">
-      <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8">
+      <div className="min-h-screen bg-gradient-to-br from-pink-50 to-purple-50 dark:from-gray-800 dark:to-gray-900 flex items-center justify-center p-4">
+      <div className="max-w-md w-full bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Iniciar Sesión</h1>
-          <p className="text-gray-600">Bienvenido de vuelta</p>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">Iniciar Sesión</h1>
+          <p className="text-gray-600 dark:text-gray-300">Bienvenido de vuelta</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md flex items-center">
+            <div className="bg-red-50 dark:bg-gray-800 border border-red-200 dark:border-red-700 text-red-700 dark:text-red-400 px-4 py-3 rounded-md flex items-center">
               <AlertCircle className="h-5 w-5 mr-2 flex-shrink-0" />
               <span>{error}</span>
             </div>
           )}
 
           <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
               Email
             </label>
-            <div className="relative">
-              <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-              <input
-                type="email"
-                id="email"
-                name="email"
-                value={formData.email}
-                onChange={handleChange}
-                className={`w-full pl-10 pr-4 py-3 border rounded-md focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-colors ${
-                  fieldErrors.email ? 'border-red-300 bg-red-50' : 'border-gray-300'
-                }`}
-                placeholder="tu@email.com"
-                required
-                autoComplete="email"
-              />
+            <div>
+              <div className="flex items-stretch">
+                <span className={`inline-flex items-center px-3 h-12 border border-r-0 rounded-l-md bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200 ${fieldErrors.email ? 'border-red-300 dark:border-red-700' : 'border-gray-300 dark:border-gray-700'}`}>
+                  <Mail className="h-5 w-5" />
+                </span>
+                <input
+                  type="email"
+                  id="email"
+                  name="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  className={`w-full pl-5 pr-4 h-12 border rounded-r-md rounded-l-none focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-colors ${
+                    fieldErrors.email ? 'border-red-300 bg-red-50 dark:bg-gray-800 dark:border-red-700 dark:text-gray-100' : 'border-gray-300 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100'
+                  }`}
+                  placeholder="tu@email.com"
+                  required
+                  autoComplete="email"
+                />
+              </div>
               {fieldErrors.email && (
                 <p className="mt-1 text-sm text-red-600 flex items-center">
                   <XCircle className="h-4 w-4 mr-1" />
@@ -136,31 +140,35 @@ export default function LoginPage() {
           </div>
 
           <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
               Contraseña
             </label>
-            <div className="relative">
-              <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-              <input
-                type={showPassword ? "text" : "password"}
-                id="password"
-                name="password"
-                value={formData.password}
-                onChange={handleChange}
-                className={`w-full pl-10 pr-12 py-3 border rounded-md focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-colors ${
-                  fieldErrors.password ? 'border-red-300 bg-red-50' : 'border-gray-300'
-                }`}
-                placeholder="Tu contraseña"
-                required
-                autoComplete="current-password"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
-              >
-                {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-              </button>
+            <div>
+              <div className="flex items-stretch">
+                <span className={`inline-flex items-center px-3 h-12 border border-r-0 rounded-l-md bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200 ${fieldErrors.password ? 'border-red-300 dark:border-red-700' : 'border-gray-300 dark:border-gray-700'}`}>
+                  <Lock className="h-5 w-5" />
+                </span>
+                <input
+                  type={showPassword ? "text" : "password"}
+                  id="password"
+                  name="password"
+                  value={formData.password}
+                  onChange={handleChange}
+                  className={`w-full pl-5 h-12 border focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-colors ${
+                    fieldErrors.password ? 'border-red-300 bg-red-50 dark:bg-gray-800 dark:border-red-700 dark:text-gray-100' : 'border-gray-300 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100'
+                  }`}
+                  placeholder="Tu contraseña"
+                  required
+                  autoComplete="current-password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className={`inline-flex items-center px-3 h-12 border border-l-0 rounded-r-md bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200 ${fieldErrors.password ? 'border-red-300 dark:border-red-700' : 'border-gray-300 dark:border-gray-700'}`}
+                >
+                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                </button>
+              </div>
               {fieldErrors.password && (
                 <p className="mt-1 text-sm text-red-600 flex items-center">
                   <XCircle className="h-4 w-4 mr-1" />
@@ -176,9 +184,9 @@ export default function LoginPage() {
                 id="remember-me"
                 name="remember-me"
                 type="checkbox"
-                className="h-4 w-4 text-pink-600 focus:ring-pink-500 border-gray-300 rounded"
+                className="h-4 w-4 text-pink-600 focus:ring-pink-500 border-gray-300 dark:border-gray-700 rounded"
               />
-              <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-700">
+              <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-700 dark:text-gray-200">
                 Recordarme
               </label>
             </div>
@@ -200,7 +208,7 @@ export default function LoginPage() {
         </form>
 
         <div className="mt-6 text-center">
-          <p className="text-gray-600">
+          <p className="text-gray-600 dark:text-gray-300">
             ¿No tienes cuenta?{" "}
             <Link href="/registro" className="text-pink-600 hover:text-pink-700 font-medium">
               Regístrate aquí

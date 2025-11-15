@@ -25,7 +25,7 @@ export default function RootLayout({
   return (
     <html lang="es">
       <body
-        className={`${poppins.variable} font-poppins min-h-screen flex flex-col bg-gray-50 overflow-x-auto`}
+        className={`${poppins.variable} font-poppins min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900 dark:text-gray-100 overflow-x-auto`}
       >
         <AuthProvider>
           <CartProvider>

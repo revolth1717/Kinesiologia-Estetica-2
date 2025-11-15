@@ -78,3 +78,67 @@ button:focus,
   outline: 2px solid #db2777;
   outline-offset: 2px;
 }
+ 
+.dark {
+  --foreground-rgb: 255, 255, 255;
+  --background-rgb: 15, 17, 21;
+  --primary: 219, 39, 119;
+  --secondary: 30, 41, 59;
+  --accent: 244, 114, 182;
+}
+
+.dark .section-title {
+  color: #f3f4f6;
+}
+
+.dark .card {
+  background-color: #1f2937;
+}
+
+.dark .btn-secondary {
+  background-color: transparent;
+  color: #f9a8d4;
+  border-color: #f472b6;
+}
+
+.dark .btn-secondary:hover {
+  background-color: #374151;
+}
+
+/* Overrides comunes para modo oscuro cuando hay clases de Tailwind en el markup */
+.dark .bg-white { background-color: #1f2937 !important; }
+.dark .bg-gray-50 { background-color: #111827 !important; }
+.dark .bg-gray-100 { background-color: #1f2937 !important; }
+.dark .bg-gray-200 { background-color: #374151 !important; }
+.dark .text-gray-900 { color: #f9fafb !important; }
+.dark .text-gray-800 { color: #f3f4f6 !important; }
+.dark .text-gray-700 { color: #e5e7eb !important; }
+.dark .text-gray-600 { color: #d1d5db !important; }
+.dark .text-gray-500 { color: #9ca3af !important; }
+.dark .border-gray-200 { border-color: #374151 !important; }
+.dark .border-gray-300 { border-color: #4b5563 !important; }
+.dark .divide-gray-200 > :not([hidden]) ~ :not([hidden]) { border-color: #374151 !important; }
+.dark .bg-pink-50 { background-color: #1f2937 !important; }
+.dark .bg-pink-100 { background-color: #374151 !important; }
+.dark .text-pink-800 { color: #f9a8d4 !important; }
+
+/* Campos de formulario en modo oscuro */
+.dark input,
+.dark select,
+.dark textarea {
+  background-color: #111827 !important;
+  color: #e5e7eb !important;
+  border-color: #374151 !important;
+}
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: #9ca3af !important;
+}
+.dark input:disabled,
+.dark select:disabled,
+.dark textarea:disabled {
+  background-color: #374151 !important;
+  color: #9ca3af !important;
+}
+
+/* Excepción: tarjeta de registro debe permanecer clara en modo oscuro */

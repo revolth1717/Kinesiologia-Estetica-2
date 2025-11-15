@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { ShoppingCart, Minus, Plus } from 'lucide-react';
+import { ShoppingCart, Minus, Plus, CheckCircle } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 
 interface Producto {
@@ -21,6 +21,7 @@ export default function ProductosPage() {
   const [error, setError] = useState('');
   const { addProduct } = useCart();
   const [cantidades, setCantidades] = useState<Record<string, number>>({});
+  const [addedIds, setAddedIds] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     fetchProductos();
@@ -132,6 +133,10 @@ export default function ProductosPage() {
     const qty = cantidades[producto.id] ?? 1;
     if (qty < 1) return;
     addProduct({ nombre: producto.nombre, precioUnitario: producto.precio, cantidad: qty, imagen_url: producto.imagen_url });
+    setAddedIds(prev => ({ ...prev, [producto.id]: true }));
+    setTimeout(() => {
+      setAddedIds(prev => ({ ...prev, [producto.id]: false }));
+    }, 1200);
   };
 
   if (loading) {
@@ -159,7 +164,7 @@ export default function ProductosPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 dark:text-gray-100">
       {/* Hero Section */}
       <div className="bg-pink-600 text-white py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -181,9 +186,9 @@ export default function ProductosPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {productos.map((producto) => (
-              <div key={producto.id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
+              <div key={producto.id} className={`bg-white dark:bg-gray-800 rounded-lg overflow-hidden transition-all ${addedIds[producto.id] ? 'ring-2 ring-green-400 shadow-lg' : 'shadow-md hover:shadow-lg'}`}>
                 {/* Product Image */}
-                <div className="h-60 md:h-72 bg-white flex items-center justify-center">
+                <div className="h-60 md:h-72 bg-white dark:bg-gray-800 flex items-center justify-center">
                   {producto.imagen_url ? (
                     <img
                       src={producto.imagen_url}
@@ -213,15 +218,15 @@ export default function ProductosPage() {
                 {/* Product Info */}
                 <div className="p-6">
                   <div className="flex justify-between items-start mb-2">
-                    <h3 className="text-lg font-semibold text-gray-900">{producto.nombre}</h3>
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{producto.nombre}</h3>
                     {producto.categoria && (
-                      <span className="text-xs bg-pink-100 text-pink-800 px-2 py-1 rounded-full">
+                      <span className="text-xs bg-pink-100 dark:bg-gray-700 text-pink-800 dark:text-pink-300 px-2 py-1 rounded-full">
                         {producto.categoria}
                       </span>
                     )}
                   </div>
                   
-                  <p className="text-gray-600 text-sm mb-4 line-clamp-2">
+                  <p className="text-gray-600 dark:text-gray-300 text-sm mb-4 line-clamp-2">
                     {producto.descripcion}
                   </p>
 
@@ -241,10 +246,10 @@ export default function ProductosPage() {
                   </div>
 
                   <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center border rounded-md">
+                    <div className="flex items-center border rounded-md dark:border-gray-700">
                       <button
                         onClick={() => setCantidades(prev => ({ ...prev, [producto.id]: Math.max(1, (prev[producto.id] ?? 1) - 1) }))}
-                        className="px-3 py-2 text-gray-700 hover:text-pink-600"
+                        className="px-3 py-2 text-gray-700 dark:text-gray-200 hover:text-pink-600 dark:hover:text-pink-400"
                         aria-label="Disminuir"
                       >
                         <Minus className="h-4 w-4" />
@@ -258,33 +263,38 @@ export default function ProductosPage() {
                           const v = Math.max(1, Math.min(Number(e.target.value || 1), producto.stock || Infinity));
                           setCantidades(prev => ({ ...prev, [producto.id]: v }));
                         }}
-                        className="w-16 text-center border-l border-r py-2"
+                        className="w-16 text-center border-l border-r py-2 dark:bg-gray-800 dark:text-gray-100 dark:border-gray-700"
                       />
                       <button
                         onClick={() => setCantidades(prev => ({ ...prev, [producto.id]: Math.min((producto.stock || Infinity), (prev[producto.id] ?? 1) + 1) }))}
-                        className="px-3 py-2 text-gray-700 hover:text-pink-600"
+                        className="px-3 py-2 text-gray-700 dark:text-gray-200 hover:text-pink-600 dark:hover:text-pink-400"
                         aria-label="Aumentar"
                       >
                         <Plus className="h-4 w-4" />
                       </button>
                     </div>
-                    <div className="text-sm text-gray-600">
+                    <div className="text-sm text-gray-600 dark:text-gray-300">
                       Total: ${(producto.precio * (cantidades[producto.id] ?? 1)).toLocaleString('es-CL')}
                     </div>
                   </div>
 
-                  {/* Add to Cart Button */}
                   <button
                     onClick={() => handleAddToCart(producto)}
                     disabled={producto.stock === 0}
-                    className={`w-full flex items-center justify-center px-4 py-2 rounded-md transition-colors ${
+                    className={`w-full flex items-center justify-center px-4 py-2 rounded-md transition-all ${
                       producto.stock > 0
-                        ? 'bg-pink-600 text-white hover:bg-pink-700'
+                        ? addedIds[producto.id]
+                          ? 'bg-green-600 text-white hover:bg-green-700 scale-[1.02]'
+                          : 'bg-pink-600 text-white hover:bg-pink-700'
                         : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                     }`}
                   >
-                    <ShoppingCart className="h-5 w-5 mr-2" />
-                    {producto.stock > 0 ? 'Agregar al carrito' : 'Sin stock'}
+                    {addedIds[producto.id] ? (
+                      <CheckCircle className="h-5 w-5 mr-2 animate-bounce" />
+                    ) : (
+                      <ShoppingCart className="h-5 w-5 mr-2" />
+                    )}
+                    {producto.stock > 0 ? (addedIds[producto.id] ? 'Agregado!' : 'Agregar al carrito') : 'Sin stock'}
                   </button>
                 </div>
               </div>

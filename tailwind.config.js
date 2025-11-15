@@ -5,12 +5,19 @@ module.exports = {
     "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
   ],
+  darkMode: 'class',
   safelist: [
     // Etiquetas de estado de citas
     'bg-green-100', 'text-green-800',
     'bg-yellow-100', 'text-yellow-800',
     'bg-red-100', 'text-red-800',
     'bg-gray-100', 'text-gray-800',
+    'bg-yellow-400', 'ring-yellow-300', 'text-black',
+    'dark:bg-yellow-400', 'dark:text-black', 'dark:ring-yellow-300',
+    'bg-red-500', 'ring-red-400',
+    'dark:bg-red-500', 'dark:ring-red-400',
+    'bg-green-500', 'ring-green-400',
+    'dark:bg-green-500', 'dark:ring-green-400',
   ],
   theme: {
     extend: {
