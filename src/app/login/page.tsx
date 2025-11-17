@@ -9,7 +9,7 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 
 export default function LoginPage() {
   const router = useRouter();
-  const { login, loading, user } = useAuth();
+  const { login, loading } = useAuth();
   const [formData, setFormData] = useState({
     email: "",
     password: ""
@@ -81,12 +81,26 @@ export default function LoginPage() {
     }
     
     const result = await login(formData.email, formData.password);
-    
+
     if (result.success) {
-      const r = user?.role;
-      const s = r ? (typeof r === "string" ? r.toLowerCase() : String(r).toLowerCase()) : "";
-      const goAdmin = s.includes("admin") || s === "administrador";
-      router.push(goAdmin ? "/admin" : "/");
+      try {
+        const meRes = await fetch("/api/auth/me", { credentials: "include" });
+        const meData = await meRes.json().catch(() => ({}));
+        const roleRaw = meData?.role ?? meData?.user?.role ?? meData?.profile?.role ?? meData?.roles ?? meData?.user?.roles ?? meData?.is_admin;
+        const roleStr = (() => {
+          if (typeof roleRaw === "string") return roleRaw.toLowerCase();
+          if (typeof roleRaw === "boolean") return roleRaw ? "administrador" : "cliente";
+          if (Array.isArray(roleRaw)) {
+            const hasAdmin = roleRaw.some((x: any) => typeof x === "string" && x.toLowerCase().includes("admin"));
+            return hasAdmin ? "administrador" : "cliente";
+          }
+          return "";
+        })();
+        const isAdmin = roleStr.includes("admin") || roleStr === "administrador";
+        router.push(isAdmin ? "/admin" : "/");
+      } catch {
+        router.push("/");
+      }
     } else {
       setError(result.error || "Credenciales incorrectas. Por favor, intenta nuevamente.");
     }
