@@ -1,6 +1,7 @@
 "use client";
 
 import { useAuth } from "@/context/AuthContext";
+import Link from "next/link";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import {
   User,
@@ -42,60 +43,43 @@ export default function AdminPage() {
                       </span>
                     </div>
                   </div>
-                  <div className="bg-white/20 text-white px-4 py-2 rounded-md capitalize">
-                    {user?.role || "administrador"}
-                  </div>
                 </div>
               </div>
             </div>
-            <div className="px-6 py-6">
-              <p className="text-gray-700">Accesos rápidos</p>
-              <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                <a
+            <div className="px-6 py-10">
+              <h2 className="text-xl font-semibold text-gray-800 mb-2">¿Qué tarea deseas realizar?</h2>
+              <p className="text-gray-600 mb-6">Selecciona una opción para continuar.</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <Link
                   href="/admin/citas"
                   className="block bg-gray-50 border border-gray-200 rounded-lg p-6 hover:border-pink-300 transition-colors"
                 >
                   <div className="flex items-center mb-3">
                     <Calendar className="h-6 w-6 text-pink-600 mr-2" />
-                    <h3 className="text-lg font-semibold text-gray-800">
-                      Citas
-                    </h3>
+                    <h3 className="text-lg font-semibold text-gray-800">Gestión de citas</h3>
                   </div>
-                  <p className="text-gray-600">
-                    Visualizar y gestionar las reservas.
-                  </p>
-                </a>
-                <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 hover:border-pink-300 transition-colors">
-                  <div className="flex items-center mb-3">
-                    <ClipboardList className="h-6 w-6 text-pink-600 mr-2" />
-                    <h3 className="text-lg font-semibold text-gray-800">
-                      Tratamientos
-                    </h3>
-                  </div>
-                  <p className="text-gray-600">
-                    Administrar tratamientos y zonas.
-                  </p>
-                </div>
-                <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 hover:border-pink-300 transition-colors">
+                  <p className="text-gray-600">Visualizar y gestionar reservas.</p>
+                </Link>
+                <Link
+                  href="/admin/inventario"
+                  className="block bg-gray-50 border border-gray-200 rounded-lg p-6 hover:border-pink-300 transition-colors"
+                >
                   <div className="flex items-center mb-3">
                     <Package className="h-6 w-6 text-pink-600 mr-2" />
-                    <h3 className="text-lg font-semibold text-gray-800">
-                      Productos
-                    </h3>
+                    <h3 className="text-lg font-semibold text-gray-800">Gestión de inventario</h3>
                   </div>
-                  <p className="text-gray-600">Gestionar catálogo y stock.</p>
-                </div>
-              </div>
-              <div className="mt-8 bg-white border border-gray-200 rounded-lg p-6">
-                <div className="flex items-center mb-3">
-                  <Shield className="h-6 w-6 text-purple-600 mr-2" />
-                  <h3 className="text-lg font-semibold text-gray-800">
-                    Estado
-                  </h3>
-                </div>
-                <p className="text-gray-600">
-                  Acceso concedido para cuentas con rol administrador.
-                </p>
+                  <p className="text-gray-600">Registrar entradas y salidas.</p>
+                </Link>
+                <Link
+                  href="/admin/usuarios"
+                  className="block bg-gray-50 border border-gray-200 rounded-lg p-6 hover:border-pink-300 transition-colors"
+                >
+                  <div className="flex items-center mb-3">
+                    <ClipboardList className="h-6 w-6 text-pink-600 mr-2" />
+                    <h3 className="text-lg font-semibold text-gray-800">Buscador de usuarios</h3>
+                  </div>
+                  <p className="text-gray-600">Buscar miembros por nombre y ver contacto.</p>
+                </Link>
               </div>
             </div>
           </div>

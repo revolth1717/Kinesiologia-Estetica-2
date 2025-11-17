@@ -9,7 +9,7 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 
 export default function LoginPage() {
   const router = useRouter();
-  const { login, loading } = useAuth();
+  const { login, loading, user } = useAuth();
   const [formData, setFormData] = useState({
     email: "",
     password: ""
@@ -83,8 +83,10 @@ export default function LoginPage() {
     const result = await login(formData.email, formData.password);
     
     if (result.success) {
-      // Redirigir al usuario a la página principal
-      router.push("/");
+      const r = user?.role;
+      const s = r ? (typeof r === "string" ? r.toLowerCase() : String(r).toLowerCase()) : "";
+      const goAdmin = s.includes("admin") || s === "administrador";
+      router.push(goAdmin ? "/admin" : "/");
     } else {
       setError(result.error || "Credenciales incorrectas. Por favor, intenta nuevamente.");
     }

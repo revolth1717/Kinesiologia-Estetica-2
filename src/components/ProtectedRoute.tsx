@@ -20,7 +20,7 @@ export default function ProtectedRoute({
   const { user, isLoggedIn, loading } = useAuth();
   const router = useRouter();
   const isAdmin = (() => {
-    const r = (user as any)?.role;
+    const r = user?.role;
     if (!r) return false;
     const s = typeof r === "string" ? r.toLowerCase() : String(r).toLowerCase();
     return s.includes("admin") || s === "administrador";
@@ -43,10 +43,14 @@ export default function ProtectedRoute({
 
     // Si no requiere autenticación pero está logueado (ej: login/registro)
     if (!requireAuth && isLoggedIn) {
-      router.push("/perfil"); // Redirigir al perfil si ya está logueado
+      if (isAdmin) {
+        router.push("/admin");
+      } else {
+        router.push("/");
+      }
       return;
     }
-  }, [user, isLoggedIn, loading, router, redirectTo, requireAuth, adminOnly]);
+  }, [user, isLoggedIn, loading, router, redirectTo, requireAuth, adminOnly, isAdmin]);
 
   // Mostrar loading mientras se verifica la autenticación
   if (loading) {

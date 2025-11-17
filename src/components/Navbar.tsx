@@ -54,7 +54,7 @@ const Navbar = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
           <div className="flex items-center">
-            <Link href="/" className="flex-shrink-0 flex items-center">
+            <Link href={isLoggedIn && isAdmin ? "/admin" : "/"} className="flex-shrink-0 flex items-center">
               <span className="text-2xl font-bold text-pink-600 dark:text-pink-400">
                 Kinesiología Estética
               </span>
@@ -63,38 +63,58 @@ const Navbar = () => {
 
           {/* Desktop menu */}
           <div className="hidden lg:flex items-center space-x-3 sm:space-x-4">
-            <Link
-              href="/tratamientos"
-              className="px-3 py-2 text-gray-700 dark:text-gray-200 hover:text-pink-600 dark:hover:text-pink-400 transition-colors"
-            >
-              Tratamientos
-            </Link>
-            <Link
-              href="/productos"
-              className="px-3 py-2 text-gray-700 dark:text-gray-200 hover:text-pink-600 dark:hover:text-pink-400 transition-colors"
-            >
-              Productos
-            </Link>
-            <Link
-              href="/contacto"
-              className="px-3 py-2 text-gray-700 dark:text-gray-200 hover:text-pink-600 dark:hover:text-pink-400 transition-colors"
-            >
-              Contacto
-            </Link>
+            {!(isLoggedIn && isAdmin) && (
+              <>
+                <Link
+                  href="/tratamientos"
+                  className="px-3 py-2 text-gray-700 dark:text-gray-200 hover:text-pink-600 dark:hover:text-pink-400 transition-colors"
+                >
+                  Tratamientos
+                </Link>
+                <Link
+                  href="/productos"
+                  className="px-3 py-2 text-gray-700 dark:text-gray-200 hover:text-pink-600 dark:hover:text-pink-400 transition-colors"
+                >
+                  Productos
+                </Link>
+                <Link
+                  href="/contacto"
+                  className="px-3 py-2 text-gray-700 dark:text-gray-200 hover:text-pink-600 dark:hover:text-pink-400 transition-colors"
+                >
+                  Contacto
+                </Link>
+              </>
+            )}
             {isLoggedIn && isAdmin && (
+              <>
+                <Link
+                  href="/admin/citas"
+                  className="px-3 py-2 text-pink-700 dark:text-pink-300 hover:text-pink-900 dark:hover:text-pink-200 transition-colors border rounded-md border-pink-300"
+                >
+                  Gestión de citas
+                </Link>
+                <Link
+                  href="/admin/inventario"
+                  className="px-3 py-2 text-pink-700 dark:text-pink-300 hover:text-pink-900 dark:hover:text-pink-200 transition-colors border rounded-md border-pink-300"
+                >
+                  Gestión de inventario
+                </Link>
+                <Link
+                  href="/admin/usuarios"
+                  className="px-3 py-2 text-pink-700 dark:text-pink-300 hover:text-pink-900 dark:hover:text-pink-200 transition-colors border rounded-md border-pink-300"
+                >
+                  Buscador de usuarios
+                </Link>
+              </>
+            )}
+            {!(isLoggedIn && isAdmin) && (
               <Link
-                href="/admin/citas"
-                className="px-3 py-2 text-pink-700 dark:text-pink-300 hover:text-pink-900 dark:hover:text-pink-200 transition-colors border rounded-md border-pink-300"
+                href="/carrito"
+                className="p-2 text-pink-600 dark:text-pink-400 hover:text-pink-800 dark:hover:text-pink-300 transition-colors"
               >
-                Gestión
+                <ShoppingCart className="h-6 w-6" />
               </Link>
             )}
-            <Link
-              href="/carrito"
-              className="p-2 text-pink-600 dark:text-pink-400 hover:text-pink-800 dark:hover:text-pink-300 transition-colors"
-            >
-              <ShoppingCart className="h-6 w-6" />
-            </Link>
 
             <button
               onClick={toggleTheme}
@@ -217,21 +237,59 @@ const Navbar = () => {
             >
               Contacto
             </Link>
+            {!(isLoggedIn && isAdmin) && (
+              <>
+                <Link
+                  href="/tratamientos"
+                  className="block px-3 py-2 text-gray-700 dark:text-gray-200 hover:text-pink-600 dark:hover:text-pink-400 transition-colors"
+                >
+                  Tratamientos
+                </Link>
+                <Link
+                  href="/productos"
+                  className="block px-3 py-2 text-gray-700 dark:text-gray-200 hover:text-pink-600 dark:hover:text-pink-400 transition-colors"
+                >
+                  Productos
+                </Link>
+                <Link
+                  href="/contacto"
+                  className="block px-3 py-2 text-gray-700 dark:text-gray-200 hover:text-pink-600 dark:hover:text-pink-400 transition-colors"
+                >
+                  Contacto
+                </Link>
+              </>
+            )}
             {isLoggedIn && isAdmin && (
+              <>
+                <Link
+                  href="/admin/citas"
+                  className="block px-3 py-2 text-pink-700 dark:text-pink-300 hover:text-pink-900 dark:hover:text-pink-200 transition-colors border rounded-md border-pink-300"
+                >
+                  Gestión de citas
+                </Link>
+                <Link
+                  href="/admin/inventario"
+                  className="block px-3 py-2 text-pink-700 dark:text-pink-300 hover:text-pink-900 dark:hover:text-pink-200 transition-colors border rounded-md border-pink-300"
+                >
+                  Gestión de inventario
+                </Link>
+                <Link
+                  href="/admin/usuarios"
+                  className="block px-3 py-2 text-pink-700 dark:text-pink-300 hover:text-pink-900 dark:hover:text-pink-200 transition-colors border rounded-md border-pink-300"
+                >
+                  Buscador de usuarios
+                </Link>
+              </>
+            )}
+            {!(isLoggedIn && isAdmin) && (
               <Link
-                href="/admin/citas"
-                className="block px-3 py-2 text-pink-700 dark:text-pink-300 hover:text-pink-900 dark:hover:text-pink-200 transition-colors border rounded-md border-pink-300"
+                href="/carrito"
+                className="flex items-center px-3 py-2 text-gray-700 dark:text-gray-200 hover:text-pink-600 dark:hover:text-pink-400 transition-colors"
               >
-                Gestión
+                <ShoppingCart className="h-5 w-5 mr-2" />
+                Carrito
               </Link>
             )}
-            <Link
-              href="/carrito"
-              className="flex items-center px-3 py-2 text-gray-700 dark:text-gray-200 hover:text-pink-600 dark:hover:text-pink-400 transition-colors"
-            >
-              <ShoppingCart className="h-5 w-5 mr-2" />
-              Carrito
-            </Link>
 
             {isLoggedIn ? (
               <>
