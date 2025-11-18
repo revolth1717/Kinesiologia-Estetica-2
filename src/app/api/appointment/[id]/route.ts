@@ -43,59 +43,109 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     const normalizeStatus = (v: any): any => {
       if (typeof v !== "string") return v;
       const s = v.toLowerCase().trim();
-      if (s === "confirmada" || s === "confirmed") return "confirmada";
-      if (s === "pendiente" || s === "pending") return "pendiente";
-      if (s === "cancelada" || s === "cancelled" || s === "canceled") return "cancelada";
-      return s;
+      if (s === "confirmada" || s === "confirmed") return "CONFIRMADA";
+      if (s === "pendiente" || s === "pending") return "PENDIENTE";
+      if (s === "cancelada" || s === "cancelled" || s === "canceled") return "CANCELADA";
+      return String(v).toUpperCase();
     };
-    const toIso = (v: any): any => {
+    const toXanoInput = (v: any): any => {
       try {
-        if (typeof v === "number") return new Date(v).toISOString();
+        if (typeof v === "number") return v;
         const s = String(v || "").trim();
         if (/^\d+$/.test(s)) {
           const num = parseInt(s, 10);
           const ms = s.length >= 13 ? num : num * 1000;
-          return new Date(ms).toISOString();
+          return ms;
         }
-        return new Date(s).toISOString();
+        return s;
       } catch {
         return v;
       }
     };
     const payload: any = { ...rawPayload };
     if ("status" in payload) payload.status = normalizeStatus(payload.status);
-    if ("appointment_date" in payload) payload.appointment_date = toIso(payload.appointment_date);
-    const baseCandidates = [
-      `${XANO_GENERAL}/appointment/${encodeURIComponent(idStr)}`,
-      `${XANO_AUTH}/appointment/${encodeURIComponent(idStr)}`,
-      `${XANO_GENERAL}/appointments/${encodeURIComponent(idStr)}`,
-      `${XANO_AUTH}/appointments/${encodeURIComponent(idStr)}`,
-      `${XANO_GENERAL}/citas/${encodeURIComponent(idStr)}`,
-      `${XANO_AUTH}/citas/${encodeURIComponent(idStr)}`,
-    ];
+    if ("appointment_date" in payload) payload.appointment_date = toXanoInput(payload.appointment_date);
+
+    if (payload && typeof payload.appointment_date !== "undefined") {
+      const toDate = (v: any): Date => {
+        try {
+          if (typeof v === "number") return new Date(v);
+          const s = String(v || "").trim();
+          const ddmmyyyy = s.match(/^([0-9]{2})-([0-9]{2})-([0-9]{4})$/);
+          if (ddmmyyyy) {
+            const dd = parseInt(ddmmyyyy[1], 10);
+            const mm = parseInt(ddmmyyyy[2], 10);
+            const yy = parseInt(ddmmyyyy[3], 10);
+            return new Date(yy, mm - 1, dd);
+          }
+          const yyyymmdd = s.match(/^([0-9]{4})-([0-9]{2})-([0-9]{2})$/);
+          if (yyyymmdd) {
+            const yy = parseInt(yyyymmdd[1], 10);
+            const mm = parseInt(yyyymmdd[2], 10);
+            const dd = parseInt(yyyymmdd[3], 10);
+            return new Date(yy, mm - 1, dd);
+          }
+          if (/^\d+$/.test(s)) {
+            const num = parseInt(s, 10);
+            const ms = s.length >= 13 ? num : num * 1000;
+            return new Date(ms);
+          }
+          return new Date(s);
+        } catch {
+          return new Date();
+        }
+      };
+      const d = toDate(payload.appointment_date);
+      const dd = String(d.getDate()).padStart(2, "0");
+      const mm = String(d.getMonth() + 1).padStart(2, "0");
+      const yy = String(d.getFullYear());
+      const dmy = `${dd}-${mm}-${yy}`;
+      const hhmm = `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+      console.log("[proxy] reschedule compose", { id: idStr, input: payload.appointment_date, nueva_fecha: dmy, nueva_hora: hhmm });
+      const body = { nueva_fecha: dmy, nueva_hora: hhmm } as any;
+      const target = `${XANO_AUTH}/appointment/reschedule/${encodeURIComponent(idStr)}`;
+      const res = await fetch(target, {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(body),
+      });
+      const text = await res.text();
+      let data: any = null;
+      try { data = JSON.parse(text); } catch { data = { raw: text }; }
+      console.log("[proxy] reschedule response", { status: res.status, ok: res.ok, data });
+      if (res.ok) {
+        return NextResponse.json(data, { status: res.status });
+      }
+      if (res.status !== 404 && res.status !== 405) {
+        return NextResponse.json(data, { status: res.status });
+      }
+    }
+
+    const target = `${XANO_AUTH}/appointment/${encodeURIComponent(idStr)}`;
+    // Priorizar PUT (común en Xano), luego fallback a PATCH
+    const methods = ["PUT", "PATCH"] as const;
     let last: { status: number; data: any } | null = null;
-    for (const target of baseCandidates) {
-      // Intentar PATCH primero, luego PUT como fallback
-      const methods = ["PATCH", "PUT"] as const;
-      for (const method of methods) {
-        const res = await fetch(target, {
-          method,
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(payload),
-        });
-        const text = await res.text();
-        let data: any = null;
-        try { data = JSON.parse(text); } catch { data = { raw: text }; }
-        if (res.ok) {
-          return NextResponse.json(data, { status: res.status });
-        }
-        last = { status: res.status, data };
-        if (res.status !== 404 && res.status !== 405) {
-          return NextResponse.json(data, { status: res.status });
-        }
+    for (const method of methods) {
+      const res = await fetch(target, {
+        method,
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+      const text = await res.text();
+      let data: any = null;
+      try { data = JSON.parse(text); } catch { data = { raw: text }; }
+      if (res.ok) {
+        return NextResponse.json(data, { status: res.status });
+      }
+      last = { status: res.status, data };
+      if (res.status !== 404 && res.status !== 405) {
+        return NextResponse.json(data, { status: res.status });
       }
     }
     const fallback = last ?? { status: 404, data: { message: "Not Found" } };
@@ -123,7 +173,6 @@ export async function DELETE(req: Request, { params }: { params: { id: string } 
     }
 
     const candidates = [
-      `${XANO_GENERAL}/appointment/${encodeURIComponent(idStr)}`,
       `${XANO_AUTH}/appointment/${encodeURIComponent(idStr)}`,
     ];
     let last: { status: number; data: any } | null = null;

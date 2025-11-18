@@ -110,10 +110,11 @@ export default function AdminCitasPage() {
   const [sort, setSort] = useState<
     "fechaDesc" | "fechaAsc" | "estado" | "servicio" | "nombre"
   >("fechaDesc");
-  const [view, setView] = useState<"lista" | "calendario">("lista");
+  const [view, setView] = useState<"lista" | "calendario" | "pendientes">("lista");
   const [actionId, setActionId] = useState<number | null>(null);
   const [actionError, setActionError] = useState<string>("");
   const [actionSuccess, setActionSuccess] = useState<string>("");
+  const [reschedMsgById, setReschedMsgById] = useState<Record<number, string>>({});
   const [schedId, setSchedId] = useState<number | null>(null);
   const [schedDate, setSchedDate] = useState<string>("");
   const [schedTime, setSchedTime] = useState<string>("");
@@ -248,16 +249,10 @@ export default function AdminCitasPage() {
     setActionSuccess("");
     setActionId(id);
     try {
-      const curr = (citas || []).find(c => c.id === id);
       if (status === "cancelada") {
         await citasService.cancelarCita(id);
       } else {
-        await citasService.actualizarCita(id, {
-          status: status as any,
-          appointment_date: curr?.appointment_date,
-          service: curr?.service,
-          comments: curr?.comments,
-        });
+        await citasService.actualizarEstado(id, status as any);
       }
       setCitas(prev => prev.map(c => (c.id === id ? { ...c, status } : c)));
       await fetchAll();
@@ -295,6 +290,7 @@ export default function AdminCitasPage() {
     }
     setSchedLoading(true);
     try {
+      console.log("[UI] Reprogramar click", { id, schedDate, schedTime, ms });
       const taken: string[] = await citasService
         .obtenerDisponibilidad(schedDate)
         .catch(() => [] as string[]);
@@ -302,22 +298,31 @@ export default function AdminCitasPage() {
         setSchedError("Horario no disponible");
         return;
       }
-      const iso = new Date(ms).toISOString();
       const curr = (citas || []).find(c => c.id === id);
-      await citasService.actualizarCita(id, {
-        appointment_date: iso,
-        status: curr?.status,
-        service: curr?.service,
-        comments: curr?.comments,
-      });
+      await citasService.reprogramarCita(id, ms, curr?.status);
+      console.log("[UI] Reprogramar OK", { id, newDateMs: ms });
+      const iso = new Date(ms).toISOString();
       setCitas(prev =>
-        prev.map(c => (c.id === id ? { ...c, appointment_date: iso } : c))
+        prev.map(c =>
+          c.id === id ? { ...c, appointment_date: iso, __reagendada: true } : c
+        )
       );
       await fetchAll();
+      const f = citasService.formatearFecha(iso);
+      const h = citasService.formatearHora(iso);
+      setReschedMsgById(prev => ({ ...prev, [id]: `Cita reprogramada a ${f} ${h}` }));
+      setTimeout(() => {
+        setReschedMsgById(prev => {
+          const next = { ...prev } as Record<number, string>;
+          delete next[id];
+          return next;
+        });
+      }, 4000);
       setSchedId(null);
       setSchedDate("");
       setSchedTime("");
     } catch (err: any) {
+      console.error("[UI] Reprogramar error", err);
       setSchedError(String(err?.message || err));
     } finally {
       setSchedLoading(false);
@@ -336,9 +341,10 @@ export default function AdminCitasPage() {
     for (let d = 1; d <= daysInMonth; d++) {
       const dt = new Date(calYear, calMonth, d);
       const key = ymd(dt.getTime());
-      const count = (citas || []).filter(
-        c => ymd(toMs(c?.appointment_date)) === key
-      ).length;
+      const count = (citas || [])
+        .filter(c => ymd(toMs(c?.appointment_date)) === key)
+        .filter(c => String(c?.status || "")?.toLowerCase().trim() !== "pendiente")
+        .length;
       cells.push({ ymd: key, count });
     }
     while (cells.length % 7 !== 0) cells.push({ ymd: null, count: 0 });
@@ -349,9 +355,9 @@ export default function AdminCitasPage() {
   const [selectedDay, setSelectedDay] = useState<string>("");
   const dayCitas = useMemo(() => {
     if (!selectedDay) return [] as any[];
-    return (citas || []).filter(
-      c => ymd(toMs(c?.appointment_date)) === selectedDay
-    );
+    return (citas || [])
+      .filter(c => ymd(toMs(c?.appointment_date)) === selectedDay)
+      .filter(c => String(c?.status || "")?.toLowerCase().trim() !== "pendiente");
   }, [selectedDay, citas]);
 
   return (
@@ -395,6 +401,16 @@ export default function AdminCitasPage() {
                     }`}
                   >
                     Calendario
+                  </button>
+                  <button
+                    onClick={() => setView("pendientes")}
+                    className={`px-3 py-2 rounded-md border ${
+                      view === "pendientes"
+                        ? "bg-pink-600 text-white border-pink-600"
+                        : "bg-white text-gray-800 border-gray-300"
+                    }`}
+                  >
+                    Pendientes
                   </button>
                 </div>
                 {view === "lista" && (
@@ -487,6 +503,9 @@ export default function AdminCitasPage() {
                           key={`${cita.id}-${idx}`}
                           className="border border-gray-200 rounded-lg p-4 bg-gray-50"
                         >
+                          <div className="text-lg font-semibold text-gray-900 mb-2">
+                            {String(cita.service || "")}
+                          </div>
                           <div className="flex items-center mb-2">
                             <Calendar className="h-5 w-5 text-pink-600 mr-2" />
                             <span className="text-gray-800 font-semibold">
@@ -532,6 +551,15 @@ export default function AdminCitasPage() {
                           >
                             {citasService.obtenerTextoEstado(cita.status)}
                           </div>
+                          {cita.__reagendada && (
+                            <div
+                              className={`inline-block ml-2 px-3 py-1 rounded ${citasService.obtenerColorEstado(
+                                "reagendada"
+                              )}`}
+                            >
+                              {citasService.obtenerTextoEstado("reagendada")}
+                            </div>
+                          )}
                           <div className="mt-3 flex flex-wrap gap-2">
                             {cita.status !== "confirmada" && (
                               <button
@@ -583,9 +611,9 @@ export default function AdminCitasPage() {
                               {actionError}
                             </div>
                           )}
-                          {actionSuccess && actionId === null && (
-                            <div className="mt-2 text-sm text-green-600">
-                              {actionSuccess}
+                          {reschedMsgById[cita.id] && (
+                            <div className="mt-2 text-sm text-blue-700">
+                              {reschedMsgById[cita.id]}
                             </div>
                           )}
                           {schedId === cita.id && (
@@ -632,7 +660,7 @@ export default function AdminCitasPage() {
                             </div>
                           )}
                           <div className="mt-3 text-sm text-gray-700">
-                            {cita.service}
+                            
                           </div>
                         </div>
                       ))}
@@ -774,6 +802,9 @@ export default function AdminCitasPage() {
                               key={`${cita.id}-${idx}`}
                               className="border border-gray-200 rounded-lg p-4 bg-gray-50"
                             >
+                              <div className="text-lg font-semibold text-gray-900 mb-2">
+                                {String(cita.service || "")}
+                              </div>
                               <div className="flex items-center mb-2">
                                 <Calendar className="h-5 w-5 text-pink-600 mr-2" />
                                 <span className="text-gray-800 font-semibold">
@@ -819,6 +850,15 @@ export default function AdminCitasPage() {
                               >
                                 {citasService.obtenerTextoEstado(cita.status)}
                               </div>
+                              {cita.__reagendada && (
+                                <div
+                                  className={`inline-block ml-2 px-3 py-1 rounded ${citasService.obtenerColorEstado(
+                                    "reagendada"
+                                  )}`}
+                                >
+                                  {citasService.obtenerTextoEstado("reagendada")}
+                                </div>
+                              )}
                               <div className="mt-3 flex flex-wrap gap-2">
                                 {cita.status !== "confirmada" && (
                                   <button
@@ -871,7 +911,7 @@ export default function AdminCitasPage() {
                                   <div className="mb-2 text-sm font-medium text-gray-800">
                                     Reprogramar cita
                                   </div>
-                                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-2">
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-2">
                                     <input
                                       type="date"
                                       value={schedDate}
@@ -888,37 +928,6 @@ export default function AdminCitasPage() {
                                       }
                                       className="px-2 py-2 border rounded-md"
                                     />
-                                    <button
-                                      onClick={() => {
-                                        const ms = schedCombine(
-                                          schedDate,
-                                          schedTime
-                                        );
-                                        if (!ms) {
-                                          setSchedError("Fecha/hora inválidas");
-                                          return;
-                                        }
-                                        const d = ymd(ms);
-                                        citasService
-                                          .obtenerDisponibilidad(d)
-                                          .then(taken => {
-                                            if (
-                                              Array.isArray(taken) &&
-                                              taken.includes(schedTime)
-                                            )
-                                              setSchedError("Horario ocupado");
-                                            else setSchedError("");
-                                          })
-                                          .catch(() =>
-                                            setSchedError(
-                                              "No se pudo validar disponibilidad"
-                                            )
-                                          );
-                                      }}
-                                      className="px-2 py-2 rounded-md bg-gray-100 text-gray-800 border"
-                                    >
-                                      Validar
-                                    </button>
                                   </div>
                                   {schedError && (
                                     <div className="text-sm text-red-600">
@@ -948,7 +957,7 @@ export default function AdminCitasPage() {
                                 </div>
                               )}
                               <div className="mt-3 text-sm text-gray-700">
-                                {cita.service}
+                                
                               </div>
                             </div>
                           ))}
@@ -958,6 +967,71 @@ export default function AdminCitasPage() {
                         </div>
                       </div>
                     )}
+                  </div>
+                )}
+                {view === "pendientes" && (
+                  <div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {(citas || [])
+                        .filter(c => String(c?.status || "")?.toLowerCase().trim() === "pendiente")
+                        .sort((a, b) => toMs(a?.appointment_date) - toMs(b?.appointment_date))
+                        .map((cita, idx) => (
+                          <div key={`${cita.id}-${idx}`} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                            <div className="text-lg font-semibold text-gray-900 mb-2">{String(cita.service || "")}</div>
+                            <div className="flex items-center mb-2">
+                              <Calendar className="h-5 w-5 text-pink-600 mr-2" />
+                              <span className="text-gray-800 font-semibold">
+                                {citasService.formatearFecha(cita.appointment_date)}
+                              </span>
+                            </div>
+                            <div className="flex items-center mb-2">
+                              <Clock className="h-5 w-5 text-pink-600 mr-2" />
+                              <span className="text-gray-700">
+                                {citasService.formatearHora(cita.appointment_date)}
+                              </span>
+                            </div>
+                            <div className="flex items-center mb-2">
+                              <User className="h-5 w-5 text-gray-600 mr-2" />
+                              <span className="text-gray-700">{getNombre(cita as any)}</span>
+                            </div>
+                            {getEmail(cita) && (
+                              <div className="flex items-center mb-2">
+                                <Mail className="h-5 w-5 text-gray-600 mr-2" />
+                                <span className="text-gray-700">{getEmail(cita)}</span>
+                              </div>
+                            )}
+                            {getTelefono(cita) && (
+                              <div className="flex items-center mb-2">
+                                <Phone className="h-5 w-5 text-gray-600 mr-2" />
+                                <span className="text-gray-700">{getTelefono(cita)}</span>
+                              </div>
+                            )}
+                            <div className={`inline-block px-3 py-1 rounded ${citasService.obtenerColorEstado(cita.status)}`}>
+                              {citasService.obtenerTextoEstado(cita.status)}
+                            </div>
+                            <div className="mt-3 flex flex-wrap gap-2">
+                              <button
+                                onClick={() => doUpdateStatus(cita.id, "confirmada")}
+                                disabled={actionId === cita.id}
+                                className="inline-flex items-center px-3 py-1 rounded-md bg-green-600 text-white"
+                              >
+                                <CheckCircle className="h-4 w-4 mr-1" /> Confirmar
+                              </button>
+                              <button
+                                onClick={() => doUpdateStatus(cita.id, "cancelada")}
+                                disabled={actionId === cita.id}
+                                className="inline-flex items-center px-3 py-1 rounded-md bg-red-600 text-white"
+                              >
+                                <XCircle className="h-4 w-4 mr-1" /> Cancelar
+                              </button>
+                            </div>
+                            
+                          </div>
+                        ))}
+                      {(citas || []).filter(c => String(c?.status || "")?.toLowerCase().trim() === "pendiente").length === 0 && (
+                        <div className="text-gray-600">No hay citas pendientes.</div>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>

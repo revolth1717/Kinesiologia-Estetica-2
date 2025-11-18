@@ -46,22 +46,12 @@ export default function PerfilPage() {
   const [refreshSuccess, setRefreshSuccess] = useState(false);
 
   useEffect(() => {
-    console.log("DEBUG - User data:", user);
-    console.log("DEBUG - Loading:", loading);
-    console.log("DEBUG - IsLoggedIn:", isLoggedIn);
-
     if (!loading && !isLoggedIn) {
       router.push("/login");
       return;
     }
 
     if (user) {
-      console.log("👤 Datos del usuario en perfil:", user);
-      console.log("DEBUG - Setting editForm with user data:", {
-        nombre: user.nombre,
-        email: user.email,
-        phone: user.phone,
-      });
       setEditForm({
         nombre: user.nombre || "",
         email: user.email || "",

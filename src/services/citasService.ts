@@ -180,16 +180,42 @@ class CitasService {
     datosActualizados: Partial<Cita>
   ): Promise<Cita> {
     try {
-      // Actualizar cita a través del backend local
+      const payload: any = { ...datosActualizados };
+      if (typeof payload.status !== "undefined") {
+        payload.status = String(payload.status).toUpperCase();
+      }
+      if (typeof payload.appointment_date !== "undefined") {
+        const v = payload.appointment_date as any;
+        const toXanoInput = (val: any) => {
+          try {
+            if (typeof val === "number") return val;
+            const s = String(val || "").trim();
+            if (/^\d+$/.test(s)) {
+              const num = parseInt(s, 10);
+              const ms = s.length >= 13 ? num : num * 1000;
+              return ms;
+            }
+            return s;
+          } catch {
+            return val;
+          }
+        };
+        payload.appointment_date = toXanoInput(v);
+      }
       const response = await fetch(`${API_LOCAL_BASE}/${id}`, {
         method: "PATCH",
         headers: this.getAuthHeaders(),
         credentials: "include",
-        body: JSON.stringify(datosActualizados),
+        body: JSON.stringify(payload),
       });
 
       if (!response.ok) {
-        throw new Error(`Error ${response.status}: ${response.statusText}`);
+        const txt = await response.text().catch(() => "");
+        throw new Error(
+          `Error ${response.status}: ${response.statusText}${
+            txt ? ` - ${txt}` : ""
+          }`
+        );
       }
 
       const cita = await response.json();
@@ -200,6 +226,20 @@ class CitasService {
     }
   }
 
+  async actualizarEstado(id: number, status: Cita["status"]): Promise<Cita> {
+    return this.actualizarCita(id, { status } as any);
+  }
+
+  async reprogramarCita(
+    id: number,
+    appointmentDate: string | number,
+    currentStatus?: Cita["status"]
+  ): Promise<Cita> {
+    const payload: Partial<Cita> = { appointment_date: appointmentDate } as any;
+    if (currentStatus) (payload as any).status = currentStatus;
+    return this.actualizarCita(id, payload);
+  }
+
   // Cancelar una cita
   async cancelarCita(id: number): Promise<void> {
     try {
@@ -208,7 +248,7 @@ class CitasService {
         method: "PATCH",
         headers: this.getAuthHeaders(),
         credentials: "include",
-        body: JSON.stringify({ status: "cancelada" }),
+        body: JSON.stringify({ status: "CANCELADA" }),
       });
 
       if (!response.ok) {
@@ -283,7 +323,7 @@ class CitasService {
         month: "long",
         day: "numeric",
       });
-    } catch (error) {
+    } catch {
       return String(appointmentDate);
     }
   }
@@ -315,7 +355,7 @@ class CitasService {
         minute: "2-digit",
         hour12: false,
       });
-    } catch (error) {
+    } catch {
       return String(appointmentDate);
     }
   }
@@ -330,6 +370,8 @@ class CitasService {
         return "bg-yellow-400 text-black ring-1 ring-yellow-300 dark:bg-yellow-400 dark:text-black dark:ring-yellow-300";
       case "cancelada":
         return "bg-red-500 text-black ring-1 ring-red-400 dark:bg-red-500 dark:text-black dark:ring-red-400";
+      case "reagendada":
+        return "bg-blue-500 text-white ring-1 ring-blue-400 dark:bg-blue-500 dark:text-white dark:ring-blue-400";
       default:
         return "bg-gray-100 text-gray-900 ring-1 ring-gray-300 dark:bg-gray-700 dark:text-gray-100 dark:ring-gray-600";
     }
@@ -345,6 +387,8 @@ class CitasService {
         return "Pendiente";
       case "cancelada":
         return "Cancelada";
+      case "reagendada":
+        return "Reagendada";
       default:
         return "Desconocido";
     }
@@ -352,3 +396,4 @@ class CitasService {
 }
 
 export const citasService = new CitasService();
+

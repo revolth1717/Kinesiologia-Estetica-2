@@ -41,38 +41,19 @@ export async function POST(req: Request): Promise<Response> {
       );
     }
     const payload = await req.json();
-    const candidates = [
-      `${XANO_GENERAL}/appointment`,
-      `${XANO_AUTH}/appointment`,
-    ];
-
-    let last: { status: number; data: any } | null = null;
-    for (const target of candidates) {
-      const res = await fetch(target, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      });
-      const text = await res.text();
-      let data: any = null;
-      try {
-        data = JSON.parse(text);
-      } catch {
-        data = { raw: text };
-      }
-      if (res.ok) {
-        return NextResponse.json(data, { status: res.status });
-      }
-      last = { status: res.status, data };
-      if (res.status !== 404) {
-        return NextResponse.json(data, { status: res.status });
-      }
-    }
-    const fallback = last ?? { status: 404, data: { message: "Not Found" } };
-    return NextResponse.json(fallback.data, { status: fallback.status });
+    const target = `${XANO_AUTH}/appointment`;
+    const res = await fetch(target, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+    const text = await res.text();
+    let data: any = null;
+    try { data = JSON.parse(text); } catch { data = { raw: text }; }
+    return NextResponse.json(data, { status: res.status });
   } catch (err) {
     return NextResponse.json(
       { message: "Unexpected error", detail: String(err) },
@@ -93,70 +74,24 @@ export async function GET(req: Request): Promise<Response> {
     const url = new URL(req.url);
     const debug = url.searchParams.get("debug") === "1";
 
-    const candidates = [
-      `${XANO_GENERAL}/appointment`,
-      `${XANO_AUTH}/appointment`,
-    ];
-
-    let last: { status: number; data: any; target: string } | null = null;
-    for (const target of candidates) {
-      const res = await fetch(target, {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: "application/json, text/plain, */*",
-        },
-      });
-      const text = await res.text();
-      let data: any = null;
-      try {
-        data = JSON.parse(text);
-      } catch {
-        data = { raw: text };
-      }
-      if (res.ok) {
-        if (debug) {
-          return NextResponse.json(
-            { data, debug: { upstreamStatus: res.status, target } },
-            { status: res.status }
-          );
-        }
-        return NextResponse.json(data, { status: res.status });
-      }
-      last = { status: res.status, data, target } as any;
-      if (res.status !== 404) {
-        if (debug) {
-          return NextResponse.json(
-            { data, debug: { upstreamStatus: res.status, target } },
-            { status: res.status }
-          );
-        }
-        return NextResponse.json(data, { status: res.status });
-      }
-    }
-
-    const fallback =
-      last ??
-      ({
-        status: 404,
-        data: { message: "Not Found" },
-        target: candidates[candidates.length - 1],
-      } as any);
+    const target = `${XANO_AUTH}/appointment`;
+    const res = await fetch(target, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/json, text/plain, */*",
+      },
+    });
+    const text = await res.text();
+    let data: any = null;
+    try { data = JSON.parse(text); } catch { data = { raw: text }; }
     if (debug) {
       return NextResponse.json(
-        {
-          data: (fallback as any).data,
-          debug: {
-            upstreamStatus: (fallback as any).status,
-            target: (fallback as any).target,
-          },
-        },
-        { status: (fallback as any).status }
+        { data, debug: { upstreamStatus: res.status, target } },
+        { status: res.status }
       );
     }
-    return NextResponse.json((fallback as any).data, {
-      status: (fallback as any).status,
-    });
+    return NextResponse.json(data, { status: res.status });
   } catch (err) {
     return NextResponse.json(
       { message: "Unexpected error", detail: String(err) },

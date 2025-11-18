@@ -34,9 +34,6 @@ type AuthContextType = {
   refreshUser: () => Promise<void>;
 };
 
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL ||
-  "https://x8ki-letl-twmt.n7.xano.io/api:SzJNIj2V";
 // Usar rutas locales que proxian a Xano y gestionan cookies HttpOnly
 const AUTH_LOCAL = "/api/auth";
 
@@ -62,7 +59,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw new Error(data?.message || "No autorizado");
       }
 
-      console.log("auth/me raw:", data);
       const emailRaw = data?.email ?? data?.user?.email ?? data?.profile?.email;
       const nombreRaw =
         data?.name ??
@@ -115,7 +111,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         phone: typeof phoneRaw === "string" ? phoneRaw : String(phoneRaw ?? ""),
         role: roleNorm,
       } as User;
-      console.log("auth/me normalized:", userData);
 
       setUser(userData);
       setIsLoggedIn(true);
