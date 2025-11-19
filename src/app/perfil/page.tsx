@@ -833,26 +833,7 @@ export default function PerfilPage() {
                             >
                               {citasService.obtenerTextoEstado(cita.status)}
                             </span>
-                            {cita.status === "pendiente" && (
-                              <button
-                                onClick={() => handleCancelarCita(cita.id)}
-                                disabled={isCancellingId === cita.id}
-                                className={`text-sm underline ${
-                                  isCancellingId === cita.id
-                                    ? "text-gray-400 cursor-not-allowed"
-                                    : "text-red-600 hover:text-red-800"
-                                }`}
-                              >
-                                {isCancellingId === cita.id ? (
-                                  <span className="inline-flex items-center">
-                                    <RefreshCw className="h-4 w-4 mr-1 animate-spin" />{" "}
-                                    Cancelando...
-                                  </span>
-                                ) : (
-                                  "Cancelar cita"
-                                )}
-                              </button>
-                            )}
+                            {/* botón de cancelar cita oculto */}
                             {cita.status === "cancelada" && (
                               <div className="flex flex-col items-end space-y-2">
                                 <button

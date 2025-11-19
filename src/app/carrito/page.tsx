@@ -71,7 +71,8 @@ export default function CarritoPage() {
       const citasLines = citas.slice();
       if (citasLines.length > 0) {
         for (const c of citasLines) {
-          const payload = c.nuevaCita || ({ appointment_date: `${c.fecha} ${c.hora}`, service: c.tratamiento, comments: `Sesiones: ${c.sesiones}${c.zona ? ` - Zona: ${c.zona}` : ""}` } as any);
+          const basePayload = c.nuevaCita || ({ appointment_date: `${c.fecha} ${c.hora}`, service: c.tratamiento, comments: `Sesiones: ${c.sesiones}${c.zona ? ` - Zona: ${c.zona}` : ""}` } as any);
+          const payload = { ...basePayload, sesion: c.sesiones } as any;
           let res = await fetch("/api/appointment", { method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include", body: JSON.stringify(payload) });
           if (res.status === 429) {
             await new Promise(r => setTimeout(r, 1200));

@@ -124,30 +124,72 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
       }
     }
 
-    const target = `${XANO_AUTH}/appointment/${encodeURIComponent(idStr)}`;
-    // Priorizar PUT (común en Xano), luego fallback a PATCH
-    const methods = ["PUT", "PATCH"] as const;
-    let last: { status: number; data: any } | null = null;
-    for (const method of methods) {
-      const res = await fetch(target, {
-        method,
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      });
-      const text = await res.text();
-      let data: any = null;
-      try { data = JSON.parse(text); } catch { data = { raw: text }; }
-      if (res.ok) {
-        return NextResponse.json(data, { status: res.status });
-      }
-      last = { status: res.status, data };
-      if (res.status !== 404 && res.status !== 405) {
-        return NextResponse.json(data, { status: res.status });
+    const isCancel = String(payload?.status || "").toUpperCase() === "CANCELADA";
+    if (isCancel) {
+      const cancelTargets = [
+        `${XANO_AUTH}/appointment/cancel/${encodeURIComponent(idStr)}`,
+        `${XANO_AUTH}/appointment/cancel`,
+        `${XANO_GENERAL}/appointment/cancel/${encodeURIComponent(idStr)}`,
+        `${XANO_GENERAL}/appointment/cancel`,
+      ];
+      for (const target of cancelTargets) {
+        const method = target.endsWith("/cancel") ? "POST" : "PATCH";
+        const res = await fetch(target, {
+          method,
+          headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ ...payload, id: idStr }),
+        });
+        const text = await res.text();
+        let data: any = null;
+        try { data = JSON.parse(text); } catch { data = { raw: text }; }
+        if (res.ok) {
+          return NextResponse.json(data, { status: res.status });
+        }
+        // Continuar probando otros candidatos en caso de 403/400/404
       }
     }
+
+    const updateTargets = [
+      `${XANO_AUTH}/appointment/${encodeURIComponent(idStr)}`,
+      `${XANO_GENERAL}/appointment/${encodeURIComponent(idStr)}`,
+    ];
+    const methods = ["PUT", "PATCH"] as const;
+    let last: { status: number; data: any } | null = null;
+    for (const target of updateTargets) {
+      for (const method of methods) {
+        const res = await fetch(target, {
+          method,
+          headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        const text = await res.text();
+        let data: any = null;
+        try { data = JSON.parse(text); } catch { data = { raw: text }; }
+        if (res.ok) {
+          return NextResponse.json(data, { status: res.status });
+        }
+        last = { status: res.status, data };
+        // No devolver aún; continuar probando otros métodos/targets
+      }
+    }
+
+    if (isCancel) {
+      const deleteTargets = [
+        `${XANO_AUTH}/appointment/${encodeURIComponent(idStr)}`,
+        `${XANO_GENERAL}/appointment/${encodeURIComponent(idStr)}`,
+      ];
+      for (const target of deleteTargets) {
+        const res = await fetch(target, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } });
+        const text = await res.text();
+        let data: any = null;
+        try { data = JSON.parse(text); } catch { data = { raw: text }; }
+        if (res.ok) {
+          return NextResponse.json(data || { success: true }, { status: res.status });
+        }
+        // Continuar probando otros candidatos
+      }
+    }
+
     const fallback = last ?? { status: 404, data: { message: "Not Found" } };
     return NextResponse.json(fallback.data, { status: fallback.status });
   } catch (err) {

@@ -240,19 +240,32 @@ class CitasService {
     return this.actualizarCita(id, payload);
   }
 
-  // Cancelar una cita
-  async cancelarCita(id: number): Promise<void> {
+  async cancelarCita(id: number, sesion?: number): Promise<void> {
     try {
-      // Cancelar cita vía backend local
+      let sesionValue: number | undefined =
+        typeof sesion === "number" ? sesion : undefined;
+      if (typeof sesionValue === "undefined") {
+        try {
+          const list = await this.obtenerCitasUsuario();
+          const cita = list.find(c => c.id === id);
+          if (cita && typeof cita.comments === "string") {
+            const m = cita.comments.match(/sesiones?\s*[:\-]?\s*(\d+)/i);
+            if (m && m[1]) {
+              const n = parseInt(m[1], 10);
+              if (!Number.isNaN(n)) sesionValue = n;
+            }
+          }
+        } catch {}
+      }
+      if (typeof sesionValue === "undefined") sesionValue = 1;
       const response = await fetch(`${API_LOCAL_BASE}/${id}`, {
         method: "PATCH",
         headers: this.getAuthHeaders(),
         credentials: "include",
-        body: JSON.stringify({ status: "CANCELADA" }),
+        body: JSON.stringify({ status: "CANCELADA", sesion: sesionValue }),
       });
 
       if (!response.ok) {
-        // Propagar errores de negocio (403, 404, 409, etc.)
         const errorText = await response.text().catch(() => "");
         throw new Error(
           `Error ${response.status}: ${response.statusText}${
@@ -260,9 +273,7 @@ class CitasService {
           }`
         );
       }
-      // Invalidar caché para que la disponibilidad del usuario se actualice inmediatamente
       this.lastUserCitasCache = null;
-      // No retornamos cuerpo específico; la UI refresca lista de citas
     } catch (error) {
       console.error("Error al cancelar cita:", error);
       throw error;
