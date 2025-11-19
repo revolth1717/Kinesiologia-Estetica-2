@@ -132,7 +132,7 @@ export default function ProductosPage() {
   const handleAddToCart = (producto: Producto) => {
     const qty = cantidades[producto.id] ?? 1;
     if (qty < 1) return;
-    addProduct({ nombre: producto.nombre, precioUnitario: producto.precio, cantidad: qty, imagen_url: producto.imagen_url });
+    addProduct({ productId: producto.id, nombre: producto.nombre, precioUnitario: producto.precio, cantidad: qty, imagen_url: producto.imagen_url });
     setAddedIds(prev => ({ ...prev, [producto.id]: true }));
     setTimeout(() => {
       setAddedIds(prev => ({ ...prev, [producto.id]: false }));

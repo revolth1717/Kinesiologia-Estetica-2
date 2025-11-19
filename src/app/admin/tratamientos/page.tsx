@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Upload, Save, Trash2, Eye, Edit } from "lucide-react";
+import AdminNav from "@/components/AdminNav";
 
 type Tratamiento = {
   id: number;
@@ -218,6 +219,7 @@ export default function AdminTratamientosPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <AdminNav />
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">Administrar Imágenes de Tratamientos</h1>
           <p className="text-gray-600 mt-2">Sube y gestiona las imágenes de tus tratamientos</p>

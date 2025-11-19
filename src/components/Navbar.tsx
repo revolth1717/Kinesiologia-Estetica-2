@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
   ShoppingCart,
@@ -15,7 +16,18 @@ import { useAuth } from "@/context/AuthContext";
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [theme, setTheme] = useState<"light" | "dark">("light");
+  const [theme, setTheme] = useState<"light" | "dark">(() => {
+    try {
+      const saved = typeof window !== "undefined" ? localStorage.getItem("theme") : null;
+      if (saved === "dark" || saved === "light") return saved as "dark" | "light";
+      const prefersDark = typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: dark)").matches;
+      return prefersDark ? "dark" : "light";
+    } catch {
+      return "light";
+    }
+  });
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -24,30 +36,21 @@ const Navbar = () => {
     localStorage.setItem("theme", theme);
   }, [theme]);
 
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem("theme");
-      if (saved === "dark" || saved === "light") {
-        setTheme(saved as "dark" | "light");
-        return;
-      }
-      const prefersDark = window.matchMedia(
-        "(prefers-color-scheme: dark)"
-      ).matches;
-      setTheme(prefersDark ? "dark" : "light");
-    } catch {}
-  }, []);
+  // initial theme is derived from localStorage/matchMedia via lazy initializer above
 
   const toggleTheme = () => {
     setTheme(prev => (prev === "dark" ? "light" : "dark"));
   };
   const { isLoggedIn, user, logout } = useAuth();
+  const pathname = usePathname();
+  const isAdminPage = (pathname || "").startsWith("/admin");
   const isAdmin = (() => {
     const r = (user as any)?.role;
     if (!r) return false;
     const s = typeof r === "string" ? r.toLowerCase() : String(r).toLowerCase();
     return s.includes("admin") || s === "administrador";
   })();
+  const isAdminProfile = isLoggedIn && isAdmin && (pathname || "") === "/perfil";
 
   return (
     <nav className="bg-white dark:bg-gray-900 shadow-md sticky top-0 z-50">
@@ -85,13 +88,19 @@ const Navbar = () => {
                 </Link>
               </>
             )}
-            {isLoggedIn && isAdmin && (
+            {isLoggedIn && isAdmin && !isAdminPage && !isAdminProfile && (
               <>
                 <Link
                   href="/admin/citas"
                   className="px-3 py-2 text-pink-700 dark:text-pink-300 hover:text-pink-900 dark:hover:text-pink-200 transition-colors border rounded-md border-pink-300"
                 >
                   Gestión de citas
+                </Link>
+                <Link
+                  href="/admin/pedidos"
+                  className="px-3 py-2 text-pink-700 dark:text-pink-300 hover:text-pink-900 dark:hover:text-pink-200 transition-colors border rounded-md border-pink-300"
+                >
+                  Productos comprados
                 </Link>
                 <Link
                   href="/admin/inventario"
@@ -121,11 +130,11 @@ const Navbar = () => {
               aria-label="Cambiar modo"
               className="p-2 rounded-md text-gray-700 dark:text-gray-200 hover:text-pink-600 dark:hover:text-pink-400 transition-colors"
             >
-              {theme === "dark" ? (
+              {mounted && (theme === "dark" ? (
                 <Sun className="h-5 w-5" />
               ) : (
                 <Moon className="h-5 w-5" />
-              )}
+              ))}
             </button>
 
             {isLoggedIn ? (
@@ -205,11 +214,11 @@ const Navbar = () => {
               aria-label="Cambiar modo"
               className="ml-2 inline-flex items-center justify-center p-2 rounded-md text-gray-700 dark:text-gray-200 hover:text-pink-600 dark:hover:text-pink-400 focus:outline-none"
             >
-              {theme === "dark" ? (
+              {mounted && (theme === "dark" ? (
                 <Sun className="h-5 w-5" />
               ) : (
                 <Moon className="h-5 w-5" />
-              )}
+              ))}
             </button>
           </div>
         </div>
@@ -259,13 +268,19 @@ const Navbar = () => {
                 </Link>
               </>
             )}
-            {isLoggedIn && isAdmin && (
+            {isLoggedIn && isAdmin && !isAdminPage && !isAdminProfile && (
               <>
                 <Link
                   href="/admin/citas"
                   className="block px-3 py-2 text-pink-700 dark:text-pink-300 hover:text-pink-900 dark:hover:text-pink-200 transition-colors border rounded-md border-pink-300"
                 >
                   Gestión de citas
+                </Link>
+                <Link
+                  href="/admin/pedidos"
+                  className="block px-3 py-2 text-pink-700 dark:text-pink-300 hover:text-pink-900 dark:hover:text-pink-200 transition-colors border rounded-md border-pink-300"
+                >
+                  Productos comprados
                 </Link>
                 <Link
                   href="/admin/inventario"

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import AdminNav from "@/components/AdminNav";
 import { inventoryService, type InventoryItem } from "@/services/inventoryService";
 import { Package, PlusCircle, MinusCircle, RefreshCw, Calendar } from "lucide-react";
 
@@ -145,9 +146,10 @@ export default function AdminInventarioPage() {
     <ProtectedRoute adminOnly={true}>
       <div className="min-h-screen bg-gray-50 py-8">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <AdminNav />
           <div className="bg-white shadow-md rounded-lg overflow-hidden">
             <div className="bg-gradient-to-r from-pink-500 to-purple-600 px-6 py-8">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <div className="flex items-center">
                   <div className="bg-white rounded-full p-3">
                     <Package className="h-8 w-8 text-pink-600" />
@@ -159,7 +161,7 @@ export default function AdminInventarioPage() {
                 </div>
                 <button
                   onClick={() => fetchAll()}
-                  className="bg-white/20 text-white px-4 py-2 rounded-md hover:bg-white/30 transition-colors flex items-center"
+                  className="bg-white/20 text-white px-4 py-2 rounded-md hover:bg-white/30 transition-colors flex items-center justify-center w-full sm:w-auto"
                 >
                   <RefreshCw className="h-5 w-5 mr-2" />
                   Actualizar

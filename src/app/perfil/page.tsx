@@ -22,9 +22,16 @@ import { useAuth } from "@/context/AuthContext";
 import { citasService, type Cita } from "@/services/citasService";
 import { ApiDiagnostic } from "@/utils/apiDiagnostic";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import AdminNav from "@/components/AdminNav";
 
 export default function PerfilPage() {
   const { user, isLoggedIn, logout, loading, refreshUser } = useAuth();
+  const isAdmin = (() => {
+    const r = (user as any)?.role;
+    if (!r) return false;
+    const s = typeof r === "string" ? r.toLowerCase() : String(r).toLowerCase();
+    return s.includes("admin") || s === "administrador";
+  })();
   const router = useRouter();
   const [citas, setCitas] = useState<Cita[]>([]);
   const [citasLoading, setCitasLoading] = useState(false);
@@ -44,6 +51,9 @@ export default function PerfilPage() {
   const [refreshingUser, setRefreshingUser] = useState(false);
   const [refreshError, setRefreshError] = useState<string | null>(null);
   const [refreshSuccess, setRefreshSuccess] = useState(false);
+  const [orders, setOrders] = useState<any[]>([]);
+  const [ordersLoading, setOrdersLoading] = useState(false);
+  const [ordersError, setOrdersError] = useState("");
 
   useEffect(() => {
     if (!loading && !isLoggedIn) {
@@ -58,8 +68,8 @@ export default function PerfilPage() {
         phone: user.phone || "",
       });
 
-      // Cargar citas del usuario
       cargarCitas();
+      cargarOrdenes();
     }
   }, [user, isLoggedIn, loading, router]);
 
@@ -75,6 +85,67 @@ export default function PerfilPage() {
       console.error("Error al cargar citas:", error);
     } finally {
       setCitasLoading(false);
+    }
+  };
+
+  const cargarOrdenes = async () => {
+    setOrdersLoading(true);
+    setOrdersError("");
+    try {
+      const res = await fetch("/api/order/user", { method: "GET", credentials: "include" });
+      if (!res.ok) throw new Error(`${res.status}`);
+      const data = await res.json();
+      const list = Array.isArray(data?.items) ? data.items : Array.isArray(data) ? data : Array.isArray(data?.data) ? data.data : [];
+      const norm = list.map((o: any) => ({
+        id: o?.id ?? o?.order_id ?? crypto.randomUUID(),
+        product_id: o?.product_id ?? o?.producto_id ?? o?.product?.id ?? null,
+        status: String(o?.status ?? "confirmado").toLowerCase(),
+        order_date: (() => {
+          const v = o?.order_date ?? o?.fecha ?? o?.created_at ?? new Date().toISOString();
+          if (typeof v === "number") return new Date(v).toISOString();
+          const s = String(v || "").trim();
+          if (/^\d+$/.test(s)) {
+            const n = parseInt(s, 10);
+            const ms = s.length >= 13 ? n : n * 1000;
+            return new Date(ms).toISOString();
+          }
+          try { return new Date(s).toISOString(); } catch { return new Date().toISOString(); }
+        })(),
+        total: typeof o?.total === "number" ? o.total : Number(o?.total || 0),
+        quantity: typeof o?.quantity === "number" ? o.quantity : Number(o?.quantity || 1),
+      }));
+      try {
+        const pr = await fetch("/api/productos", { method: "GET" });
+        const tx = await pr.text();
+        let pd: any = null;
+        try { pd = JSON.parse(tx); } catch { pd = { raw: tx }; }
+        const arr: any[] = Array.isArray(pd?.data) ? pd.data : Array.isArray(pd) ? pd : [];
+        const byId = new Map<string, any>();
+        for (const p of arr) {
+          const pid = String(p?.id ?? p?.ID ?? p?.product_id ?? p?.producto_id ?? "");
+          if (pid) byId.set(pid, p);
+        }
+        const aug = norm.map(o => {
+          const pid = String(o.product_id ?? "");
+          const p = byId.get(pid);
+          const name = typeof p?.nombre === "string" ? p.nombre : typeof p?.name === "string" ? p.name : undefined;
+          const imgObj = p?.imagen_url ?? p?.image_url ?? p?.imagen ?? p?.image;
+          let img = "";
+          if (typeof imgObj === "string") img = imgObj as string;
+          else if (imgObj && typeof imgObj === "object") {
+            const u = (imgObj as any)?.url ?? (imgObj as any)?.download_url ?? (imgObj as any)?.full_url ?? (imgObj as any)?.href;
+            if (typeof u === "string") img = u as string;
+          }
+          return { ...o, product_name: name, product_image_url: img } as any;
+        });
+        setOrders(aug);
+      } catch {
+        setOrders(norm);
+      }
+    } catch (err) {
+      setOrdersError("Error al cargar productos comprados");
+    } finally {
+      setOrdersLoading(false);
     }
   };
 
@@ -358,6 +429,7 @@ export default function PerfilPage() {
     <ProtectedRoute>
       <div className="min-h-screen bg-gray-50 py-8">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          {isLoggedIn && isAdmin && <AdminNav />}
           {/* Header */}
           <div className="bg-white shadow-md rounded-lg overflow-hidden mb-8">
             <div className="bg-gradient-to-r from-pink-500 to-purple-600 px-6 py-8">
@@ -382,16 +454,18 @@ export default function PerfilPage() {
                   </button>
                 </div>
               </div>
-            </div>
-          </div>
+        </div>
+      </div>
 
-          {/* Información del Usuario */}
-          <div className="bg-white shadow-md rounded-lg overflow-hidden mb-8">
+      {/* Información del Usuario */}
+      <div className="bg-white shadow-md rounded-lg overflow-hidden mb-8">
             <div className="px-6 py-4 border-b border-gray-200">
               <h2 className="text-xl font-semibold text-gray-900">
                 Información Personal
               </h2>
-            </div>
+      </div>
+
+      
 
             <div className="p-6">
               {refreshError && (
@@ -592,8 +666,8 @@ export default function PerfilPage() {
                   </div>
                 </div>
               )}
-            </div>
-          </div>
+        </div>
+      </div>
 
           {/* Diagnóstico de API */}
           {diagnosticResult && (
@@ -616,9 +690,10 @@ export default function PerfilPage() {
                 </pre>
               </div>
             </div>
-          )}
+        )}
 
           {/* Historial de Citas */}
+          {!isAdmin && (
           <div className="bg-white dark:bg-gray-800 shadow-md rounded-lg overflow-hidden">
             <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
               <h2 className="text-xl font-semibold text-gray-900">Mis Citas</h2>
@@ -873,7 +948,61 @@ export default function PerfilPage() {
               </div>
             )}
           </div>
+          )}
         </div>
+
+        {!isAdmin && (
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="bg-white dark:bg-gray-800 shadow-md rounded-lg overflow-hidden mb-8 mt-8">
+          <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+            <h2 className="text-xl font-semibold text-gray-900">Productos comprados</h2>
+            <button
+              onClick={cargarOrdenes}
+              disabled={ordersLoading}
+              className="flex items-center px-3 py-2 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md transition-colors disabled:opacity-50"
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${ordersLoading ? "animate-spin" : ""}`} />
+              Actualizar
+            </button>
+          </div>
+          <div className="p-6">
+            {ordersLoading && <div className="text-gray-600">Cargando...</div>}
+            {ordersError && <div className="text-red-600">{ordersError}</div>}
+            {!ordersLoading && !ordersError && (
+              <div className="divide-y divide-gray-200">
+                {orders.length === 0 ? (
+                  <div className="text-gray-600">No hay productos comprados</div>
+                ) : (
+                  orders.map((o) => (
+                    <div key={String(o.id)} className="p-6 flex items-center justify-between">
+                      <div className="flex items-center">
+                        {o.product_image_url ? (
+                          <img src={String(o.product_image_url)} alt={String(o.product_name || "Producto")}
+                               className="w-12 h-12 rounded object-cover mr-4 border" />
+                        ) : (
+                          <div className="w-12 h-12 rounded bg-gray-100 mr-4"></div>
+                        )}
+                        <div>
+                          <div className="text-sm font-medium text-gray-900">{String(o.product_name || `Producto ID: ${String(o.product_id ?? "-")}`)}</div>
+                          <div className="text-xs text-gray-500">
+                            Fecha: {(() => { try { return new Date(String(o.order_date)).toLocaleString("es-CL"); } catch { return ""; } })()}
+                            <span className="ml-2">• Cantidad: {Number(o.quantity).toLocaleString()}</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-sm font-semibold text-gray-900">${Number(o.total).toLocaleString()}</div>
+                        <span className={`inline-block mt-1 px-3 py-1 rounded-full text-xs font-medium ${String(o.status) === "entregado" ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-800"}`}>{String(o.status) === "entregado" ? "Entregado" : "Confirmado"}</span>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+        </div>
+        )}
       </div>
     </ProtectedRoute>
   );

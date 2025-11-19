@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { Trash2, CreditCard } from "lucide-react";
+import { useState } from "react";
 import { useCart } from "@/context/CartContext";
 
 export default function CarritoPage() {
@@ -12,6 +13,9 @@ export default function CarritoPage() {
     subtotalProductos,
     updateProductQuantity,
   } = useCart();
+  const [buying, setBuying] = useState(false);
+  const [buyError, setBuyError] = useState("");
+  const [buySuccess, setBuySuccess] = useState("");
   const productos = cartItems.filter(i => "tipo" in i && i.tipo === "producto");
   const citas = cartItems.filter(i => !("tipo" in i));
 
@@ -32,6 +36,62 @@ export default function CarritoPage() {
   const getTreatmentImageByName = (name: string) => {
     const slug = slugify(name || "");
     return LOCAL_TREATMENT_IMAGES[slug];
+  };
+
+  const confirmarCompra = async () => {
+    setBuying(true);
+    setBuyError("");
+    setBuySuccess("");
+    try {
+      // Procesar productos (si los hay)
+      const prod = productos.slice();
+      if (prod.length > 0) {
+        if (prod.length > 1) {
+          const payload = { items: prod.map(p => ({ product_id: (p as any).productId, quantity: p.cantidad, unit_price: p.precioUnitario })) };
+          const res = await fetch("/api/order/bulk", { method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include", body: JSON.stringify(payload) });
+          if (!res.ok) {
+            const txt = await res.text().catch(() => "");
+            throw new Error(`${res.status} ${txt || res.statusText}`);
+          }
+          for (const p of prod) removeItem(p.id);
+        } else {
+          const p = prod[0];
+          const productId = (p as any).productId as string | undefined;
+          if (!productId) { setBuyError("Falta el identificador del producto"); return; }
+          const res = await fetch("/api/order", { method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include", body: JSON.stringify({ product_id: productId, quantity: p.cantidad, unit_price: p.precioUnitario }) });
+          if (!res.ok) {
+            const txt = await res.text().catch(() => "");
+            throw new Error(`${res.status} ${txt || res.statusText}`);
+          }
+          removeItem(p.id);
+        }
+      }
+
+      // Procesar citas (si las hay)
+      const citasLines = citas.slice();
+      if (citasLines.length > 0) {
+        for (const c of citasLines) {
+          const payload = c.nuevaCita || ({ appointment_date: `${c.fecha} ${c.hora}`, service: c.tratamiento, comments: `Sesiones: ${c.sesiones}${c.zona ? ` - Zona: ${c.zona}` : ""}` } as any);
+          let res = await fetch("/api/appointment", { method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include", body: JSON.stringify(payload) });
+          if (res.status === 429) {
+            await new Promise(r => setTimeout(r, 1200));
+            res = await fetch("/api/appointment", { method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include", body: JSON.stringify(payload) });
+          }
+          if (!res.ok) {
+            const txt = await res.text().catch(() => "");
+            throw new Error(`${res.status} ${txt || res.statusText}`);
+          }
+          removeItem(c.id);
+        }
+      }
+      setBuySuccess("Compra confirmada");
+      setTimeout(() => setBuySuccess(""), 4000);
+    } catch (err: any) {
+      setBuyError(String(err?.message || err));
+      setTimeout(() => setBuyError(""), 6000);
+    } finally {
+      setBuying(false);
+    }
   };
 
   return (
@@ -332,13 +392,20 @@ export default function CarritoPage() {
                 </div>
 
                 <div className="mt-6">
-                  <Link
-                    href="/pago"
-                    className="w-full bg-pink-600 text-white hover:bg-pink-700 py-3 px-4 rounded-md font-medium flex items-center justify-center"
+                  <button
+                    onClick={confirmarCompra}
+                    disabled={buying || productos.length + citas.length === 0}
+                    className={`w-full py-3 px-4 rounded-md font-medium flex items-center justify-center ${buying || (productos.length + citas.length === 0) ? "bg-gray-300 text-gray-600" : "bg-pink-600 text-white hover:bg-pink-700"}`}
                   >
                     <CreditCard className="mr-2 h-5 w-5" />
-                    Proceder al Pago
-                  </Link>
+                    {buying ? "Procesando..." : "Confirmar compra"}
+                  </button>
+                  {buyError && (
+                    <div className="mt-3 text-sm text-red-600">{buyError}</div>
+                  )}
+                  {buySuccess && (
+                    <div className="mt-3 text-sm text-green-600">{buySuccess}</div>
+                  )}
                 </div>
               </div>
             </div>

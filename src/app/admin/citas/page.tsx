@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import AdminNav from "@/components/AdminNav";
 import { citasService } from "@/services/citasService";
 import {
   Calendar,
@@ -364,14 +365,15 @@ export default function AdminCitasPage() {
     <ProtectedRoute adminOnly={true}>
       <div className="min-h-screen bg-gray-50 py-8">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <AdminNav />
           <div className="bg-white shadow-md rounded-lg overflow-hidden mb-6">
-            <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+            <div className="px-6 py-4 border-b border-gray-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
               <h1 className="text-2xl font-bold text-gray-900">
                 Gestión de Citas
               </h1>
               <button
                 onClick={fetchAll}
-                className="flex items-center bg-pink-600 text-white px-4 py-2 rounded-md hover:bg-pink-700"
+                className="flex items-center justify-center bg-pink-600 text-white px-4 py-2 rounded-md hover:bg-pink-700 w-full sm:w-auto"
               >
                 <RefreshCw className="h-5 w-5 mr-2" />
                 Actualizar

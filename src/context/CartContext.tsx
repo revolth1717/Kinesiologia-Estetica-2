@@ -18,6 +18,7 @@ type CartItemCita = {
 type CartItemProducto = {
   id: string;
   tipo: "producto";
+  productId?: string;
   nombre: string;
   precioUnitario: number;
   cantidad: number;
@@ -72,7 +73,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         next[idx] = { ...existing, cantidad: existing.cantidad + item.cantidad };
         return next;
       }
-      return [{ id, tipo: "producto", nombre: item.nombre, precioUnitario: item.precioUnitario, cantidad: item.cantidad, imagen_url: item.imagen_url }, ...prev];
+      return [{ id, tipo: "producto", productId: item.productId, nombre: item.nombre, precioUnitario: item.precioUnitario, cantidad: item.cantidad, imagen_url: item.imagen_url }, ...prev];
     });
   };
 

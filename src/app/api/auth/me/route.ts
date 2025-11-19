@@ -76,7 +76,7 @@ export async function GET(req: Request): Promise<Response> {
         body?.user?.roles ??
         body?.is_admin;
       return {
-        id: body?.id ?? body?.user?.id ?? null,
+        id: body?.id ?? body?.user?.id ?? body?.user_id ?? null,
         email:
           typeof emailRaw === "string"
             ? emailRaw

@@ -24,6 +24,12 @@ type UserLite = { id?: string | number; nombre?: string; email?: string; phone?:
 
 export async function GET(req: NextRequest): Promise<Response> {
   try {
+    const now = Date.now();
+    const ttlMs = 10000;
+    if ((global as any).__USERS_CACHE && now - (global as any).__USERS_CACHE_AT < ttlMs) {
+      const cached = (global as any).__USERS_CACHE;
+      return NextResponse.json({ success: true, data: cached }, { status: 200 });
+    }
     const token = readTokenFromRequest(req);
     if (!token) {
       return NextResponse.json({ message: "Authentication Required" }, { status: 401 });
@@ -65,7 +71,13 @@ export async function GET(req: NextRequest): Promise<Response> {
     let last: { status: number; data: any } | null = null;
     for (const target of candidates) {
       try {
-        const res = await fetch(target, { method: "GET", headers: { Authorization: `Bearer ${token}`, Accept: "application/json, text/plain, */*" } });
+        let res = await fetch(target, { method: "GET", headers: { Authorization: `Bearer ${token}`, Accept: "application/json, text/plain, */*" } });
+        if (res.status === 429) {
+          const ra = res.headers.get("retry-after");
+          const wait = ra && /^\d+$/.test(ra) ? parseInt(ra, 10) * 1000 : 2200;
+          await new Promise(r => setTimeout(r, wait));
+          res = await fetch(target, { method: "GET", headers: { Authorization: `Bearer ${token}`, Accept: "application/json, text/plain, */*" } });
+        }
         const text = await res.text();
         let data: any = null;
         try { data = JSON.parse(text); } catch { data = { raw: text }; }
@@ -103,6 +115,8 @@ export async function GET(req: NextRequest): Promise<Response> {
             const name = (u.nombre || "").toLowerCase();
             return name.includes(q.toLowerCase());
           });
+          (global as any).__USERS_CACHE = filtered;
+          (global as any).__USERS_CACHE_AT = Date.now();
           return NextResponse.json({ success: true, data: filtered }, { status: 200 });
         }
         last = { status: res.status, data };

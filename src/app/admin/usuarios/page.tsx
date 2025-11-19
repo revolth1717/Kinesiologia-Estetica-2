@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { citasService } from "@/services/citasService";
 import { Calendar, Clock, RefreshCw, Edit3, CheckCircle, XCircle } from "lucide-react";
+import AdminNav from "@/components/AdminNav";
 
 type UserLite = { id?: string | number; nombre?: string; email?: string; phone?: string };
 
@@ -175,6 +176,7 @@ export default function AdminUsuariosPage() {
     <ProtectedRoute adminOnly={true}>
       <div className="min-h-screen bg-gray-50 py-8">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+          <AdminNav />
           <div className="bg-white shadow-md rounded-lg overflow-hidden">
             <div className="px-6 py-4 border-b border-gray-200">
               <h1 className="text-2xl font-bold text-gray-800">Buscador de usuarios</h1>

@@ -20,7 +20,7 @@ export default function AdminPage() {
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="bg-white shadow-md rounded-lg overflow-hidden mb-8">
             <div className="bg-gradient-to-r from-pink-500 to-purple-600 px-6 py-8">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div className="flex items-center">
                   <div className="bg-white rounded-full p-3">
                     <Settings className="h-8 w-8 text-pink-600" />
@@ -34,11 +34,11 @@ export default function AdminPage() {
                     </p>
                   </div>
                 </div>
-                <div className="flex items-center space-x-4">
+                <div className="w-full sm:w-auto sm:mt-0">
                   <div className="bg-white/20 text-white px-4 py-2 rounded-md">
-                    <div className="flex items-center">
+                    <div className="flex items-center justify-center sm:justify-start">
                       <User className="h-5 w-5 mr-2" />
-                      <span className="capitalize">
+                      <span className="capitalize truncate max-w-[220px] sm:max-w-none">
                         {user?.nombre || user?.email}
                       </span>
                     </div>
@@ -59,6 +59,16 @@ export default function AdminPage() {
                     <h3 className="text-lg font-semibold text-gray-800">Gestión de citas</h3>
                   </div>
                   <p className="text-gray-600">Visualizar y gestionar reservas.</p>
+                </Link>
+                <Link
+                  href="/admin/pedidos"
+                  className="block bg-gray-50 border border-gray-200 rounded-lg p-6 hover:border-pink-300 transition-colors"
+                >
+                  <div className="flex items-center mb-3">
+                    <Package className="h-6 w-6 text-pink-600 mr-2" />
+                    <h3 className="text-lg font-semibold text-gray-800">Productos comprados</h3>
+                  </div>
+                  <p className="text-gray-600">Ver pedidos confirmados y marcar como entregados.</p>
                 </Link>
                 <Link
                   href="/admin/inventario"

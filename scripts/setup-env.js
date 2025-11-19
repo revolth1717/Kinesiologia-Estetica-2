@@ -14,7 +14,9 @@ NEXT_PUBLIC_TREATMENTS_PATH=/tratamientos\n
 NEXT_PUBLIC_ZONES_SEGMENT=zonas\n
 NEXT_PUBLIC_ZONES_BY_TREATMENT_PATH=/zonas-por-tratamiento\n
 NEXT_PUBLIC_USE_LOCAL_TREATMENT_IMAGES=false\n
-
+NEXT_PUBLIC_PRODUCTS_PATH=/product\n
+NEXT_PUBLIC_ORDERS_PATH=/order\n
+\n
 # Xano endpoints (optional overrides)\n
 XANO_API_URL=https://x8ki-letl-twmt.n7.xano.io/api:-E-1dvfg\n
 XANO_GENERAL_API_URL=https://x8ki-letl-twmt.n7.xano.io/api:SzJNIj2V\n
