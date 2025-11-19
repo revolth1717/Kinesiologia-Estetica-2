@@ -202,6 +202,24 @@ class CitasService {
         };
         payload.appointment_date = toXanoInput(v);
       }
+      if (typeof payload.sesion === "undefined") {
+        let sesionValue: number | undefined;
+        try {
+          const list = await this.obtenerCitasUsuario();
+          const cita = list.find(c => c.id === id);
+          if (cita && typeof (cita as any).sesion === "number") {
+            sesionValue = (cita as any).sesion;
+          } else if (cita && typeof cita.comments === "string") {
+            const m = cita.comments.match(/sesiones?\s*[:\-]?\s*(\d+)/i);
+            if (m && m[1]) {
+              const n = parseInt(m[1], 10);
+              if (!Number.isNaN(n)) sesionValue = n;
+            }
+          }
+        } catch {}
+        if (typeof sesionValue === "undefined") sesionValue = 1;
+        payload.sesion = sesionValue;
+      }
       const response = await fetch(`${API_LOCAL_BASE}/${id}`, {
         method: "PATCH",
         headers: this.getAuthHeaders(),

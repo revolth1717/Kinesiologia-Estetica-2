@@ -153,23 +153,37 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
       `${XANO_AUTH}/appointment/${encodeURIComponent(idStr)}`,
       `${XANO_GENERAL}/appointment/${encodeURIComponent(idStr)}`,
     ];
-    const methods = ["PUT", "PATCH"] as const;
+    const methods = ["PATCH", "PUT"] as const;
     let last: { status: number; data: any } | null = null;
     for (const target of updateTargets) {
       for (const method of methods) {
-        const res = await fetch(target, {
-          method,
-          headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
-        const text = await res.text();
-        let data: any = null;
-        try { data = JSON.parse(text); } catch { data = { raw: text }; }
-        if (res.ok) {
-          return NextResponse.json(data, { status: res.status });
+        const bodies: any[] = [
+          payload,
+          { input: payload },
+          { appointment_id: parseInt(idStr, 10), ...payload },
+        ];
+        for (const body of bodies) {
+          const res = await fetch(target, {
+            method,
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+              Accept: "application/json, text/plain, */*",
+            },
+            body: JSON.stringify(body),
+          });
+          const text = await res.text();
+          let data: any = null;
+          try { data = JSON.parse(text); } catch { data = { raw: text }; }
+          if (res.ok) {
+            return NextResponse.json(data, { status: res.status });
+          }
+          last = { status: res.status, data };
+          if (res.status !== 404 && res.status !== 405) {
+            // Si el endpoint existe pero falló por otra razón, devuelve el error
+            return NextResponse.json(data, { status: res.status });
+          }
         }
-        last = { status: res.status, data };
-        // No devolver aún; continuar probando otros métodos/targets
       }
     }
 
