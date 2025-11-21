@@ -291,7 +291,6 @@ export default function AdminCitasPage() {
     }
     setSchedLoading(true);
     try {
-      console.log("[UI] Reprogramar click", { id, schedDate, schedTime, ms });
       const taken: string[] = await citasService
         .obtenerDisponibilidad(schedDate)
         .catch(() => [] as string[]);
@@ -301,7 +300,6 @@ export default function AdminCitasPage() {
       }
       const curr = (citas || []).find(c => c.id === id);
       await citasService.reprogramarCita(id, ms, curr?.status);
-      console.log("[UI] Reprogramar OK", { id, newDateMs: ms });
       const iso = new Date(ms).toISOString();
       setCitas(prev =>
         prev.map(c =>
@@ -323,7 +321,6 @@ export default function AdminCitasPage() {
       setSchedDate("");
       setSchedTime("");
     } catch (err: any) {
-      console.error("[UI] Reprogramar error", err);
       setSchedError(String(err?.message || err));
     } finally {
       setSchedLoading(false);

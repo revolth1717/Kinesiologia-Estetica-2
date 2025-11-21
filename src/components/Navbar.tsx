@@ -18,6 +18,10 @@ const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [theme, setTheme] = useState<"light" | "dark">(() => {
     try {
+      const cookie = typeof document !== "undefined" ? document.cookie : "";
+      const match = cookie.match(/(?:^|; )theme=(dark|light)/);
+      const fromCookie = match ? (match[1] as "dark" | "light") : null;
+      if (fromCookie) return fromCookie;
       const saved = typeof window !== "undefined" ? localStorage.getItem("theme") : null;
       if (saved === "dark" || saved === "light") return saved as "dark" | "light";
       const prefersDark = typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: dark)").matches;
@@ -34,6 +38,10 @@ const Navbar = () => {
     if (theme === "dark") root.classList.add("dark");
     else root.classList.remove("dark");
     localStorage.setItem("theme", theme);
+    try {
+      const maxAge = 60 * 60 * 24 * 365;
+      document.cookie = `theme=${theme}; Path=/; Max-Age=${maxAge}`;
+    } catch {}
   }, [theme]);
 
   // initial theme is derived from localStorage/matchMedia via lazy initializer above
@@ -41,7 +49,7 @@ const Navbar = () => {
   const toggleTheme = () => {
     setTheme(prev => (prev === "dark" ? "light" : "dark"));
   };
-  const { isLoggedIn, user, logout } = useAuth();
+  const { isLoggedIn, user, logout, loading } = useAuth();
   const pathname = usePathname();
   const isAdminPage = (pathname || "").startsWith("/admin");
   const isAdmin = (() => {
@@ -137,7 +145,11 @@ const Navbar = () => {
               ))}
             </button>
 
-            {isLoggedIn ? (
+            {loading ? (
+              <div className="flex items-center ml-4">
+                <div className="h-8 w-28 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+              </div>
+            ) : isLoggedIn ? (
               <div className="flex items-center ml-4">
                 <Link
                   href="/perfil"
@@ -228,24 +240,28 @@ const Navbar = () => {
       {isMenuOpen && (
         <div className="lg:hidden">
           <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
-            <Link
-              href="/tratamientos"
-              className="block px-3 py-2 text-gray-700 dark:text-gray-200 hover:text-pink-600 dark:hover:text-pink-400 transition-colors"
-            >
-              Tratamientos
-            </Link>
-            <Link
-              href="/productos"
-              className="block px-3 py-2 text-gray-700 dark:text-gray-200 hover:text-pink-600 dark:hover:text-pink-400 transition-colors"
-            >
-              Productos
-            </Link>
-            <Link
-              href="/contacto"
-              className="block px-3 py-2 text-gray-700 dark:text-gray-200 hover:text-pink-600 dark:hover:text-pink-400 transition-colors"
-            >
-              Contacto
-            </Link>
+            {!(isLoggedIn && isAdmin) && (
+              <>
+                <Link
+                  href="/tratamientos"
+                  className="block px-3 py-2 text-gray-700 dark:text-gray-200 hover:text-pink-600 dark:hover:text-pink-400 transition-colors"
+                >
+                  Tratamientos
+                </Link>
+                <Link
+                  href="/productos"
+                  className="block px-3 py-2 text-gray-700 dark:text-gray-200 hover:text-pink-600 dark:hover:text-pink-400 transition-colors"
+                >
+                  Productos
+                </Link>
+                <Link
+                  href="/contacto"
+                  className="block px-3 py-2 text-gray-700 dark:text-gray-200 hover:text-pink-600 dark:hover:text-pink-400 transition-colors"
+                >
+                  Contacto
+                </Link>
+              </>
+            )}
             {!(isLoggedIn && isAdmin) && (
               <>
                 <Link
@@ -306,7 +322,11 @@ const Navbar = () => {
               </Link>
             )}
 
-            {isLoggedIn ? (
+            {loading ? (
+              <div className="px-3 py-2">
+                <div className="h-8 w-32 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+              </div>
+            ) : isLoggedIn ? (
               <>
                 <Link
                   href="/perfil"
