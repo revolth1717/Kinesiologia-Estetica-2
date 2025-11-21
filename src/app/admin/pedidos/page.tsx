@@ -1,7 +1,7 @@
 "use client";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import AdminNav from "@/components/AdminNav";
-import { RefreshCw, CheckCircle } from "lucide-react";
+import { RefreshCw, CheckCircle, XCircle } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 type Pedido = {
@@ -122,17 +122,17 @@ export default function AdminPedidosPage() {
     setActionId(id);
     setActionMsg("");
     try {
-      const apiBase = process.env.NEXT_PUBLIC_API_URL || "";
-      const target = `${apiBase}/order`;
-      const payload1 = { input: { order_id: (/^\d+$/.test(String(id)) ? Number(id) : id), status: "entregado" } };
-      let res = await fetch(target, { method: "PATCH", headers: { "Content-Type": "application/json", Accept: "application/json, text/plain, */*" }, body: JSON.stringify(payload1) });
+      const numericOrStringId = /^\d+$/.test(String(id)) ? Number(id) : id;
+      const target = `/api/order?id=${encodeURIComponent(String(numericOrStringId))}`;
+      const res = await fetch(target, {
+        method: "PATCH",
+        credentials: "include",
+        headers: { "Content-Type": "application/json", Accept: "application/json, text/plain, */*" },
+        body: JSON.stringify({ status: "entregado" }),
+      });
       if (!res.ok) {
-        const payload2 = { order_id: (/^\d+$/.test(String(id)) ? Number(id) : id), status: "entregado" };
-        res = await fetch(target, { method: "PATCH", headers: { "Content-Type": "application/json", Accept: "application/json, text/plain, */*" }, body: JSON.stringify(payload2) });
-        if (!res.ok) {
-          const txt = await res.text().catch(() => "");
-          throw new Error(`${res.status} ${txt || res.statusText}`);
-        }
+        const txt = await res.text().catch(() => "");
+        throw new Error(`${res.status} ${txt || res.statusText}`);
       }
       setItems(prev => prev.map(x => x.id === id ? { ...x, status: "entregado" } : x));
       setActionMsg("Marcado como entregado");
@@ -205,6 +205,18 @@ export default function AdminPedidosPage() {
           </div>
         </div>
       </div>
+      {actionMsg && (
+        <div className="fixed bottom-4 right-4 z-50">
+          <div className={`flex items-center gap-2 px-4 py-3 rounded-lg shadow-lg ${actionMsg.toLowerCase().includes("entregado") ? "bg-green-600 text-white" : "bg-red-600 text-white"}`}>
+            {actionMsg.toLowerCase().includes("entregado") ? (
+              <CheckCircle className="h-5 w-5" />
+            ) : (
+              <XCircle className="h-5 w-5" />
+            )}
+            <span className="text-sm font-medium">{actionMsg}</span>
+          </div>
+        </div>
+      )}
     </ProtectedRoute>
   );
 }

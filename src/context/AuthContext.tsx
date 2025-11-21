@@ -39,10 +39,10 @@ const AUTH_LOCAL = "/api/auth";
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [loading, setLoading] = useState(false);
+export function AuthProvider({ children, initialUser, initialIsLoggedIn }: { children: ReactNode; initialUser?: User | null; initialIsLoggedIn?: boolean }) {
+  const [user, setUser] = useState<User | null>(initialUser ?? null);
+  const [isLoggedIn, setIsLoggedIn] = useState(Boolean(initialIsLoggedIn));
+  const [loading, setLoading] = useState(!Boolean(initialIsLoggedIn));
 
   // No usamos localStorage para el token; dependemos de cookie HttpOnly
 
@@ -124,8 +124,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
-    // Validar sesión únicamente contra el backend con cookies
-    fetchMe();
+    if (!initialIsLoggedIn) {
+      fetchMe();
+    } else {
+      setLoading(false);
+    }
   }, []);
 
   const login = async (email: string, password: string) => {

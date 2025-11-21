@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import TrustBadges from "@/components/TrustBadges";
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 
 export default function Home() {
@@ -43,7 +44,16 @@ export default function Home() {
     }, ROTATION_MS);
     return () => clearInterval(id);
   }, [heroImages.length, ROTATION_MS]);
-  const { isLoggedIn } = useAuth();
+  const router = useRouter();
+  const { isLoggedIn, user } = useAuth();
+  useEffect(() => {
+    const r = user?.role;
+    const s = r ? String(r).toLowerCase() : "";
+    if (isLoggedIn && (s.includes("admin") || s === "administrador")) {
+      router.replace("/admin");
+      return;
+    }
+  }, [isLoggedIn, user, router]);
   useEffect(() => {
     const controller = new AbortController();
     const CONTENT_API_URL = process.env.NEXT_PUBLIC_CONTENT_API_URL || "";
