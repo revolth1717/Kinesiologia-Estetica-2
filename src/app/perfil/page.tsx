@@ -88,20 +88,58 @@ export default function PerfilPage() {
     }
   };
 
+  const handleEliminarCompletadas = async () => {
+    try {
+      setBulkDeleteError("");
+      setBulkDeleteSuccess("");
+      const targets = citas
+        .filter(c => c.status === "completada")
+        .map(c => c.id);
+      if (!targets.length) {
+        setBulkDeleteError("No hay citas completadas para limpiar.");
+        setTimeout(() => setBulkDeleteError(""), 4000);
+        return;
+      }
+      const confirmed = window.confirm(
+        `¿Eliminar ${targets.length} cita(s) completada(s) de la vista?`
+      );
+      if (!confirmed) return;
+      setBulkDeleting(true);
+      setCitas(prev => prev.filter(c => c.status !== "completada"));
+      setBulkDeleteSuccess("Citas completadas eliminadas de la vista.");
+      setTimeout(() => setBulkDeleteSuccess(""), 3000);
+    } finally {
+      setBulkDeleting(false);
+    }
+  };
+
   const cargarOrdenes = async () => {
     setOrdersLoading(true);
     setOrdersError("");
     try {
-      const res = await fetch("/api/order/user", { method: "GET", credentials: "include" });
+      const res = await fetch("/api/order/user", {
+        method: "GET",
+        credentials: "include",
+      });
       if (!res.ok) throw new Error(`${res.status}`);
       const data = await res.json();
-      const list = Array.isArray(data?.items) ? data.items : Array.isArray(data) ? data : Array.isArray(data?.data) ? data.data : [];
+      const list = Array.isArray(data?.items)
+        ? data.items
+        : Array.isArray(data)
+        ? data
+        : Array.isArray(data?.data)
+        ? data.data
+        : [];
       const norm = list.map((o: any) => ({
         id: o?.id ?? o?.order_id ?? crypto.randomUUID(),
         product_id: o?.product_id ?? o?.producto_id ?? o?.product?.id ?? null,
         status: String(o?.status ?? "confirmado").toLowerCase(),
         order_date: (() => {
-          const v = o?.order_date ?? o?.fecha ?? o?.created_at ?? new Date().toISOString();
+          const v =
+            o?.order_date ??
+            o?.fecha ??
+            o?.created_at ??
+            new Date().toISOString();
           if (typeof v === "number") return new Date(v).toISOString();
           const s = String(v || "").trim();
           if (/^\d+$/.test(s)) {
@@ -109,31 +147,57 @@ export default function PerfilPage() {
             const ms = s.length >= 13 ? n : n * 1000;
             return new Date(ms).toISOString();
           }
-          try { return new Date(s).toISOString(); } catch { return new Date().toISOString(); }
+          try {
+            return new Date(s).toISOString();
+          } catch {
+            return new Date().toISOString();
+          }
         })(),
         total: typeof o?.total === "number" ? o.total : Number(o?.total || 0),
-        quantity: typeof o?.quantity === "number" ? o.quantity : Number(o?.quantity || 1),
+        quantity:
+          typeof o?.quantity === "number"
+            ? o.quantity
+            : Number(o?.quantity || 1),
       }));
       try {
         const pr = await fetch("/api/productos", { method: "GET" });
         const tx = await pr.text();
         let pd: any = null;
-        try { pd = JSON.parse(tx); } catch { pd = { raw: tx }; }
-        const arr: any[] = Array.isArray(pd?.data) ? pd.data : Array.isArray(pd) ? pd : [];
+        try {
+          pd = JSON.parse(tx);
+        } catch {
+          pd = { raw: tx };
+        }
+        const arr: any[] = Array.isArray(pd?.data)
+          ? pd.data
+          : Array.isArray(pd)
+          ? pd
+          : [];
         const byId = new Map<string, any>();
         for (const p of arr) {
-          const pid = String(p?.id ?? p?.ID ?? p?.product_id ?? p?.producto_id ?? "");
+          const pid = String(
+            p?.id ?? p?.ID ?? p?.product_id ?? p?.producto_id ?? ""
+          );
           if (pid) byId.set(pid, p);
         }
         const aug = norm.map(o => {
           const pid = String(o.product_id ?? "");
           const p = byId.get(pid);
-          const name = typeof p?.nombre === "string" ? p.nombre : typeof p?.name === "string" ? p.name : undefined;
+          const name =
+            typeof p?.nombre === "string"
+              ? p.nombre
+              : typeof p?.name === "string"
+              ? p.name
+              : undefined;
           const imgObj = p?.imagen_url ?? p?.image_url ?? p?.imagen ?? p?.image;
           let img = "";
           if (typeof imgObj === "string") img = imgObj as string;
           else if (imgObj && typeof imgObj === "object") {
-            const u = (imgObj as any)?.url ?? (imgObj as any)?.download_url ?? (imgObj as any)?.full_url ?? (imgObj as any)?.href;
+            const u =
+              (imgObj as any)?.url ??
+              (imgObj as any)?.download_url ??
+              (imgObj as any)?.full_url ??
+              (imgObj as any)?.href;
             if (typeof u === "string") img = u as string;
           }
           return { ...o, product_name: name, product_image_url: img } as any;
@@ -253,6 +317,9 @@ export default function PerfilPage() {
   const [deleteError, setDeleteError] = useState<string>("");
   const [deleteSuccess, setDeleteSuccess] = useState<string>("");
   const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [bulkDeleteError, setBulkDeleteError] = useState("");
+  const [bulkDeleteSuccess, setBulkDeleteSuccess] = useState("");
 
   const handleCancelarCita = async (citaId: number) => {
     // Confirmación previa para evitar toques accidentales
@@ -298,27 +365,11 @@ export default function PerfilPage() {
     setIsDeletingId(citaId);
 
     try {
-      await citasService.eliminarCita(citaId);
-      // Remover de la lista local para feedback inmediato
       setCitas(prev => prev.filter(c => c.id !== citaId));
-      setDeleteSuccess("Cita cancelada eliminada correctamente.");
+      setDeleteSuccess("Cita eliminada de la vista.");
       setTimeout(() => setDeleteSuccess(""), 3000);
     } catch (error: any) {
-      console.error("Error al eliminar cita:", error);
-      const msg = String(
-        error?.message || "Error al eliminar la cita cancelada"
-      );
-      if (msg.includes("Error 401")) {
-        setDeleteError(
-          "No estás autenticado o tu sesión expiró (401). Inicia sesión nuevamente."
-        );
-      } else if (msg.includes("Error 403")) {
-        setDeleteError("No tienes permiso para eliminar esta cita (403).");
-      } else if (msg.includes("Error 404")) {
-        setDeleteError("La cita ya no existe (404).");
-      } else {
-        setDeleteError("Error al eliminar la cita. Intenta nuevamente.");
-      }
+      setDeleteError("Error al eliminar de la vista.");
       setTimeout(() => setDeleteError(""), 5000);
     } finally {
       setIsDeletingId(null);
@@ -454,18 +505,16 @@ export default function PerfilPage() {
                   </button>
                 </div>
               </div>
-        </div>
-      </div>
+            </div>
+          </div>
 
-      {/* Información del Usuario */}
-      <div className="bg-white shadow-md rounded-lg overflow-hidden mb-8">
+          {/* Información del Usuario */}
+          <div className="bg-white shadow-md rounded-lg overflow-hidden mb-8">
             <div className="px-6 py-4 border-b border-gray-200">
               <h2 className="text-xl font-semibold text-gray-900">
                 Información Personal
               </h2>
-      </div>
-
-      
+            </div>
 
             <div className="p-6">
               {refreshError && (
@@ -666,8 +715,8 @@ export default function PerfilPage() {
                   </div>
                 </div>
               )}
-        </div>
-      </div>
+            </div>
+          </div>
 
           {/* Diagnóstico de API */}
           {diagnosticResult && (
@@ -690,299 +739,388 @@ export default function PerfilPage() {
                 </pre>
               </div>
             </div>
-        )}
+          )}
 
           {/* Historial de Citas */}
           {!isAdmin && (
-          <div className="bg-white dark:bg-gray-800 shadow-md rounded-lg overflow-hidden">
-            <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-              <h2 className="text-xl font-semibold text-gray-900">Mis Citas</h2>
-              <button
-                onClick={cargarCitas}
-                disabled={citasLoading}
-                className="flex items-center px-3 py-2 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md transition-colors disabled:opacity-50"
-              >
-                <RefreshCw
-                  className={`h-4 w-4 mr-2 ${
-                    citasLoading ? "animate-spin" : ""
-                  }`}
-                />
-                Actualizar
-              </button>
-            </div>
-            {cancelSuccess && (
-              <div className="mx-6 mt-4 bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-md flex items-center">
-                <CheckCircle className="h-5 w-5 mr-2" />
-                {cancelSuccess}
+            <div className="bg-white dark:bg-gray-800 shadow-md rounded-lg overflow-hidden">
+              <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+                <h2 className="text-xl font-semibold text-gray-900">
+                  Mis Citas
+                </h2>
+                <button
+                  onClick={cargarCitas}
+                  disabled={citasLoading}
+                  className="flex items-center px-3 py-2 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md transition-colors disabled:opacity-50"
+                >
+                  <RefreshCw
+                    className={`h-4 w-4 mr-2 ${
+                      citasLoading ? "animate-spin" : ""
+                    }`}
+                  />
+                  Actualizar
+                </button>
               </div>
-            )}
-            {deleteSuccess && (
-              <div className="mx-6 mt-4 bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-md flex items-center">
-                <CheckCircle className="h-5 w-5 mr-2" />
-                {deleteSuccess}
-              </div>
-            )}
-            {deleteError && (
-              <div className="mx-6 mt-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md flex items-center">
-                <XCircle className="h-5 w-5 mr-2" />
-                {deleteError}
-              </div>
-            )}
-            {cancelError && (
-              <div className="mx-6 mt-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md flex items-center">
-                <XCircle className="h-5 w-5 mr-2" />
-                {cancelError}
-              </div>
-            )}
+              {cancelSuccess && (
+                <div className="mx-6 mt-4 bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-md flex items-center">
+                  <CheckCircle className="h-5 w-5 mr-2" />
+                  {cancelSuccess}
+                </div>
+              )}
+              {deleteSuccess && (
+                <div className="mx-6 mt-4 bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-md flex items-center">
+                  <CheckCircle className="h-5 w-5 mr-2" />
+                  {deleteSuccess}
+                </div>
+              )}
+              {bulkDeleteSuccess && (
+                <div className="mx-6 mt-4 bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-md flex items-center">
+                  <CheckCircle className="h-5 w-5 mr-2" />
+                  {bulkDeleteSuccess}
+                </div>
+              )}
+              {deleteError && (
+                <div className="mx-6 mt-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md flex items-center">
+                  <XCircle className="h-5 w-5 mr-2" />
+                  {deleteError}
+                </div>
+              )}
+              {bulkDeleteError && (
+                <div className="mx-6 mt-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md flex items-center">
+                  <XCircle className="h-5 w-5 mr-2" />
+                  {bulkDeleteError}
+                </div>
+              )}
+              {cancelError && (
+                <div className="mx-6 mt-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md flex items-center">
+                  <XCircle className="h-5 w-5 mr-2" />
+                  {cancelError}
+                </div>
+              )}
 
-            {citasError && (
-              <div className="mx-6 mt-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md flex items-center">
-                <XCircle className="h-5 w-5 mr-2" />
-                {citasError}
-              </div>
-            )}
+              {citasError && (
+                <div className="mx-6 mt-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md flex items-center">
+                  <XCircle className="h-5 w-5 mr-2" />
+                  {citasError}
+                </div>
+              )}
 
-            {citasLoading ? (
-              <div className="p-8 text-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pink-600 mx-auto mb-4"></div>
-                <p className="text-gray-600">Cargando citas...</p>
-              </div>
-            ) : citas.length > 0 ? (
-              <>
-                {(() => {
-                  const citasActivas = citas.filter(
-                    c => c.status !== "cancelada"
-                  );
-                  const citasCanceladas = citas.filter(
-                    c => c.status === "cancelada"
-                  );
-
-                  const parseContacto = (
-                    comments?: string
-                  ): {
-                    nombre?: string;
-                    email?: string;
-                    telefono?: string;
-                  } | null => {
-                    if (!comments || typeof comments !== "string") return null;
-                    const match = comments.match(
-                      /Contacto:\s*(.+?)\s*-\s*(.+?)\s*-\s*(.+)/i
+              {citasLoading ? (
+                <div className="p-8 text-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pink-600 mx-auto mb-4"></div>
+                  <p className="text-gray-600">Cargando citas...</p>
+                </div>
+              ) : citas.length > 0 ? (
+                <>
+                  {(() => {
+                    const citasActivas = citas.filter(
+                      c => c.status !== "cancelada"
                     );
-                    if (!match) return null;
-                    const nombre = match[1]?.trim();
-                    const email = match[2]?.trim();
-                    const telefono = match[3]?.trim();
-                    return { nombre, email, telefono };
-                  };
+                    const citasCanceladas = citas.filter(
+                      c => c.status === "cancelada"
+                    );
 
-                  const Card = (cita: (typeof citas)[number]) => {
-                    const contacto = parseContacto(cita.comments);
-                    return (
-                      <div key={cita.id} className="p-6">
-                        <div className="flex flex-col md:flex-row md:justify-between md:items-start">
-                          <div className="flex-1">
-                            <h3 className="text-lg font-medium text-gray-900 mb-2">
-                              {cita.service}
-                            </h3>
-                            <div className="space-y-2">
-                              <div className="flex items-center text-gray-600">
-                                <Calendar className="h-4 w-4 mr-2" />
-                                <span>
-                                  {citasService.formatearFecha(
-                                    cita.appointment_date
-                                  )}
-                                </span>
-                                <Clock className="h-4 w-4 ml-4 mr-2" />
-                                <span>
-                                  {citasService.formatearHora(
-                                    cita.appointment_date
-                                  )}
-                                </span>
+                    const parseContacto = (
+                      comments?: string
+                    ): {
+                      nombre?: string;
+                      email?: string;
+                      telefono?: string;
+                    } | null => {
+                      if (!comments || typeof comments !== "string")
+                        return null;
+                      const match = comments.match(
+                        /Contacto:\s*(.+?)\s*-\s*(.+?)\s*-\s*(.+)/i
+                      );
+                      if (!match) return null;
+                      const nombre = match[1]?.trim();
+                      const email = match[2]?.trim();
+                      const telefono = match[3]?.trim();
+                      return { nombre, email, telefono };
+                    };
+
+                    const Card = (cita: (typeof citas)[number]) => {
+                      const contacto = parseContacto(cita.comments);
+                      return (
+                        <div key={cita.id} className="p-6">
+                          <div className="flex flex-col md:flex-row md:justify-between md:items-start">
+                            <div className="flex-1">
+                              <h3 className="text-lg font-medium text-gray-900 mb-2">
+                                {cita.service}
+                              </h3>
+                              <div className="space-y-2">
+                                <div className="flex items-center text-gray-600">
+                                  <Calendar className="h-4 w-4 mr-2" />
+                                  <span>
+                                    {citasService.formatearFecha(
+                                      cita.appointment_date
+                                    )}
+                                  </span>
+                                  <Clock className="h-4 w-4 ml-4 mr-2" />
+                                  <span>
+                                    {citasService.formatearHora(
+                                      cita.appointment_date
+                                    )}
+                                  </span>
+                                </div>
+                                {(contacto || cita.comments) && (
+                                  <div className="mt-2">
+                                    {contacto ? (
+                                      <div className="text-sm text-gray-600 bg-gray-50 p-2 rounded dark:border dark:border-pink-500">
+                                        <strong>Datos de contacto:</strong>
+                                        <div className="mt-1">
+                                          <span className="block">
+                                            Nombre: {contacto.nombre}
+                                          </span>
+                                          <span className="block">
+                                            Teléfono: {contacto.telefono}
+                                          </span>
+                                          <span className="block">
+                                            Email: {contacto.email}
+                                          </span>
+                                        </div>
+                                      </div>
+                                    ) : (
+                                      <p className="text-sm text-gray-600 bg-gray-50 p-2 rounded dark:border dark:border-pink-500">
+                                        {cita.comments}
+                                      </p>
+                                    )}
+                                  </div>
+                                )}
                               </div>
-                              {(contacto || cita.comments) && (
-                                <div className="mt-2">
-                                  {contacto ? (
-                                    <div className="text-sm text-gray-600 bg-gray-50 p-2 rounded dark:border dark:border-pink-500">
-                                      <strong>Datos de contacto:</strong>
-                                      <div className="mt-1">
-                                        <span className="block">
-                                          Nombre: {contacto.nombre}
-                                        </span>
-                                        <span className="block">
-                                          Teléfono: {contacto.telefono}
-                                        </span>
-                                        <span className="block">
-                                          Email: {contacto.email}
-                                        </span>
+                            </div>
+                            <div className="mt-4 md:mt-0 md:ml-4 flex flex-col items-end space-y-2">
+                              <span
+                                className={`inline-flex px-3 py-1 rounded-full text-sm font-medium ${citasService.obtenerColorEstado(
+                                  cita.status
+                                )}`}
+                              >
+                                {citasService.obtenerTextoEstado(cita.status)}
+                              </span>
+                              {/* eliminar cita cancelada o completada */}
+                              {(cita.status === "cancelada" ||
+                                cita.status === "completada") && (
+                                <div className="flex flex-col items-end space-y-2">
+                                  <button
+                                    onClick={() => setDeleteConfirmId(cita.id)}
+                                    disabled={isDeletingId === cita.id}
+                                    className={`text-sm underline ${
+                                      isDeletingId === cita.id
+                                        ? "text-gray-400 cursor-not-allowed"
+                                        : "text-red-600 hover:text-red-800"
+                                    }`}
+                                  >
+                                    {isDeletingId === cita.id ? (
+                                      <span className="inline-flex items-center">
+                                        <RefreshCw className="h-4 w-4 mr-1 animate-spin" />{" "}
+                                        Eliminando...
+                                      </span>
+                                    ) : cita.status === "cancelada" ? (
+                                      "Eliminar cita cancelada"
+                                    ) : (
+                                      "Eliminar cita completada"
+                                    )}
+                                  </button>
+                                  {deleteConfirmId === cita.id && (
+                                    <div className="mt-2 bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-md max-w-xs">
+                                      <p className="text-sm">
+                                        ¿Seguro que deseas eliminar esta cita{" "}
+                                        {cita.status === "cancelada"
+                                          ? "cancelada"
+                                          : "completada"}
+                                        ? Esta acción es permanente.
+                                      </p>
+                                      <div className="mt-2 flex justify-end space-x-2">
+                                        <button
+                                          onClick={() =>
+                                            setDeleteConfirmId(null)
+                                          }
+                                          className="px-2 py-1 text-sm border border-gray-300 rounded-md text-black dark:text-black hover:bg-gray-50"
+                                        >
+                                          Cancelar
+                                        </button>
+                                        <button
+                                          onClick={() =>
+                                            handleEliminarCita(cita.id)
+                                          }
+                                          disabled={isDeletingId === cita.id}
+                                          className="px-2 py-1 text-sm bg-red-600 text-white rounded-md hover:bg-red-700"
+                                        >
+                                          Eliminar definitivamente
+                                        </button>
                                       </div>
                                     </div>
-                                  ) : (
-                                    <p className="text-sm text-gray-600 bg-gray-50 p-2 rounded dark:border dark:border-pink-500">
-                                      {cita.comments}
-                                    </p>
                                   )}
                                 </div>
                               )}
                             </div>
                           </div>
-                          <div className="mt-4 md:mt-0 md:ml-4 flex flex-col items-end space-y-2">
-                            <span
-                              className={`inline-flex px-3 py-1 rounded-full text-sm font-medium ${citasService.obtenerColorEstado(
-                                cita.status
-                              )}`}
+                        </div>
+                      );
+                    };
+
+                    return (
+                      <>
+                        {citas.filter(c => c.status === "completada").length >
+                          0 && (
+                          <div className="px-6 mb-3 flex items-center justify-end">
+                            <button
+                              onClick={handleEliminarCompletadas}
+                              disabled={bulkDeleting}
+                              className="inline-flex items-center px-3 py-2 text-sm rounded-md bg-red-600 text-white disabled:opacity-50"
                             >
-                              {citasService.obtenerTextoEstado(cita.status)}
-                            </span>
-                            {/* botón de cancelar cita oculto */}
-                            {cita.status === "cancelada" && (
-                              <div className="flex flex-col items-end space-y-2">
-                                <button
-                                  onClick={() => setDeleteConfirmId(cita.id)}
-                                  disabled={isDeletingId === cita.id}
-                                  className={`text-sm underline ${
-                                    isDeletingId === cita.id
-                                      ? "text-gray-400 cursor-not-allowed"
-                                      : "text-red-600 hover:text-red-800"
-                                  }`}
-                                >
-                                  {isDeletingId === cita.id ? (
-                                    <span className="inline-flex items-center">
-                                      <RefreshCw className="h-4 w-4 mr-1 animate-spin" />{" "}
-                                      Eliminando...
-                                    </span>
-                                  ) : (
-                                    "Eliminar cita cancelada"
-                                  )}
-                                </button>
-                                {deleteConfirmId === cita.id && (
-                                  <div className="mt-2 bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-md max-w-xs">
-                                    <p className="text-sm">
-                                      ¿Seguro que deseas eliminar esta cita
-                                      cancelada? Esta acción es permanente.
-                                    </p>
-                                    <div className="mt-2 flex justify-end space-x-2">
-                                      <button
-                                        onClick={() => setDeleteConfirmId(null)}
-                                        className="px-2 py-1 text-sm border border-gray-300 rounded-md text-black dark:text-black hover:bg-gray-50"
-                                      >
-                                        Cancelar
-                                      </button>
-                                      <button
-                                        onClick={() =>
-                                          handleEliminarCita(cita.id)
-                                        }
-                                        disabled={isDeletingId === cita.id}
-                                        className="px-2 py-1 text-sm bg-red-600 text-white rounded-md hover:bg-red-700"
-                                      >
-                                        Eliminar definitivamente
-                                      </button>
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
-                            )}
+                              {bulkDeleting
+                                ? "Limpiando..."
+                                : `Eliminar completadas (${
+                                    citas.filter(c => c.status === "completada")
+                                      .length
+                                  })`}
+                            </button>
                           </div>
+                        )}
+                        {/* Activas (pendientes/confirmadas) */}
+                        <div className="divide-y divide-gray-200">
+                          {citasActivas.map(c => Card(c))}
                         </div>
-                      </div>
+
+                        {/* Canceladas aparte */}
+                        {citasCanceladas.length > 0 && (
+                          <div className="mt-10 border-t border-gray-200 pt-6">
+                            <h3 className="px-6 text-lg font-semibold text-gray-800 mb-4">
+                              Citas Canceladas
+                            </h3>
+                            <div className="divide-y divide-gray-200">
+                              {citasCanceladas.map(c => Card(c))}
+                            </div>
+                          </div>
+                        )}
+                      </>
                     );
-                  };
-
-                  return (
-                    <>
-                      {/* Activas (pendientes/confirmadas) */}
-                      <div className="divide-y divide-gray-200">
-                        {citasActivas.map(c => Card(c))}
-                      </div>
-
-                      {/* Canceladas aparte */}
-                      {citasCanceladas.length > 0 && (
-                        <div className="mt-10 border-t border-gray-200 pt-6">
-                          <h3 className="px-6 text-lg font-semibold text-gray-800 mb-4">
-                            Citas Canceladas
-                          </h3>
-                          <div className="divide-y divide-gray-200">
-                            {citasCanceladas.map(c => Card(c))}
-                          </div>
-                        </div>
-                      )}
-                    </>
-                  );
-                })()}
-              </>
-            ) : (
-              <div className="p-8 text-center">
-                <div className="bg-gray-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
-                  <Calendar className="h-8 w-8 text-gray-400" />
+                  })()}
+                </>
+              ) : (
+                <div className="p-8 text-center">
+                  <div className="bg-gray-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+                    <Calendar className="h-8 w-8 text-gray-400" />
+                  </div>
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">
+                    No tienes citas programadas
+                  </h3>
+                  <p className="text-gray-600 mb-4">
+                    Agenda tu primera cita para comenzar tu tratamiento
+                  </p>
+                  <button
+                    onClick={() => router.push("/agendar")}
+                    className="px-6 py-3 bg-pink-600 text-white rounded-md hover:bg-pink-700 transition-colors font-medium"
+                  >
+                    Agendar una cita
+                  </button>
                 </div>
-                <h3 className="text-lg font-medium text-gray-900 mb-2">
-                  No tienes citas programadas
-                </h3>
-                <p className="text-gray-600 mb-4">
-                  Agenda tu primera cita para comenzar tu tratamiento
-                </p>
-                <button
-                  onClick={() => router.push("/agendar")}
-                  className="px-6 py-3 bg-pink-600 text-white rounded-md hover:bg-pink-700 transition-colors font-medium"
-                >
-                  Agendar una cita
-                </button>
-              </div>
-            )}
-          </div>
+              )}
+            </div>
           )}
         </div>
 
         {!isAdmin && (
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="bg-white dark:bg-gray-800 shadow-md rounded-lg overflow-hidden mb-8 mt-8">
-          <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-            <h2 className="text-xl font-semibold text-gray-900">Productos comprados</h2>
-            <button
-              onClick={cargarOrdenes}
-              disabled={ordersLoading}
-              className="flex items-center px-3 py-2 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md transition-colors disabled:opacity-50"
-            >
-              <RefreshCw className={`h-4 w-4 mr-2 ${ordersLoading ? "animate-spin" : ""}`} />
-              Actualizar
-            </button>
-          </div>
-          <div className="p-6">
-            {ordersLoading && <div className="text-gray-600">Cargando...</div>}
-            {ordersError && <div className="text-red-600">{ordersError}</div>}
-            {!ordersLoading && !ordersError && (
-              <div className="divide-y divide-gray-200">
-                {orders.length === 0 ? (
-                  <div className="text-gray-600">No hay productos comprados</div>
-                ) : (
-                  orders.map((o) => (
-                    <div key={String(o.id)} className="p-6 flex items-center justify-between">
-                      <div className="flex items-center">
-                        {o.product_image_url ? (
-                          <img src={String(o.product_image_url)} alt={String(o.product_name || "Producto")}
-                               className="w-12 h-12 rounded object-cover mr-4 border" />
-                        ) : (
-                          <div className="w-12 h-12 rounded bg-gray-100 mr-4"></div>
-                        )}
-                        <div>
-                          <div className="text-sm font-medium text-gray-900">{String(o.product_name || `Producto ID: ${String(o.product_id ?? "-")}`)}</div>
-                          <div className="text-xs text-gray-500">
-                            Fecha: {(() => { try { return new Date(String(o.order_date)).toLocaleString("es-CL"); } catch { return ""; } })()}
-                            <span className="ml-2">• Cantidad: {Number(o.quantity).toLocaleString()}</span>
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="bg-white dark:bg-gray-800 shadow-md rounded-lg overflow-hidden mb-8 mt-8">
+              <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+                <h2 className="text-xl font-semibold text-gray-900">
+                  Productos comprados
+                </h2>
+                <button
+                  onClick={cargarOrdenes}
+                  disabled={ordersLoading}
+                  className="flex items-center px-3 py-2 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md transition-colors disabled:opacity-50"
+                >
+                  <RefreshCw
+                    className={`h-4 w-4 mr-2 ${
+                      ordersLoading ? "animate-spin" : ""
+                    }`}
+                  />
+                  Actualizar
+                </button>
+              </div>
+              <div className="p-6">
+                {ordersLoading && (
+                  <div className="text-gray-600">Cargando...</div>
+                )}
+                {ordersError && (
+                  <div className="text-red-600">{ordersError}</div>
+                )}
+                {!ordersLoading && !ordersError && (
+                  <div className="divide-y divide-gray-200">
+                    {orders.length === 0 ? (
+                      <div className="text-gray-600">
+                        No hay productos comprados
+                      </div>
+                    ) : (
+                      orders.map(o => (
+                        <div
+                          key={String(o.id)}
+                          className="p-6 flex items-center justify-between"
+                        >
+                          <div className="flex items-center">
+                            {o.product_image_url ? (
+                              <img
+                                src={String(o.product_image_url)}
+                                alt={String(o.product_name || "Producto")}
+                                className="w-12 h-12 rounded object-cover mr-4 border"
+                              />
+                            ) : (
+                              <div className="w-12 h-12 rounded bg-gray-100 mr-4"></div>
+                            )}
+                            <div>
+                              <div className="text-sm font-medium text-gray-900">
+                                {String(
+                                  o.product_name ||
+                                    `Producto ID: ${String(
+                                      o.product_id ?? "-"
+                                    )}`
+                                )}
+                              </div>
+                              <div className="text-xs text-gray-500">
+                                Fecha:{" "}
+                                {(() => {
+                                  try {
+                                    return new Date(
+                                      String(o.order_date)
+                                    ).toLocaleString("es-CL");
+                                  } catch {
+                                    return "";
+                                  }
+                                })()}
+                                <span className="ml-2">
+                                  • Cantidad:{" "}
+                                  {Number(o.quantity).toLocaleString()}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-sm font-semibold text-gray-900">
+                              ${Number(o.total).toLocaleString()}
+                            </div>
+                            <span
+                              className={`inline-block mt-1 px-3 py-1 rounded-full text-xs font-medium ${
+                                String(o.status) === "entregado"
+                                  ? "bg-green-100 text-green-700"
+                                  : "bg-yellow-100 text-yellow-800"
+                              }`}
+                            >
+                              {String(o.status) === "entregado"
+                                ? "Entregado"
+                                : "Confirmado"}
+                            </span>
                           </div>
                         </div>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-sm font-semibold text-gray-900">${Number(o.total).toLocaleString()}</div>
-                        <span className={`inline-block mt-1 px-3 py-1 rounded-full text-xs font-medium ${String(o.status) === "entregado" ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-800"}`}>{String(o.status) === "entregado" ? "Entregado" : "Confirmado"}</span>
-                      </div>
-                    </div>
-                  ))
+                      ))
+                    )}
+                  </div>
                 )}
               </div>
-            )}
+            </div>
           </div>
-        </div>
-        </div>
         )}
       </div>
     </ProtectedRoute>
