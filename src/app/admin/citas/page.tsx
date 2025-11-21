@@ -124,7 +124,9 @@ export default function AdminCitasPage() {
   const [completeMsgById, setCompleteMsgById] = useState<
     Record<number, string>
   >({});
-  const [restrictActionsById, setRestrictActionsById] = useState<Record<number, boolean>>({});
+  const [restrictActionsById, setRestrictActionsById] = useState<
+    Record<number, boolean>
+  >({});
   const [schedId, setSchedId] = useState<number | null>(null);
   const [schedDate, setSchedDate] = useState<string>("");
   const [schedTime, setSchedTime] = useState<string>("");
@@ -364,7 +366,9 @@ export default function AdminCitasPage() {
           status: "PENDIENTE",
         } as any);
         setCitas(prev =>
-          prev.map(c => (c.id === id ? { ...c, sesion: nextSes, status: "pendiente" } : c))
+          prev.map(c =>
+            c.id === id ? { ...c, sesion: nextSes, status: "pendiente" } : c
+          )
         );
         setRestrictActionsById(prev => ({ ...prev, [id]: true }));
         setActionSuccess("Sesión descontada");
@@ -722,18 +726,19 @@ export default function AdminCitasPage() {
                             </div>
                           )}
                           <div className="mt-3 flex flex-wrap gap-2">
-                            {!restrictActionsById[cita.id] && cita.status !== "confirmada" && (
-                              <button
-                                onClick={() =>
-                                  doUpdateStatus(cita.id, "confirmada")
-                                }
-                                disabled={actionId === cita.id}
-                                className="inline-flex items-center px-3 py-1 rounded-md bg-green-600 text-white"
-                              >
-                                <CheckCircle className="h-4 w-4 mr-1" />{" "}
-                                Confirmar
-                              </button>
-                            )}
+                            {!restrictActionsById[cita.id] &&
+                              cita.status !== "confirmada" && (
+                                <button
+                                  onClick={() =>
+                                    doUpdateStatus(cita.id, "confirmada")
+                                  }
+                                  disabled={actionId === cita.id}
+                                  className="inline-flex items-center px-3 py-1 rounded-md bg-green-600 text-white"
+                                >
+                                  <CheckCircle className="h-4 w-4 mr-1" />{" "}
+                                  Confirmar
+                                </button>
+                              )}
                             {cita.status === "confirmada" &&
                               typeof (cita as any).sesion === "number" &&
                               (cita as any).sesion > 0 && (
@@ -747,28 +752,30 @@ export default function AdminCitasPage() {
                                     : "Descontar sesión"}
                                 </button>
                               )}
-                            {!restrictActionsById[cita.id] && cita.status !== "pendiente" && (
-                              <button
-                                onClick={() =>
-                                  doUpdateStatus(cita.id, "pendiente")
-                                }
-                                disabled={actionId === cita.id}
-                                className="inline-flex items-center px-3 py-1 rounded-md bg-yellow-500 text-black"
-                              >
-                                Pendiente
-                              </button>
-                            )}
-                            {!restrictActionsById[cita.id] && cita.status !== "cancelada" && (
-                              <button
-                                onClick={() =>
-                                  doUpdateStatus(cita.id, "cancelada")
-                                }
-                                disabled={actionId === cita.id}
-                                className="inline-flex items-center px-3 py-1 rounded-md bg-red-600 text-white"
-                              >
-                                <XCircle className="h-4 w-4 mr-1" /> Cancelar
-                              </button>
-                            )}
+                            {!restrictActionsById[cita.id] &&
+                              cita.status !== "pendiente" && (
+                                <button
+                                  onClick={() =>
+                                    doUpdateStatus(cita.id, "pendiente")
+                                  }
+                                  disabled={actionId === cita.id}
+                                  className="inline-flex items-center px-3 py-1 rounded-md bg-yellow-500 text-black"
+                                >
+                                  Pendiente
+                                </button>
+                              )}
+                            {!restrictActionsById[cita.id] &&
+                              cita.status !== "cancelada" && (
+                                <button
+                                  onClick={() =>
+                                    doUpdateStatus(cita.id, "cancelada")
+                                  }
+                                  disabled={actionId === cita.id}
+                                  className="inline-flex items-center px-3 py-1 rounded-md bg-red-600 text-white"
+                                >
+                                  <XCircle className="h-4 w-4 mr-1" /> Cancelar
+                                </button>
+                              )}
                             <button
                               onClick={() => {
                                 setSchedId(cita.id);
@@ -1044,18 +1051,19 @@ export default function AdminCitasPage() {
                                 </div>
                               )}
                               <div className="mt-3 flex flex-wrap gap-2">
-                                {!restrictActionsById[cita.id] && cita.status !== "confirmada" && (
-                                  <button
-                                    onClick={() =>
-                                      doUpdateStatus(cita.id, "confirmada")
-                                    }
-                                    disabled={actionId === cita.id}
-                                    className="inline-flex items-center px-3 py-1 rounded-md bg-green-600 text-white"
-                                  >
-                                    <CheckCircle className="h-4 w-4 mr-1" />{" "}
-                                    Confirmar
-                                  </button>
-                                )}
+                                {!restrictActionsById[cita.id] &&
+                                  cita.status !== "confirmada" && (
+                                    <button
+                                      onClick={() =>
+                                        doUpdateStatus(cita.id, "confirmada")
+                                      }
+                                      disabled={actionId === cita.id}
+                                      className="inline-flex items-center px-3 py-1 rounded-md bg-green-600 text-white"
+                                    >
+                                      <CheckCircle className="h-4 w-4 mr-1" />{" "}
+                                      Confirmar
+                                    </button>
+                                  )}
                                 {cita.status === "confirmada" &&
                                   typeof (cita as any).sesion === "number" &&
                                   (cita as any).sesion > 0 && (
@@ -1069,29 +1077,31 @@ export default function AdminCitasPage() {
                                         : "Descontar sesión"}
                                     </button>
                                   )}
-                                {!restrictActionsById[cita.id] && cita.status !== "pendiente" && (
-                                  <button
-                                    onClick={() =>
-                                      doUpdateStatus(cita.id, "pendiente")
-                                    }
-                                    disabled={actionId === cita.id}
-                                    className="inline-flex items-center px-3 py-1 rounded-md bg-yellow-500 text-black"
-                                  >
-                                    Pendiente
-                                  </button>
-                                )}
-                                {!restrictActionsById[cita.id] && cita.status !== "cancelada" && (
-                                  <button
-                                    onClick={() =>
-                                      doUpdateStatus(cita.id, "cancelada")
-                                    }
-                                    disabled={actionId === cita.id}
-                                    className="inline-flex items-center px-3 py-1 rounded-md bg-red-600 text-white"
-                                  >
-                                    <XCircle className="h-4 w-4 mr-1" />{" "}
-                                    Cancelar
-                                  </button>
-                                )}
+                                {!restrictActionsById[cita.id] &&
+                                  cita.status !== "pendiente" && (
+                                    <button
+                                      onClick={() =>
+                                        doUpdateStatus(cita.id, "pendiente")
+                                      }
+                                      disabled={actionId === cita.id}
+                                      className="inline-flex items-center px-3 py-1 rounded-md bg-yellow-500 text-black"
+                                    >
+                                      Pendiente
+                                    </button>
+                                  )}
+                                {!restrictActionsById[cita.id] &&
+                                  cita.status !== "cancelada" && (
+                                    <button
+                                      onClick={() =>
+                                        doUpdateStatus(cita.id, "cancelada")
+                                      }
+                                      disabled={actionId === cita.id}
+                                      className="inline-flex items-center px-3 py-1 rounded-md bg-red-600 text-white"
+                                    >
+                                      <XCircle className="h-4 w-4 mr-1" />{" "}
+                                      Cancelar
+                                    </button>
+                                  )}
                                 <button
                                   onClick={() => {
                                     setSchedId(cita.id);

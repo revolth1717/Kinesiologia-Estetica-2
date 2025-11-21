@@ -233,20 +233,13 @@ export async function PATCH(req: Request): Promise<Response> {
     ];
     let lastData: any = null;
     let lastStatus = 404;
+    const methods = ["PATCH", "PUT"] as const;
     for (const target of targets) {
-      let res = await fetch(target, {
-        method: "PATCH",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: "application/json, text/plain, */*",
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payloadRoot),
-      });
-      if (res.status === 429) {
-        await new Promise(r => setTimeout(r, 2200));
+      let res: Response | null = null;
+      let data: any = null;
+      for (const m of methods) {
         res = await fetch(target, {
-          method: "PATCH",
+          method: m,
           headers: {
             Authorization: `Bearer ${token}`,
             Accept: "application/json, text/plain, */*",
@@ -254,21 +247,76 @@ export async function PATCH(req: Request): Promise<Response> {
           },
           body: JSON.stringify(payloadRoot),
         });
+        if (res.status === 429) {
+          await new Promise(r => setTimeout(r, 2200));
+          res = await fetch(target, {
+            method: m,
+            headers: {
+              Authorization: `Bearer ${token}`,
+              Accept: "application/json, text/plain, */*",
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(payloadRoot),
+          });
+        }
+        const text = await res.text();
+        try { data = JSON.parse(text); } catch { data = { raw: text }; }
+        if (res.ok) return NextResponse.json(data, { status: 200 });
+        lastData = data;
+        lastStatus = res.status;
+        if (res.status === 404 || res.status === 405) continue;
+        return NextResponse.json(data, { status: res.status });
       }
-      const text = await res.text();
-      let data: any = null;
-      try {
-        data = JSON.parse(text);
-      } catch {
-        data = { raw: text };
+    }
+    const rootTargets = [
+      `${CONTENT_API_URL}${ORDERS_PATH}`,
+      `${API_URL}${ORDERS_PATH}`,
+      `${AUTH_API_URL}${ORDERS_PATH}`,
+    ];
+    const bodies = [
+      { order_id: idNum, ...payloadRoot },
+      { input: { order_id: idNum, ...payloadRoot } },
+      { id: idNum, ...payloadRoot },
+      { input: { id: idNum, ...payloadRoot } },
+    ];
+    for (const target of rootTargets) {
+      for (const b of bodies) {
+        let res: Response | null = null;
+        let data: any = null;
+        for (const m of methods) {
+          res = await fetch(target, {
+            method: m,
+            headers: {
+              Authorization: `Bearer ${token}`,
+              Accept: "application/json, text/plain, */*",
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(b),
+          });
+          if (res.status === 429) {
+            await new Promise(r => setTimeout(r, 2200));
+            res = await fetch(target, {
+              method: m,
+              headers: {
+                Authorization: `Bearer ${token}`,
+                Accept: "application/json, text/plain, */*",
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify(b),
+            });
+          }
+          const text = await res.text();
+          try { data = JSON.parse(text); } catch { data = { raw: text }; }
+          if (res.ok) return NextResponse.json(data, { status: 200 });
+          lastData = data;
+          lastStatus = res.status;
+          if (res.status === 404 || res.status === 405) continue;
+          return NextResponse.json(data, { status: res.status });
+        }
       }
-      if (res.ok) return NextResponse.json(data, { status: 200 });
-      lastData = data;
-      lastStatus = res.status;
-      if (res.status === 404) continue;
     }
     return NextResponse.json(
-      { ...lastData, tried: targets },
+      { ...lastData, tried: [...targets, ...rootTargets] },
       { status: lastStatus }
     );
   } catch (err: any) {
