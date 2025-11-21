@@ -149,7 +149,10 @@ class CitasService {
       const payload = {
         ...nuevaCita,
         appointment_date: toIso(nuevaCita.appointment_date),
-        sesion: typeof (nuevaCita as any).sesion === "number" ? (nuevaCita as any).sesion : undefined,
+        sesion:
+          typeof (nuevaCita as any).sesion === "number"
+            ? (nuevaCita as any).sesion
+            : undefined,
       };
       // Crear cita a través del backend local
       const response = await fetch(`${API_LOCAL_BASE}`, {
@@ -205,24 +208,6 @@ class CitasService {
         };
         payload.appointment_date = toXanoInput(v);
       }
-      if (typeof payload.sesion === "undefined") {
-        let sesionValue: number | undefined;
-        try {
-          const list = await this.obtenerCitasUsuario();
-          const cita = list.find(c => c.id === id);
-          if (cita && typeof (cita as any).sesion === "number") {
-            sesionValue = (cita as any).sesion;
-          } else if (cita && typeof cita.comments === "string") {
-            const m = cita.comments.match(/sesiones?\s*[:\-]?\s*(\d+)/i);
-            if (m && m[1]) {
-              const n = parseInt(m[1], 10);
-              if (!Number.isNaN(n)) sesionValue = n;
-            }
-          }
-        } catch {}
-        if (typeof sesionValue === "undefined") sesionValue = 1;
-        payload.sesion = sesionValue;
-      }
       const response = await fetch(`${API_LOCAL_BASE}/${id}`, {
         method: "PATCH",
         headers: this.getAuthHeaders(),
@@ -248,7 +233,31 @@ class CitasService {
   }
 
   async actualizarEstado(id: number, status: Cita["status"]): Promise<Cita> {
-    return this.actualizarCita(id, { status } as any);
+    try {
+      let sesionValue: number | undefined;
+      try {
+        const list = await this.obtenerCitasUsuario();
+        const cita = list.find(c => c.id === id);
+        if (cita && typeof (cita as any).sesion === "number") {
+          sesionValue = (cita as any).sesion;
+        } else if (cita && typeof cita.comments === "string") {
+          const m = cita.comments.match(/sesiones?\s*[:\-]?\s*(\d+)/i);
+          if (m && m[1]) {
+            const n = parseInt(m[1], 10);
+            if (!Number.isNaN(n)) sesionValue = n;
+          }
+        }
+      } catch {}
+      if (typeof sesionValue !== "number") {
+        throw new Error(
+          "Falta el campo 'sesion' en la cita para actualizar el estado"
+        );
+      }
+      const payload: any = { status, sesion: sesionValue };
+      return this.actualizarCita(id, payload);
+    } catch (err) {
+      throw err;
+    }
   }
 
   async reprogramarCita(
@@ -283,7 +292,11 @@ class CitasService {
         method: "PATCH",
         headers: this.getAuthHeaders(),
         credentials: "include",
-        body: JSON.stringify({ appointment_id: id, status: "CANCELADA", sesion: sesionValue }),
+        body: JSON.stringify({
+          appointment_id: id,
+          status: "CANCELADA",
+          sesion: sesionValue,
+        }),
       });
 
       if (!response.ok) {
@@ -432,4 +445,3 @@ class CitasService {
 }
 
 export const citasService = new CitasService();
-

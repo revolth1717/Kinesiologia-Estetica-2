@@ -53,19 +53,7 @@ export default function AdminCitasPage() {
         user_id: Number(c?.user_id ?? 0),
         comments: c?.comments,
         created_at: c?.created_at,
-        sesion:
-          typeof c?.sesion === "number"
-            ? c.sesion
-            : (() => {
-                try {
-                  const m = String(c?.comments || "").match(/sesiones?\s*[:\-]?\s*(\d+)/i);
-                  if (m && m[1]) {
-                    const n = parseInt(m[1], 10);
-                    if (!Number.isNaN(n)) return n;
-                  }
-                } catch {}
-                return 1;
-              })(),
+        sesion: typeof c?.sesion === "number" ? c.sesion : undefined,
         __rawUser: c?.user ?? c?.usuario ?? c?.profile ?? null,
         __userName:
           c?.user_name ??
@@ -124,12 +112,19 @@ export default function AdminCitasPage() {
   const [sort, setSort] = useState<
     "fechaDesc" | "fechaAsc" | "estado" | "servicio" | "nombre"
   >("fechaDesc");
-  const [view, setView] = useState<"lista" | "calendario" | "completadas">("lista");
+  const [view, setView] = useState<"lista" | "calendario" | "completadas">(
+    "lista"
+  );
   const [actionId, setActionId] = useState<number | null>(null);
   const [actionError, setActionError] = useState<string>("");
   const [actionSuccess, setActionSuccess] = useState<string>("");
-  const [reschedMsgById, setReschedMsgById] = useState<Record<number, string>>({});
-  const [completeMsgById, setCompleteMsgById] = useState<Record<number, string>>({});
+  const [reschedMsgById, setReschedMsgById] = useState<Record<number, string>>(
+    {}
+  );
+  const [completeMsgById, setCompleteMsgById] = useState<
+    Record<number, string>
+  >({});
+  const [restrictActionsById, setRestrictActionsById] = useState<Record<number, boolean>>({});
   const [schedId, setSchedId] = useState<number | null>(null);
   const [schedDate, setSchedDate] = useState<string>("");
   const [schedTime, setSchedTime] = useState<string>("");
@@ -152,7 +147,9 @@ export default function AdminCitasPage() {
         const num = parseInt(s, 10);
         return s.length >= 13 ? num : num * 1000;
       }
-      const mSpace = s.match(/^(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2})(?::(\d{2}))?$/);
+      const mSpace = s.match(
+        /^(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2})(?::(\d{2}))?$/
+      );
       if (mSpace) {
         const yy = parseInt(mSpace[1], 10);
         const mm = parseInt(mSpace[2], 10);
@@ -258,7 +255,9 @@ export default function AdminCitasPage() {
     }
     if (view === "lista") {
       arr = arr.filter(c => {
-        const st = String(c?.status || "").toLowerCase().trim();
+        const st = String(c?.status || "")
+          .toLowerCase()
+          .trim();
         if (st === "confirmada") return false;
         if (st === "completada") return Boolean(completeMsgById[(c as any).id]);
         return true;
@@ -275,17 +274,38 @@ export default function AdminCitasPage() {
       return toMs(a?.appointment_date) - toMs(b?.appointment_date);
     });
     return arr;
-  }, [citas, query, estado, servicio, fromDate, toDate, sort, view, completeMsgById]);
+  }, [
+    citas,
+    query,
+    estado,
+    servicio,
+    fromDate,
+    toDate,
+    sort,
+    view,
+    completeMsgById,
+  ]);
 
   const doUpdateStatus = async (id: number, status: string) => {
     setActionError("");
     setActionSuccess("");
     setActionId(id);
     try {
+      const curr = (citas || []).find(c => c.id === id) as any;
+      const currSes =
+        typeof curr?.sesion === "number" ? curr.sesion : undefined;
       if (status === "cancelada") {
-        await citasService.cancelarCita(id);
+        await citasService.cancelarCita(id, currSes);
       } else {
-        await citasService.actualizarEstado(id, status as any);
+        if (typeof currSes !== "number") {
+          throw new Error(
+            "Falta el campo 'sesion' en la cita para actualizar el estado"
+          );
+        }
+        await citasService.actualizarCita(id, {
+          status: String(status).toUpperCase(),
+          sesion: currSes,
+        } as any);
       }
       setCitas(prev => prev.map(c => (c.id === id ? { ...c, status } : c)));
       await fetchAll();
@@ -305,12 +325,31 @@ export default function AdminCitasPage() {
     setActionId(id);
     try {
       const curr = (citas || []).find(c => c.id === id) as any;
-      const currSes = typeof curr?.sesion === "number" ? curr.sesion : 1;
+      const currSes =
+        typeof curr?.sesion === "number" ? curr.sesion : undefined;
+      if (typeof currSes !== "number") {
+        setActionError(
+          "La cita no tiene el campo 'sesion' definido en la base de datos."
+        );
+        setTimeout(() => setActionError(""), 4000);
+        setActionId(null);
+        return;
+      }
       const nextSes = Math.max(0, currSes - 1);
       if (nextSes === 0) {
-        await citasService.actualizarCita(id, { sesion: 0, status: "COMPLETADA" } as any);
-        setCitas(prev => prev.map(c => (c.id === id ? { ...c, sesion: 0, status: "completada" } : c)));
-        setCompleteMsgById(prev => ({ ...prev, [id]: "Las sesiones han sido completadas correctamente." }));
+        await citasService.actualizarCita(id, {
+          sesion: 0,
+          status: "COMPLETADA",
+        } as any);
+        setCitas(prev =>
+          prev.map(c =>
+            c.id === id ? { ...c, sesion: 0, status: "completada" } : c
+          )
+        );
+        setCompleteMsgById(prev => ({
+          ...prev,
+          [id]: "Las sesiones han sido completadas correctamente.",
+        }));
         setTimeout(() => {
           setCompleteMsgById(prev => {
             const next = { ...prev } as Record<number, string>;
@@ -320,8 +359,14 @@ export default function AdminCitasPage() {
           fetchAll();
         }, 4000);
       } else {
-        await citasService.actualizarCita(id, { sesion: nextSes, status: String(curr?.status || "confirmada") } as any);
-        setCitas(prev => prev.map(c => (c.id === id ? { ...c, sesion: nextSes } : c)));
+        await citasService.actualizarCita(id, {
+          sesion: nextSes,
+          status: "PENDIENTE",
+        } as any);
+        setCitas(prev =>
+          prev.map(c => (c.id === id ? { ...c, sesion: nextSes, status: "pendiente" } : c))
+        );
+        setRestrictActionsById(prev => ({ ...prev, [id]: true }));
         setActionSuccess("Sesión descontada");
         setTimeout(() => setActionSuccess(""), 3000);
       }
@@ -360,15 +405,22 @@ export default function AdminCitasPage() {
       console.log("[UI] Reprogramar click", { id, schedDate, schedTime, ms });
       const dTarget = new Date(ms);
       const targetYmd = ymd(ms);
-      const targetHHMM = `${String(dTarget.getHours()).padStart(2, "0")}:${String(dTarget.getMinutes()).padStart(2, "0")}`;
+      const targetHHMM = `${String(dTarget.getHours()).padStart(
+        2,
+        "0"
+      )}:${String(dTarget.getMinutes()).padStart(2, "0")}`;
       const conflictLocal = (citas || []).some(c => {
         if (c.id === id) return false;
-        const st = String(c?.status || "").toLowerCase().trim();
+        const st = String(c?.status || "")
+          .toLowerCase()
+          .trim();
         if (st === "cancelada" || st === "completada") return false;
         const msC = toMs(c?.appointment_date);
         const yC = ymd(msC);
         const dC = new Date(msC);
-        const hhmmC = `${String(dC.getHours()).padStart(2, "0")}:${String(dC.getMinutes()).padStart(2, "0")}`;
+        const hhmmC = `${String(dC.getHours()).padStart(2, "0")}:${String(
+          dC.getMinutes()
+        ).padStart(2, "0")}`;
         return yC === targetYmd && hhmmC === targetHHMM;
       });
       if (conflictLocal) {
@@ -391,10 +443,18 @@ export default function AdminCitasPage() {
           c.id === id ? { ...c, appointment_date: iso, __reagendada: true } : c
         )
       );
+      setRestrictActionsById(prev => {
+        const next = { ...prev } as Record<number, boolean>;
+        delete next[id];
+        return next;
+      });
       await fetchAll();
       const f = citasService.formatearFecha(iso);
       const h = citasService.formatearHora(iso);
-      setReschedMsgById(prev => ({ ...prev, [id]: `Cita reprogramada a ${f} ${h}` }));
+      setReschedMsgById(prev => ({
+        ...prev,
+        [id]: `Cita reprogramada a ${f} ${h}`,
+      }));
       setTimeout(() => {
         setReschedMsgById(prev => {
           const next = { ...prev } as Record<number, string>;
@@ -428,12 +488,14 @@ export default function AdminCitasPage() {
       const count = (citas || [])
         .filter(c => ymd(toMs(c?.appointment_date)) === key)
         .filter(c => {
-          const st = String(c?.status || "").toLowerCase().trim();
+          const st = String(c?.status || "")
+            .toLowerCase()
+            .trim();
           if (st === "pendiente") return false;
-          if (st === "completada") return Boolean(completeMsgById[(c as any).id]);
+          if (st === "completada")
+            return Boolean(completeMsgById[(c as any).id]);
           return true;
-        })
-        .length;
+        }).length;
       cells.push({ ymd: key, count });
     }
     while (cells.length % 7 !== 0) cells.push({ ymd: null, count: 0 });
@@ -447,7 +509,9 @@ export default function AdminCitasPage() {
     return (citas || [])
       .filter(c => ymd(toMs(c?.appointment_date)) === selectedDay)
       .filter(c => {
-        const st = String(c?.status || "").toLowerCase().trim();
+        const st = String(c?.status || "")
+          .toLowerCase()
+          .trim();
         if (st === "pendiente") return false;
         if (st === "completada") return Boolean(completeMsgById[(c as any).id]);
         return true;
@@ -640,20 +704,20 @@ export default function AdminCitasPage() {
                             </div>
                           )}
                           <div
-                            className={`inline-block px-3 py-1 rounded ${citasService.obtenerColorEstado(
+                            className={`inline-block px-2.5 py-1 rounded text-sm ${citasService.obtenerColorEstado(
                               cita.status
                             )}`}
                           >
                             {citasService.obtenerTextoEstado(cita.status)}
                           </div>
                           {typeof (cita as any).sesion === "number" && (
-                            <div className="inline-block ml-2 px-3 py-1 rounded bg-gray-200 text-gray-800">
+                            <div className="inline-block ml-1 px-2.5 py-1 rounded bg-gray-100 text-gray-700 text-sm">
                               {(cita as any).sesion} sesiones restantes
                             </div>
                           )}
                           {cita.__reagendada && (
                             <div
-                              className={`inline-block ml-2 px-3 py-1 rounded ${citasService.obtenerColorEstado(
+                              className={`inline-block ml-1 px-2.5 py-1 rounded text-sm ${citasService.obtenerColorEstado(
                                 "reagendada"
                               )}`}
                             >
@@ -661,7 +725,7 @@ export default function AdminCitasPage() {
                             </div>
                           )}
                           <div className="mt-3 flex flex-wrap gap-2">
-                            {cita.status !== "confirmada" && (
+                            {!restrictActionsById[cita.id] && cita.status !== "confirmada" && (
                               <button
                                 onClick={() =>
                                   doUpdateStatus(cita.id, "confirmada")
@@ -681,10 +745,12 @@ export default function AdminCitasPage() {
                                   disabled={actionId === cita.id}
                                   className="inline-flex items-center px-3 py-1 rounded-md bg-purple-600 text-white"
                                 >
-                                  Descontar sesión
+                                  {(cita as any).sesion === 1
+                                    ? "Completar"
+                                    : "Descontar sesión"}
                                 </button>
                               )}
-                            {cita.status !== "pendiente" && (
+                            {!restrictActionsById[cita.id] && cita.status !== "pendiente" && (
                               <button
                                 onClick={() =>
                                   doUpdateStatus(cita.id, "pendiente")
@@ -695,7 +761,7 @@ export default function AdminCitasPage() {
                                 Pendiente
                               </button>
                             )}
-                            {cita.status !== "cancelada" && (
+                            {!restrictActionsById[cita.id] && cita.status !== "cancelada" && (
                               <button
                                 onClick={() =>
                                   doUpdateStatus(cita.id, "cancelada")
@@ -775,9 +841,7 @@ export default function AdminCitasPage() {
                               </div>
                             </div>
                           )}
-                          <div className="mt-3 text-sm text-gray-700">
-                            
-                          </div>
+                          <div className="mt-3 text-sm text-gray-700"></div>
                         </div>
                       ))}
                       {visibleCitas.length === 0 && (
@@ -960,28 +1024,30 @@ export default function AdminCitasPage() {
                                 </div>
                               )}
                               <div
-                                className={`inline-block px-3 py-1 rounded ${citasService.obtenerColorEstado(
+                                className={`inline-block px-2.5 py-1 rounded text-sm ${citasService.obtenerColorEstado(
                                   cita.status
                                 )}`}
                               >
                                 {citasService.obtenerTextoEstado(cita.status)}
                               </div>
                               {typeof (cita as any).sesion === "number" && (
-                                <div className="inline-block ml-2 px-3 py-1 rounded bg-gray-200 text-gray-800">
+                                <div className="inline-block ml-1 px-2.5 py-1 rounded bg-gray-100 text-gray-700 text-sm">
                                   {(cita as any).sesion} sesiones restantes
                                 </div>
                               )}
                               {cita.__reagendada && (
                                 <div
-                                  className={`inline-block ml-2 px-3 py-1 rounded ${citasService.obtenerColorEstado(
+                                  className={`inline-block ml-1 px-2.5 py-1 rounded text-sm ${citasService.obtenerColorEstado(
                                     "reagendada"
                                   )}`}
                                 >
-                                  {citasService.obtenerTextoEstado("reagendada")}
+                                  {citasService.obtenerTextoEstado(
+                                    "reagendada"
+                                  )}
                                 </div>
                               )}
                               <div className="mt-3 flex flex-wrap gap-2">
-                                {cita.status !== "confirmada" && (
+                                {!restrictActionsById[cita.id] && cita.status !== "confirmada" && (
                                   <button
                                     onClick={() =>
                                       doUpdateStatus(cita.id, "confirmada")
@@ -1001,10 +1067,12 @@ export default function AdminCitasPage() {
                                       disabled={actionId === cita.id}
                                       className="inline-flex items-center px-3 py-1 rounded-md bg-purple-600 text-white"
                                     >
-                                      Descontar sesión
+                                      {(cita as any).sesion === 1
+                                        ? "Completar"
+                                        : "Descontar sesión"}
                                     </button>
                                   )}
-                                {cita.status !== "pendiente" && (
+                                {!restrictActionsById[cita.id] && cita.status !== "pendiente" && (
                                   <button
                                     onClick={() =>
                                       doUpdateStatus(cita.id, "pendiente")
@@ -1015,7 +1083,7 @@ export default function AdminCitasPage() {
                                     Pendiente
                                   </button>
                                 )}
-                                {cita.status !== "cancelada" && (
+                                {!restrictActionsById[cita.id] && cita.status !== "cancelada" && (
                                   <button
                                     onClick={() =>
                                       doUpdateStatus(cita.id, "cancelada")
@@ -1093,9 +1161,7 @@ export default function AdminCitasPage() {
                                   </div>
                                 </div>
                               )}
-                              <div className="mt-3 text-sm text-gray-700">
-                                
-                              </div>
+                              <div className="mt-3 text-sm text-gray-700"></div>
                             </div>
                           ))}
                           {dayCitas.length === 0 && (
@@ -1110,46 +1176,81 @@ export default function AdminCitasPage() {
                   <div>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                       {(citas || [])
-                        .filter(c => String(c?.status || "")?.toLowerCase().trim() === "completada")
-                        .sort((a, b) => toMs(a?.appointment_date) - toMs(b?.appointment_date))
+                        .filter(
+                          c =>
+                            String(c?.status || "")
+                              ?.toLowerCase()
+                              .trim() === "completada"
+                        )
+                        .sort(
+                          (a, b) =>
+                            toMs(a?.appointment_date) -
+                            toMs(b?.appointment_date)
+                        )
                         .map((cita, idx) => (
-                          <div key={`${cita.id}-${idx}`} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
-                            <div className="text-lg font-semibold text-gray-900 mb-2">{String(cita.service || "")}</div>
+                          <div
+                            key={`${cita.id}-${idx}`}
+                            className="border border-gray-200 rounded-lg p-4 bg-gray-50"
+                          >
+                            <div className="text-lg font-semibold text-gray-900 mb-2">
+                              {String(cita.service || "")}
+                            </div>
                             <div className="flex items-center mb-2">
                               <Calendar className="h-5 w-5 text-pink-600 mr-2" />
                               <span className="text-gray-800 font-semibold">
-                                {citasService.formatearFecha(cita.appointment_date)}
+                                {citasService.formatearFecha(
+                                  cita.appointment_date
+                                )}
                               </span>
                             </div>
                             <div className="flex items-center mb-2">
                               <Clock className="h-5 w-5 text-pink-600 mr-2" />
                               <span className="text-gray-700">
-                                {citasService.formatearHora(cita.appointment_date)}
+                                {citasService.formatearHora(
+                                  cita.appointment_date
+                                )}
                               </span>
                             </div>
                             <div className="flex items-center mb-2">
                               <User className="h-5 w-5 text-gray-600 mr-2" />
-                              <span className="text-gray-700">{getNombre(cita as any)}</span>
+                              <span className="text-gray-700">
+                                {getNombre(cita as any)}
+                              </span>
                             </div>
                             {getEmail(cita) && (
                               <div className="flex items-center mb-2">
                                 <Mail className="h-5 w-5 text-gray-600 mr-2" />
-                                <span className="text-gray-700">{getEmail(cita)}</span>
+                                <span className="text-gray-700">
+                                  {getEmail(cita)}
+                                </span>
                               </div>
                             )}
                             {getTelefono(cita) && (
                               <div className="flex items-center mb-2">
                                 <Phone className="h-5 w-5 text-gray-600 mr-2" />
-                                <span className="text-gray-700">{getTelefono(cita)}</span>
+                                <span className="text-gray-700">
+                                  {getTelefono(cita)}
+                                </span>
                               </div>
                             )}
-                            <div className={`inline-block px-3 py-1 rounded ${citasService.obtenerColorEstado(cita.status)}`}>
+                            <div
+                              className={`inline-block px-3 py-1 rounded ${citasService.obtenerColorEstado(
+                                cita.status
+                              )}`}
+                            >
                               {citasService.obtenerTextoEstado(cita.status)}
                             </div>
                           </div>
                         ))}
-                      {(citas || []).filter(c => String(c?.status || "")?.toLowerCase().trim() === "completada").length === 0 && (
-                        <div className="text-gray-600">No hay citas completadas.</div>
+                      {(citas || []).filter(
+                        c =>
+                          String(c?.status || "")
+                            ?.toLowerCase()
+                            .trim() === "completada"
+                      ).length === 0 && (
+                        <div className="text-gray-600">
+                          No hay citas completadas.
+                        </div>
                       )}
                     </div>
                   </div>

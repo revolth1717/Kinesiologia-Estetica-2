@@ -1,9 +1,19 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 
-const clean = (s?: string) => String(s || "").trim().replace(/^`+|`+$/g, "").replace(/^"+|"+$/g, "");
-const XANO_GENERAL = clean(process.env.XANO_GENERAL_API_URL) || clean(process.env.NEXT_PUBLIC_API_URL) || "https://x8ki-letl-twmt.n7.xano.io/api:SzJNIj2V";
-const XANO_AUTH = clean(process.env.XANO_AUTH_API_URL) || clean(process.env.NEXT_PUBLIC_AUTH_URL) || "https://x8ki-letl-twmt.n7.xano.io/api:-E-1dvfg";
+const clean = (s?: string) =>
+  String(s || "")
+    .trim()
+    .replace(/^`+|`+$/g, "")
+    .replace(/^"+|"+$/g, "");
+const XANO_GENERAL =
+  clean(process.env.XANO_GENERAL_API_URL) ||
+  clean(process.env.NEXT_PUBLIC_API_URL) ||
+  "https://x8ki-letl-twmt.n7.xano.io/api:SzJNIj2V";
+const XANO_AUTH =
+  clean(process.env.XANO_AUTH_API_URL) ||
+  clean(process.env.NEXT_PUBLIC_AUTH_URL) ||
+  "https://x8ki-letl-twmt.n7.xano.io/api:-E-1dvfg";
 
 function readTokenFromRequest(req: Request): string | undefined {
   const cookieHeader = req.headers.get("cookie") || "";
@@ -20,11 +30,17 @@ function readTokenFromRequest(req: Request): string | undefined {
   }
 }
 
-export async function PATCH(req: Request, { params }: { params: { id: string } }): Promise<Response> {
+export async function PATCH(
+  req: Request,
+  { params }: { params: any }
+): Promise<Response> {
   try {
     const token = readTokenFromRequest(req);
     if (!token) {
-      return NextResponse.json({ message: "Authentication Required" }, { status: 401 });
+      return NextResponse.json(
+        { message: "Authentication Required" },
+        { status: 401 }
+      );
     }
 
     // Robustez: obtener id desde params o desde la URL
@@ -32,11 +48,19 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     const path = url.pathname || ""; // ej: /api/appointment/15
     const segMatch = path.match(/\/appointment\/(\d+)/);
     const idFromPath = segMatch?.[1];
-    const idRaw = (params?.id ?? idFromPath ?? "");
+    const paramsMaybe: any = params;
+    const paramsObj =
+      paramsMaybe && typeof paramsMaybe.then === "function"
+        ? await paramsMaybe
+        : paramsMaybe;
+    const idRaw = paramsObj?.id ?? idFromPath ?? "";
     const idStr = String(idRaw).trim();
     // Asegurar que el id sea un entero válido para Xano
     if (!/^\d+$/.test(idStr)) {
-      return NextResponse.json({ message: "Invalid appointment id", detail: idStr }, { status: 400 });
+      return NextResponse.json(
+        { message: "Invalid appointment id", detail: idStr },
+        { status: 400 }
+      );
     }
 
     const rawPayload = await req.json().catch(() => ({}));
@@ -45,7 +69,8 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
       const s = v.toLowerCase().trim();
       if (s === "confirmada" || s === "confirmed") return "CONFIRMADA";
       if (s === "pendiente" || s === "pending") return "PENDIENTE";
-      if (s === "cancelada" || s === "cancelled" || s === "canceled") return "CANCELADA";
+      if (s === "cancelada" || s === "cancelled" || s === "canceled")
+        return "CANCELADA";
       return String(v).toUpperCase();
     };
     const toXanoInput = (v: any): any => {
@@ -64,7 +89,8 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     };
     const payload: any = { ...rawPayload };
     if ("status" in payload) payload.status = normalizeStatus(payload.status);
-    if ("appointment_date" in payload) payload.appointment_date = toXanoInput(payload.appointment_date);
+    if ("appointment_date" in payload)
+      payload.appointment_date = toXanoInput(payload.appointment_date);
 
     if (payload && typeof payload.appointment_date !== "undefined") {
       const toDate = (v: any): Date => {
@@ -100,10 +126,19 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
       const mm = String(d.getMonth() + 1).padStart(2, "0");
       const yy = String(d.getFullYear());
       const dmy = `${dd}-${mm}-${yy}`;
-      const hhmm = `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
-      console.log("[proxy] reschedule compose", { id: idStr, input: payload.appointment_date, nueva_fecha: dmy, nueva_hora: hhmm });
+      const hhmm = `${String(d.getHours()).padStart(2, "0")}:${String(
+        d.getMinutes()
+      ).padStart(2, "0")}`;
+      console.log("[proxy] reschedule compose", {
+        id: idStr,
+        input: payload.appointment_date,
+        nueva_fecha: dmy,
+        nueva_hora: hhmm,
+      });
       const body = { nueva_fecha: dmy, nueva_hora: hhmm } as any;
-      const target = `${XANO_AUTH}/appointment/reschedule/${encodeURIComponent(idStr)}`;
+      const target = `${XANO_AUTH}/appointment/reschedule/${encodeURIComponent(
+        idStr
+      )}`;
       const res = await fetch(target, {
         method: "PATCH",
         headers: {
@@ -114,8 +149,16 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
       });
       const text = await res.text();
       let data: any = null;
-      try { data = JSON.parse(text); } catch { data = { raw: text }; }
-      console.log("[proxy] reschedule response", { status: res.status, ok: res.ok, data });
+      try {
+        data = JSON.parse(text);
+      } catch {
+        data = { raw: text };
+      }
+      console.log("[proxy] reschedule response", {
+        status: res.status,
+        ok: res.ok,
+        data,
+      });
       if (res.ok) {
         return NextResponse.json(data, { status: res.status });
       }
@@ -124,7 +167,8 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
       }
     }
 
-    const isCancel = String(payload?.status || "").toUpperCase() === "CANCELADA";
+    const isCancel =
+      String(payload?.status || "").toUpperCase() === "CANCELADA";
     if (isCancel) {
       const cancelTargets = [
         `${XANO_AUTH}/appointment/cancel/${encodeURIComponent(idStr)}`,
@@ -136,12 +180,19 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
         const method = target.endsWith("/cancel") ? "POST" : "PATCH";
         const res = await fetch(target, {
           method,
-          headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
           body: JSON.stringify({ ...payload, id: idStr }),
         });
         const text = await res.text();
         let data: any = null;
-        try { data = JSON.parse(text); } catch { data = { raw: text }; }
+        try {
+          data = JSON.parse(text);
+        } catch {
+          data = { raw: text };
+        }
         if (res.ok) {
           return NextResponse.json(data, { status: res.status });
         }
@@ -174,7 +225,11 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
           });
           const text = await res.text();
           let data: any = null;
-          try { data = JSON.parse(text); } catch { data = { raw: text }; }
+          try {
+            data = JSON.parse(text);
+          } catch {
+            data = { raw: text };
+          }
           if (res.ok) {
             return NextResponse.json(data, { status: res.status });
           }
@@ -193,12 +248,21 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
         `${XANO_GENERAL}/appointment/${encodeURIComponent(idStr)}`,
       ];
       for (const target of deleteTargets) {
-        const res = await fetch(target, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } });
+        const res = await fetch(target, {
+          method: "DELETE",
+          headers: { Authorization: `Bearer ${token}` },
+        });
         const text = await res.text();
         let data: any = null;
-        try { data = JSON.parse(text); } catch { data = { raw: text }; }
+        try {
+          data = JSON.parse(text);
+        } catch {
+          data = { raw: text };
+        }
         if (res.ok) {
-          return NextResponse.json(data || { success: true }, { status: res.status });
+          return NextResponse.json(data || { success: true }, {
+            status: res.status,
+          });
         }
         // Continuar probando otros candidatos
       }
@@ -207,25 +271,42 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     const fallback = last ?? { status: 404, data: { message: "Not Found" } };
     return NextResponse.json(fallback.data, { status: fallback.status });
   } catch (err) {
-    return NextResponse.json({ message: "Unexpected error", detail: String(err) }, { status: 500 });
+    return NextResponse.json(
+      { message: "Unexpected error", detail: String(err) },
+      { status: 500 }
+    );
   }
 }
 
-export async function DELETE(req: Request, { params }: { params: { id: string } }): Promise<Response> {
+export async function DELETE(
+  req: Request,
+  { params }: { params: any }
+): Promise<Response> {
   try {
     const token = readTokenFromRequest(req);
     if (!token) {
-      return NextResponse.json({ message: "Authentication Required" }, { status: 401 });
+      return NextResponse.json(
+        { message: "Authentication Required" },
+        { status: 401 }
+      );
     }
 
     const url = new URL(req.url);
     const path = url.pathname || ""; // ej: /api/appointment/15
     const segMatch = path.match(/\/appointment\/(\d+)/);
     const idFromPath = segMatch?.[1];
-    const idRaw = (params?.id ?? idFromPath ?? "");
+    const paramsMaybeDel: any = params;
+    const paramsObjDel =
+      paramsMaybeDel && typeof paramsMaybeDel.then === "function"
+        ? await paramsMaybeDel
+        : paramsMaybeDel;
+    const idRaw = paramsObjDel?.id ?? idFromPath ?? "";
     const idStr = String(idRaw).trim();
     if (!/^\d+$/.test(idStr)) {
-      return NextResponse.json({ message: "Invalid appointment id", detail: idStr }, { status: 400 });
+      return NextResponse.json(
+        { message: "Invalid appointment id", detail: idStr },
+        { status: 400 }
+      );
     }
 
     const candidates = [
@@ -241,10 +322,16 @@ export async function DELETE(req: Request, { params }: { params: { id: string } 
       });
       const text = await res.text();
       let data: any = null;
-      try { data = JSON.parse(text); } catch { data = { raw: text }; }
+      try {
+        data = JSON.parse(text);
+      } catch {
+        data = { raw: text };
+      }
       if (res.ok) {
         // Algunos endpoints devuelven vacío en DELETE: responder 204 o devolver data si la hay
-        return NextResponse.json(data || { success: true }, { status: res.status });
+        return NextResponse.json(data || { success: true }, {
+          status: res.status,
+        });
       }
       last = { status: res.status, data };
       if (res.status !== 404) {
@@ -254,6 +341,9 @@ export async function DELETE(req: Request, { params }: { params: { id: string } 
     const fallback = last ?? { status: 404, data: { message: "Not Found" } };
     return NextResponse.json(fallback.data, { status: fallback.status });
   } catch (err) {
-    return NextResponse.json({ message: "Unexpected error", detail: String(err) }, { status: 500 });
+    return NextResponse.json(
+      { message: "Unexpected error", detail: String(err) },
+      { status: 500 }
+    );
   }
 }
