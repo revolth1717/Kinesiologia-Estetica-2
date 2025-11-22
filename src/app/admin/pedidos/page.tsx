@@ -35,7 +35,7 @@ export default function AdminPedidosPage() {
     setLoading(true);
     setError("");
     try {
-      const res = await fetch("/api/order/admin", {
+      const res = await fetch(process.env.NEXT_PUBLIC_AUTH_URL + "/order", {
         method: "GET",
         credentials: "include",
       });
