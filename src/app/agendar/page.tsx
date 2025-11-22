@@ -909,25 +909,30 @@ function AgendarContent() {
                     {selectedSessions === 1 ? "sesión" : "sesiones"}
                   </p>
                   <p className="text-gray-700">
-                    <span className="font-medium">Precio:</span>{" "}
+                    <span className="font-medium">Precio agenda (50%):</span>{" "}
                     {(() => {
                       if (!selectedTrat) return "—";
+                      let value: number | undefined;
                       if (selectedTrat.tipo === "multi_zona") {
                         const z = zonasList.find(
                           z => z.id.toString() === zonaId
                         );
-                        const value =
+                        value =
                           selectedSessions === 1
                             ? z?.precio_1_sesion
                             : z?.precio_8_sesiones;
-                        return formatCLP(value);
+                        if (!zonaId) return "—";
                       } else {
-                        const value =
+                        value =
                           selectedSessions === 1
                             ? selectedTrat.precio_1_sesion
                             : selectedTrat.precio_8_sesiones;
-                        return formatCLP(value);
                       }
+                      const deposit =
+                        typeof value === "number"
+                          ? Math.round(value * 0.5)
+                          : undefined;
+                      return formatCLP(deposit);
                     })()}
                   </p>
                   <div className="border-t pt-2 mt-4 border-gray-200 dark:border-gray-700">

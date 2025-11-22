@@ -18,6 +18,10 @@ export default function CarritoPage() {
   const [buySuccess, setBuySuccess] = useState("");
   const productos = cartItems.filter(i => "tipo" in i && i.tipo === "producto");
   const citas = cartItems.filter(i => !("tipo" in i));
+  const subtotalTratamientos = citas.reduce(
+    (sum, it) => sum + (it as any).precioAgenda,
+    0
+  );
 
   const slugify = (s: string) =>
     s
@@ -47,8 +51,19 @@ export default function CarritoPage() {
       const prod = productos.slice();
       if (prod.length > 0) {
         if (prod.length > 1) {
-          const payload = { items: prod.map(p => ({ product_id: (p as any).productId, quantity: p.cantidad, unit_price: p.precioUnitario })) };
-          const res = await fetch("/api/order/bulk", { method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include", body: JSON.stringify(payload) });
+          const payload = {
+            items: prod.map(p => ({
+              product_id: (p as any).productId,
+              quantity: p.cantidad,
+              unit_price: p.precioUnitario,
+            })),
+          };
+          const res = await fetch("/api/order/bulk", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify(payload),
+          });
           if (!res.ok) {
             const txt = await res.text().catch(() => "");
             throw new Error(`${res.status} ${txt || res.statusText}`);
@@ -57,8 +72,20 @@ export default function CarritoPage() {
         } else {
           const p = prod[0];
           const productId = (p as any).productId as string | undefined;
-          if (!productId) { setBuyError("Falta el identificador del producto"); return; }
-          const res = await fetch("/api/order", { method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include", body: JSON.stringify({ product_id: productId, quantity: p.cantidad, unit_price: p.precioUnitario }) });
+          if (!productId) {
+            setBuyError("Falta el identificador del producto");
+            return;
+          }
+          const res = await fetch("/api/order", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({
+              product_id: productId,
+              quantity: p.cantidad,
+              unit_price: p.precioUnitario,
+            }),
+          });
           if (!res.ok) {
             const txt = await res.text().catch(() => "");
             throw new Error(`${res.status} ${txt || res.statusText}`);
@@ -71,12 +98,30 @@ export default function CarritoPage() {
       const citasLines = citas.slice();
       if (citasLines.length > 0) {
         for (const c of citasLines) {
-          const basePayload = c.nuevaCita || ({ appointment_date: `${c.fecha} ${c.hora}`, service: c.tratamiento, comments: `Sesiones: ${c.sesiones}${c.zona ? ` - Zona: ${c.zona}` : ""}` } as any);
+          const basePayload =
+            c.nuevaCita ||
+            ({
+              appointment_date: `${c.fecha} ${c.hora}`,
+              service: c.tratamiento,
+              comments: `Sesiones: ${c.sesiones}${
+                c.zona ? ` - Zona: ${c.zona}` : ""
+              }`,
+            } as any);
           const payload = { ...basePayload, sesion: c.sesiones } as any;
-          let res = await fetch("/api/appointment", { method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include", body: JSON.stringify(payload) });
+          let res = await fetch("/api/appointment", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify(payload),
+          });
           if (res.status === 429) {
             await new Promise(r => setTimeout(r, 1200));
-            res = await fetch("/api/appointment", { method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include", body: JSON.stringify(payload) });
+            res = await fetch("/api/appointment", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              credentials: "include",
+              body: JSON.stringify(payload),
+            });
           }
           if (!res.ok) {
             const txt = await res.text().catch(() => "");
@@ -304,7 +349,7 @@ export default function CarritoPage() {
                             {item.sesiones === 1 ? "1 sesión" : "8 sesiones"}
                           </div>
                           <div className="text-sm text-gray-900 mt-1 font-semibold">
-                            ${item.precioTotal.toLocaleString()}
+                            ${item.precioAgenda.toLocaleString()}
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
@@ -377,16 +422,21 @@ export default function CarritoPage() {
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Subtotal agenda</span>
+                    <span className="text-gray-600">
+                      Subtotal tratamientos (50%)
+                    </span>
                     <span className="font-semibold text-gray-900">
-                      ${subtotalAgenda.toLocaleString()}
+                      ${subtotalTratamientos.toLocaleString()}
                     </span>
                   </div>
                   <div className="border-t pt-3 mt-3">
                     <div className="flex justify-between font-semibold">
                       <span>Total a pagar</span>
                       <span className="text-pink-600">
-                        ${(subtotalAgenda + subtotalProductos).toLocaleString()}
+                        $
+                        {(
+                          subtotalTratamientos + subtotalProductos
+                        ).toLocaleString()}
                       </span>
                     </div>
                   </div>
@@ -396,7 +446,11 @@ export default function CarritoPage() {
                   <button
                     onClick={confirmarCompra}
                     disabled={buying || productos.length + citas.length === 0}
-                    className={`w-full py-3 px-4 rounded-md font-medium flex items-center justify-center ${buying || (productos.length + citas.length === 0) ? "bg-gray-300 text-gray-600" : "bg-pink-600 text-white hover:bg-pink-700"}`}
+                    className={`w-full py-3 px-4 rounded-md font-medium flex items-center justify-center ${
+                      buying || productos.length + citas.length === 0
+                        ? "bg-gray-300 text-gray-600"
+                        : "bg-pink-600 text-white hover:bg-pink-700"
+                    }`}
                   >
                     <CreditCard className="mr-2 h-5 w-5" />
                     {buying ? "Procesando..." : "Confirmar compra"}
@@ -405,7 +459,9 @@ export default function CarritoPage() {
                     <div className="mt-3 text-sm text-red-600">{buyError}</div>
                   )}
                   {buySuccess && (
-                    <div className="mt-3 text-sm text-green-600">{buySuccess}</div>
+                    <div className="mt-3 text-sm text-green-600">
+                      {buySuccess}
+                    </div>
                   )}
                 </div>
               </div>

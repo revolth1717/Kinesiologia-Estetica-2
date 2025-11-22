@@ -1,7 +1,20 @@
+"use client";
+import { useAuth } from "@/context/AuthContext";
+import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { Phone, Mail, MapPin, Instagram, Facebook } from "lucide-react";
 
 const Footer = () => {
+  const pathname = usePathname();
+  const { isLoggedIn, user } = useAuth();
+  const isAdmin = (() => {
+    const r = (user as any)?.role;
+    if (!r) return false;
+    const s = typeof r === "string" ? r.toLowerCase() : String(r).toLowerCase();
+    return s.includes("admin") || s === "administrador";
+  })();
+  if ((pathname || "").startsWith("/admin")) return null;
+  if (isLoggedIn && isAdmin) return null;
   return (
     <footer className="bg-gray-800 text-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -32,7 +45,7 @@ const Footer = () => {
             <h3 className="text-xl font-semibold mb-4 text-pink-400">
               Enlaces Rápidos
             </h3>
-            <ul className="space-y-2">
+          <ul className="space-y-2">
               <li>
                 <Link
                   href="/"

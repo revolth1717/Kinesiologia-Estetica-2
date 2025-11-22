@@ -16,14 +16,31 @@ function readTokenFromRequest(req: Request): string | undefined {
   }
 }
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || process.env.XANO_GENERAL_API_URL || process.env.XANO_AUTH_API_URL || "https://x8ki-letl-twmt.n7.xano.io/api:SzJNIj2V";
-const CONTENT_API_URL = process.env.NEXT_PUBLIC_CONTENT_API_URL || process.env.NEXT_PUBLIC_API_URL || process.env.XANO_GENERAL_API_URL || API_URL;
-const AUTH_API_URL = process.env.NEXT_PUBLIC_AUTH_URL || process.env.XANO_AUTH_API_URL || API_URL;
+const API_URL =
+  process.env.NEXT_PUBLIC_API_URL ||
+  process.env.XANO_GENERAL_API_URL ||
+  process.env.XANO_AUTH_API_URL ||
+  "https://x8ki-letl-twmt.n7.xano.io/api:SzJNIj2V";
+const CONTENT_API_URL =
+  process.env.NEXT_PUBLIC_CONTENT_API_URL ||
+  process.env.NEXT_PUBLIC_API_URL ||
+  process.env.XANO_GENERAL_API_URL ||
+  API_URL;
+const AUTH_API_URL =
+  process.env.NEXT_PUBLIC_AUTH_URL || process.env.XANO_AUTH_API_URL || API_URL;
 const ORDERS_PATH = process.env.NEXT_PUBLIC_ORDERS_PATH || "/order";
 
-export async function PATCH(req: Request, { params }: { params: { id: string } }): Promise<Response> {
+export async function PATCH(
+  req: Request,
+  { params }: { params: any }
+): Promise<Response> {
   try {
-    const id = String(params?.id || "").trim();
+    const paramsMaybe: any = params;
+    const paramsObj =
+      paramsMaybe && typeof paramsMaybe.then === "function"
+        ? await paramsMaybe
+        : paramsMaybe;
+    const id = String(paramsObj?.id || "").trim();
     const body = await req.json().catch(() => ({}));
     const idNum = /^\d+$/.test(id) ? Number(id) : id;
     const status = body?.status ?? "entregado";
@@ -36,19 +53,44 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     const tried: string[] = [];
     for (const target of endpoints) {
       tried.push(target);
-      let res = await fetch(target, { method: "PATCH", headers: { Accept: "application/json, text/plain, */*", "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+      let res = await fetch(target, {
+        method: "PATCH",
+        headers: {
+          Accept: "application/json, text/plain, */*",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
       if (res.status === 429) {
         await new Promise(r => setTimeout(r, 2200));
-        res = await fetch(target, { method: "PATCH", headers: { Accept: "application/json, text/plain, */*", "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+        res = await fetch(target, {
+          method: "PATCH",
+          headers: {
+            Accept: "application/json, text/plain, */*",
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
+        });
       }
       const text = await res.text();
       let data: any = null;
-      try { data = JSON.parse(text); } catch { data = { raw: text }; }
+      try {
+        data = JSON.parse(text);
+      } catch {
+        data = { raw: text };
+      }
       if (res.ok) return NextResponse.json(data, { status: 200 });
-      if (res.status !== 404) return NextResponse.json({ ...data, target }, { status: res.status });
+      if (res.status !== 404)
+        return NextResponse.json({ ...data, target }, { status: res.status });
     }
-    return NextResponse.json({ message: "Order endpoint not found", tried }, { status: 404 });
+    return NextResponse.json(
+      { message: "Order endpoint not found", tried },
+      { status: 404 }
+    );
   } catch (err: any) {
-    return NextResponse.json({ message: "Unexpected error", detail: String(err?.message || err) }, { status: 500 });
+    return NextResponse.json(
+      { message: "Unexpected error", detail: String(err?.message || err) },
+      { status: 500 }
+    );
   }
 }
