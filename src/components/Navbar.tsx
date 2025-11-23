@@ -41,7 +41,7 @@ const Navbar = () => {
     try {
       const maxAge = 60 * 60 * 24 * 365;
       document.cookie = `theme=${theme}; Path=/; Max-Age=${maxAge}`;
-    } catch {}
+    } catch { }
   }, [theme]);
 
   // initial theme is derived from localStorage/matchMedia via lazy initializer above
@@ -240,28 +240,6 @@ const Navbar = () => {
       {isMenuOpen && (
         <div className="lg:hidden">
           <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
-            {!(isLoggedIn && isAdmin) && (
-              <>
-                <Link
-                  href="/tratamientos"
-                  className="block px-3 py-2 text-gray-700 dark:text-gray-200 hover:text-pink-600 dark:hover:text-pink-400 transition-colors"
-                >
-                  Tratamientos
-                </Link>
-                <Link
-                  href="/productos"
-                  className="block px-3 py-2 text-gray-700 dark:text-gray-200 hover:text-pink-600 dark:hover:text-pink-400 transition-colors"
-                >
-                  Productos
-                </Link>
-                <Link
-                  href="/contacto"
-                  className="block px-3 py-2 text-gray-700 dark:text-gray-200 hover:text-pink-600 dark:hover:text-pink-400 transition-colors"
-                >
-                  Contacto
-                </Link>
-              </>
-            )}
             {!(isLoggedIn && isAdmin) && (
               <>
                 <Link
