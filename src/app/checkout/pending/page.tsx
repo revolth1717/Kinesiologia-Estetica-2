@@ -6,12 +6,12 @@ import { useEffect } from "react";
 import { useCart } from "@/context/CartContext";
 
 export default function PendingPage() {
-    const { clearCart } = useCart();
+    const { clear } = useCart();
 
     useEffect(() => {
         // Opcional: limpiar carrito si se considera "en proceso"
-        clearCart();
-    }, [clearCart]);
+        clear();
+    }, [clear]);
 
     return (
         <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">

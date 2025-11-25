@@ -6,6 +6,7 @@ import {
   useEffect,
   useMemo,
   useState,
+  useCallback,
   ReactNode,
 } from "react";
 import type { NuevaCita } from "@/services/citasService";
@@ -71,11 +72,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
     } catch {}
   }, [items]);
 
-  const addItem = (item: CartItem) => {
+  const addItem = useCallback((item: CartItem) => {
     setItems(prev => [item, ...prev]);
-  };
+  }, []);
 
-  const addProduct = (
+  const addProduct = useCallback((
     item: Omit<CartItemProducto, "id" | "tipo"> & { id?: string }
   ) => {
     const id = item.id ?? crypto.randomUUID();
@@ -105,9 +106,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
         ...prev,
       ];
     });
-  };
+  }, []);
 
-  const updateProductQuantity = (id: string, cantidad: number) => {
+  const updateProductQuantity = useCallback((id: string, cantidad: number) => {
     setItems(prev =>
       prev.map(i =>
         "tipo" in i && i.tipo === "producto" && i.id === id
@@ -115,13 +116,13 @@ export function CartProvider({ children }: { children: ReactNode }) {
           : i
       )
     );
-  };
+  }, []);
 
-  const removeItem = (id: string) => {
+  const removeItem = useCallback((id: string) => {
     setItems(prev => prev.filter(i => i.id !== id));
-  };
+  }, []);
 
-  const clear = () => setItems([]);
+  const clear = useCallback(() => setItems([]), []);
 
   const subtotalAgenda = useMemo(
     () =>
@@ -144,7 +145,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     [items]
   );
 
-  const value: CartContextType = {
+  const value: CartContextType = useMemo(() => ({
     items,
     addItem,
     addProduct,
@@ -153,7 +154,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     clear,
     subtotalAgenda,
     subtotalProductos,
-  };
+  }), [items, addItem, addProduct, updateProductQuantity, removeItem, clear, subtotalAgenda, subtotalProductos]);
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
 }

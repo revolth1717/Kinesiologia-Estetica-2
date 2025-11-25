@@ -6,12 +6,12 @@ import { useEffect } from "react";
 import { useCart } from "@/context/CartContext";
 
 export default function SuccessPage() {
-    const { clearCart } = useCart();
+    const { clear } = useCart();
 
     useEffect(() => {
         // Limpiar el carrito al llegar a la página de éxito
-        clearCart();
-    }, [clearCart]);
+        clear();
+    }, [clear]);
 
     return (
         <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
