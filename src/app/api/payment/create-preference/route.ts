@@ -20,24 +20,31 @@ export async function POST(req: Request) {
             xano_id: item.xano_id,
         }));
 
-        const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
+        const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://127.0.0.1:3000";
+
+        const preferenceBody = {
+            items: mpItems,
+            payer: {
+                email: payer?.email,
+            },
+            back_urls: {
+                success: `${baseUrl}/checkout/success`,
+                failure: `${baseUrl}/checkout/failure`,
+                pending: `${baseUrl}/checkout/pending`,
+            },
+            // auto_return: "approved",
+            notification_url: baseUrl && !baseUrl.includes("localhost") && !baseUrl.includes("127.0.0.1") 
+                ? `${baseUrl}/api/payment/webhook` 
+                : undefined,
+            metadata: {
+                items: metadataItems,
+            },
+        };
+
+        console.log("Creating preference with body:", JSON.stringify(preferenceBody, null, 2));
 
         const result = await preference.create({
-            body: {
-                items: mpItems,
-                payer: {
-                    email: payer?.email,
-                },
-                back_urls: {
-                    success: `${baseUrl}/checkout/success`,
-                    failure: `${baseUrl}/checkout/failure`,
-                    pending: `${baseUrl}/checkout/pending`,
-                },
-                // auto_return: "approved",
-                metadata: {
-                    items: metadataItems,
-                },
-            },
+            body: preferenceBody,
         });
 
         return NextResponse.json({ init_point: result.init_point, id: result.id });
