@@ -85,6 +85,75 @@ async function updateProductStock(
   return { ok: res.ok, status: res.status, body };
 }
 
+export async function GET(req: Request): Promise<Response> {
+  try {
+    const token = readTokenFromRequest(req);
+    if (!token)
+      return NextResponse.json(
+        { message: "Authentication Required" },
+        { status: 401 }
+      );
+
+    const url = new URL(req.url);
+    const id = url.searchParams.get("id");
+
+    // Construct target URLs
+    const targets = [];
+    if (id) {
+      targets.push(`${CONTENT_API_URL}${ORDERS_PATH}/${id}`);
+      targets.push(`${API_URL}${ORDERS_PATH}/${id}`);
+      targets.push(`${AUTH_API_URL}${ORDERS_PATH}/${id}`);
+    } else {
+      targets.push(`${CONTENT_API_URL}${ORDERS_PATH}`);
+      targets.push(`${API_URL}${ORDERS_PATH}`);
+      targets.push(`${AUTH_API_URL}${ORDERS_PATH}`);
+      targets.push(`${CONTENT_API_URL}/orders`);
+      targets.push(`${API_URL}/orders`);
+    }
+
+    let res: Response | null = null;
+    let data: any = null;
+    let lastStatus = 404;
+
+    for (const target of targets) {
+      res = await fetch(target, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: "application/json, text/plain, */*",
+          "Content-Type": "application/json",
+        },
+      });
+
+      const text = await res.text();
+      try {
+        data = JSON.parse(text);
+      } catch {
+        data = { raw: text };
+      }
+
+      if (res.ok) return NextResponse.json(data, { status: 200 });
+      
+      lastStatus = res.status;
+      if (res.status !== 404 && res.status !== 405) {
+        // If it's a real error (not just not found), return it
+        return NextResponse.json(data, { status: res.status });
+      }
+    }
+
+    return NextResponse.json(
+      { message: "Endpoint not found", tried: targets },
+      { status: lastStatus }
+    );
+
+  } catch (err: any) {
+    return NextResponse.json(
+      { message: "Unexpected error", detail: String(err?.message || err) },
+      { status: 500 }
+    );
+  }
+}
+
 export async function POST(req: Request): Promise<Response> {
   try {
     const token = readTokenFromRequest(req);
