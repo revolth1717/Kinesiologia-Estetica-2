@@ -3,6 +3,7 @@ import { Poppins } from "next/font/google";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import Chatbot from "@/components/Chatbot";
 import { AuthProvider } from "@/context/AuthContext";
 import { CartProvider } from "@/context/CartContext";
 import Script from "next/script";
@@ -38,6 +39,7 @@ export default function RootLayout({
               <Navbar />
               <main className="flex-grow">{children}</main>
               <Footer />
+              <Chatbot />
             </div>
           </CartProvider>
         </AuthProvider>

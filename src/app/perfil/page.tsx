@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import {
   User,
   Mail,
@@ -17,6 +18,7 @@ import {
   RefreshCw,
   Wifi,
   WifiOff,
+  CloudCog,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { citasService, type Cita } from "@/services/citasService";
@@ -113,6 +115,18 @@ export default function PerfilPage() {
     }
   };
 
+  interface Order {
+    id: string | number;
+    product_id?: string | number;
+    product_name?: string;
+    product_image_url?: string;
+    status: string;
+    order_date: string;
+    total: number;
+    quantity: number;
+    [key: string]: unknown;
+  }
+
   const cargarOrdenes = async () => {
     setOrdersLoading(true);
     setOrdersError("");
@@ -121,91 +135,82 @@ export default function PerfilPage() {
         method: "GET",
         credentials: "include",
       });
+
       if (!res.ok) throw new Error(`${res.status}`);
-      const data = await res.json();
-      const list = Array.isArray(data?.items)
-        ? data.items
-        : Array.isArray(data)
-        ? data
-        : Array.isArray(data?.data)
-        ? data.data
-        : [];
-      const norm = list.map((o: any) => ({
-        id: o?.id ?? o?.order_id ?? crypto.randomUUID(),
-        product_id: o?.product_id ?? o?.producto_id ?? o?.product?.id ?? null,
-        status: String(o?.status ?? "confirmado").toLowerCase(),
-        order_date: (() => {
-          const v =
-            o?.order_date ??
-            o?.fecha ??
-            o?.created_at ??
-            new Date().toISOString();
-          if (typeof v === "number") return new Date(v).toISOString();
-          const s = String(v || "").trim();
-          if (/^\d+$/.test(s)) {
-            const n = parseInt(s, 10);
-            const ms = s.length >= 13 ? n : n * 1000;
-            return new Date(ms).toISOString();
-          }
-          try {
-            return new Date(s).toISOString();
-          } catch {
-            return new Date().toISOString();
-          }
-        })(),
-        total: typeof o?.total === "number" ? o.total : Number(o?.total || 0),
-        quantity:
-          typeof o?.quantity === "number"
-            ? o.quantity
-            : Number(o?.quantity || 1),
-      }));
+      const responseData = await res.json();
+      
+      let list: Record<string, unknown>[] = [];
+      if (responseData.success && Array.isArray(responseData.data)) {
+        list = responseData.data as Record<string, unknown>[];
+      } else if (Array.isArray(responseData)) {
+        list = responseData as Record<string, unknown>[];
+      } else if (Array.isArray(responseData?.items)) {
+        list = responseData.items as Record<string, unknown>[];
+      }
+
+      console.log(list)
+
+      const norm: Order[] = list.map((item) => {
+        const o = item as Record<string, unknown>;
+        const product = o?.product as Record<string, unknown> | undefined;
+        const pid = o?.product_id ?? o?.producto_id ?? product?.id ?? null;
+        
+        return {
+          id: (o?.id ?? o?.order_id ?? crypto.randomUUID()) as string | number,
+          product_id: pid as string | number | undefined,
+          status: String(o?.status ?? "confirmado").toLowerCase(),
+          order_date: (() => {
+            const v = o?.order_date ?? o?.fecha ?? o?.created_at ?? new Date().toISOString();
+            if (typeof v === "number") return new Date(v).toISOString();
+            const s = String(v || "").trim();
+            if (/^\d+$/.test(s)) {
+              const n = parseInt(s, 10);
+              const ms = s.length >= 13 ? n : n * 1000;
+              return new Date(ms).toISOString();
+            }
+            try { return new Date(s).toISOString(); } catch { return new Date().toISOString(); }
+          })(),
+          total: typeof o?.total === "number" ? o.total : Number(o?.total || 0),
+          quantity: typeof o?.quantity === "number" ? o.quantity : Number(o?.quantity || 1),
+        };
+      });
+
       try {
         const pr = await fetch("/api/productos", { method: "GET" });
-        const tx = await pr.text();
-        let pd: any = null;
-        try {
-          pd = JSON.parse(tx);
-        } catch {
-          pd = { raw: tx };
+        if (pr.ok) {
+            const pd = await pr.json();
+            let arr: Record<string, unknown>[] = [];
+            if (Array.isArray(pd?.data)) {
+              arr = pd.data as Record<string, unknown>[];
+            } else if (Array.isArray(pd)) {
+              arr = pd as Record<string, unknown>[];
+            }
+            
+            const byId = new Map<string, Record<string, unknown>>();
+            for (const p of arr) {
+              const pid = String(p?.id ?? p?.ID ?? p?.product_id ?? p?.producto_id ?? "");
+              if (pid) byId.set(pid, p);
+            }
+
+            const aug = norm.map(o => {
+              const pid = String(o.product_id ?? "");
+              const p = byId.get(pid);
+              const name = typeof p?.nombre === "string" ? p.nombre : typeof p?.name === "string" ? p.name : undefined;
+              const imgObj = p?.imagen_url ?? p?.image_url ?? p?.imagen ?? p?.image;
+              let img = "";
+              if (typeof imgObj === "string") img = imgObj;
+              else if (imgObj && typeof imgObj === "object") {
+                const io = imgObj as Record<string, unknown>;
+                const u = io?.url ?? io?.download_url ?? io?.full_url ?? io?.href;
+                if (typeof u === "string") img = u;
+              }
+              return { ...o, product_name: name, product_image_url: img };
+            });
+            setOrders(aug);
+            return;
         }
-        const arr: any[] = Array.isArray(pd?.data)
-          ? pd.data
-          : Array.isArray(pd)
-          ? pd
-          : [];
-        const byId = new Map<string, any>();
-        for (const p of arr) {
-          const pid = String(
-            p?.id ?? p?.ID ?? p?.product_id ?? p?.producto_id ?? ""
-          );
-          if (pid) byId.set(pid, p);
-        }
-        const aug = norm.map(o => {
-          const pid = String(o.product_id ?? "");
-          const p = byId.get(pid);
-          const name =
-            typeof p?.nombre === "string"
-              ? p.nombre
-              : typeof p?.name === "string"
-              ? p.name
-              : undefined;
-          const imgObj = p?.imagen_url ?? p?.image_url ?? p?.imagen ?? p?.image;
-          let img = "";
-          if (typeof imgObj === "string") img = imgObj as string;
-          else if (imgObj && typeof imgObj === "object") {
-            const u =
-              (imgObj as any)?.url ??
-              (imgObj as any)?.download_url ??
-              (imgObj as any)?.full_url ??
-              (imgObj as any)?.href;
-            if (typeof u === "string") img = u as string;
-          }
-          return { ...o, product_name: name, product_image_url: img } as any;
-        });
-        setOrders(aug);
-      } catch {
-        setOrders(norm);
-      }
+      } catch {}
+      setOrders(norm);
     } catch (err) {
       setOrdersError("Error al cargar productos comprados");
     } finally {
@@ -1062,10 +1067,12 @@ export default function PerfilPage() {
                         >
                           <div className="flex items-center">
                             {o.product_image_url ? (
-                              <img
+                              <Image
                                 src={String(o.product_image_url)}
                                 alt={String(o.product_name || "Producto")}
-                                className="w-12 h-12 rounded object-cover mr-4 border"
+                                width={48}
+                                height={48}
+                                className="rounded object-cover mr-4 border"
                               />
                             ) : (
                               <div className="w-12 h-12 rounded bg-gray-100 mr-4"></div>

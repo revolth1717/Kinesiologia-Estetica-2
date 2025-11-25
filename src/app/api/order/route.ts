@@ -133,7 +133,7 @@ export async function POST(req: Request): Promise<Response> {
     const orderPayload = {
       user_id: /^\d+$/.test(String(userId)) ? Number(userId) : userId,
       product_id: /^\d+$/.test(productId) ? Number(productId) : productId,
-      status: "confirmado",
+      status: body?.status || "confirmado",
       order_date: new Date().toISOString(),
       total: Number(unitPrice) * Number(quantity),
       quantity,
