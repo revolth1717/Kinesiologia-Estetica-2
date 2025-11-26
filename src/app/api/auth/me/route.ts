@@ -35,7 +35,7 @@ export async function GET(req: Request): Promise<Response> {
   try {
     const url = new URL(req.url);
     const paramToken = url.searchParams.get("token") || undefined;
-    
+
     // Lee el token desde la cabecera Cookie manualmente
     const cookieHeader = req.headers.get("cookie") || "";
     const cookieToken = (() => {
@@ -47,7 +47,14 @@ export async function GET(req: Request): Promise<Response> {
       return undefined;
     })();
 
-    const token = paramToken ?? cookieToken;
+    // Try from Authorization header
+    const authHeader = req.headers.get("authorization");
+    let headerToken: string | undefined;
+    if (authHeader?.startsWith("Bearer ")) {
+      headerToken = authHeader.substring(7);
+    }
+
+    const token = paramToken ?? headerToken ?? cookieToken;
 
     if (!token) {
       return NextResponse.json(
@@ -73,20 +80,20 @@ export async function GET(req: Request): Promise<Response> {
             Accept: "application/json",
           },
         });
-        
+
         if (r.ok) {
           res = r;
           body = await r.json() as AuthResponse;
           break;
         }
-        
+
         // Si falla, guardamos la respuesta por si es el último intento
         res = r;
         try {
-            const text = await r.text();
-            body = JSON.parse(text);
+          const text = await r.text();
+          body = JSON.parse(text);
         } catch {
-            body = null;
+          body = null;
         }
 
       } catch (e) {
@@ -95,7 +102,7 @@ export async function GET(req: Request): Promise<Response> {
     }
 
     if (!body) {
-        return NextResponse.json({ message: "Failed to fetch user data" }, { status: 500 });
+      return NextResponse.json({ message: "Failed to fetch user data" }, { status: 500 });
     }
 
     // Normalizar respuesta
@@ -107,14 +114,14 @@ export async function GET(req: Request): Promise<Response> {
       body.user?.nombre ??
       body.profile?.name ??
       body.profile?.nombre;
-    
+
     const phoneRaw =
       body.phone ??
       body.user?.phone ??
       body.profile?.phone ??
       body.phone_number ??
       body.user?.phone_number;
-      
+
     const roleRaw =
       body.role ??
       body.user?.role ??
@@ -163,13 +170,13 @@ export async function GET(req: Request): Promise<Response> {
               dbody.profile?.phone ??
               dbody.phone_number ??
               dbody.user?.phone_number;
-            
+
             if (drPhoneRaw) {
               phoneResolved = String(drPhoneRaw);
               break;
             }
           }
-        } catch {}
+        } catch { }
       }
     }
 

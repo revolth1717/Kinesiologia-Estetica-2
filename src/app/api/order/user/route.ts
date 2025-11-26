@@ -34,7 +34,7 @@ export async function GET(req: Request): Promise<Response> {
     // 1. Get Token
     const cookieHeader = req.headers.get("cookie") || "";
     let token = "";
-    
+
     // Try from header
     const authHeader = req.headers.get("authorization");
     if (authHeader?.startsWith("Bearer ")) {
@@ -54,19 +54,25 @@ export async function GET(req: Request): Promise<Response> {
     }
 
     if (!token) {
+      console.log("❌ [API /order/user] No token found in cookie or header");
       return NextResponse.json({ message: "Authentication Required" }, { status: 401 });
     }
 
     // 2. Get User ID
     const url = new URL(req.url);
     const origin = url.origin;
+    console.log(`🔍 [API /order/user] Calling getMe at ${origin}/api/auth/me with token length: ${token.length}`);
+
     const me = await getMe(origin, token);
     const userId = me?.id ?? me?.user_id ?? me?.user?.id;
 
     if (!userId) {
+      console.log("❌ [API /order/user] User identification failed. getMe response:", me);
       // If we can't identify the user, it's an auth issue
       return NextResponse.json({ message: "User identification failed" }, { status: 401 });
     }
+
+    console.log(`✅ [API /order/user] User identified: ${userId}`);
 
     // 3. Fetch Orders from Xano
     // We try multiple endpoints to be safe, prioritizing the one filtering by user_id
@@ -102,7 +108,7 @@ export async function GET(req: Request): Promise<Response> {
             orders = data.records;
           }
           success = true;
-          break; 
+          break;
         }
       } catch (e) {
         console.error(`Failed to fetch orders from ${target}`, e);
@@ -115,9 +121,16 @@ export async function GET(req: Request): Promise<Response> {
       return NextResponse.json({ success: true, data: [] }, { status: 200 });
     }
 
-    return NextResponse.json({ success: true, data: orders }, { status: 200 });
+    // Filter by user_id to ensure privacy
+    const filteredOrders = orders.filter((order) => {
+      const orderUserId = order.user_id ?? order.user?.id;
+      return String(orderUserId) === String(userId);
+    });
+
+    return NextResponse.json({ success: true, data: filteredOrders }, { status: 200 });
 
   } catch (err: any) {
+    console.error("❌ [API /order/user] Unexpected error:", err);
     return NextResponse.json({ message: "Unexpected error", detail: String(err?.message || err) }, { status: 500 });
   }
 }
