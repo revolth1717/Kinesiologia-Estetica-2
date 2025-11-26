@@ -13,6 +13,7 @@ import {
   Sun,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+import { useCart } from "@/context/CartContext";
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -44,12 +45,19 @@ const Navbar = () => {
     } catch { }
   }, [theme]);
 
-  // initial theme is derived from localStorage/matchMedia via lazy initializer above
-
   const toggleTheme = () => {
     setTheme(prev => (prev === "dark" ? "light" : "dark"));
   };
   const { isLoggedIn, user, logout, loading } = useAuth();
+  const { items } = useCart();
+
+  const cartCount = items.reduce((acc, item) => {
+    if ("tipo" in item && item.tipo === "producto") {
+      return acc + item.cantidad;
+    }
+    return acc + 1; // Tratamientos cuentan como 1
+  }, 0);
+
   const pathname = usePathname();
   const isAdminPage = (pathname || "").startsWith("/admin");
   const isAdmin = (() => {
@@ -127,9 +135,14 @@ const Navbar = () => {
             {!(isLoggedIn && isAdmin) && (
               <Link
                 href="/carrito"
-                className="p-2 text-pink-600 dark:text-pink-400 hover:text-pink-800 dark:hover:text-pink-300 transition-colors"
+                className="p-2 text-pink-600 dark:text-pink-400 hover:text-pink-800 dark:hover:text-pink-300 transition-colors relative"
               >
                 <ShoppingCart className="h-6 w-6" />
+                {cartCount > 0 && (
+                  <span className="absolute top-0 right-0 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white transform translate-x-1/4 -translate-y-1/4 bg-red-600 rounded-full">
+                    {cartCount}
+                  </span>
+                )}
               </Link>
             )}
 
@@ -295,7 +308,14 @@ const Navbar = () => {
                 href="/carrito"
                 className="flex items-center px-3 py-2 text-gray-700 dark:text-gray-200 hover:text-pink-600 dark:hover:text-pink-400 transition-colors"
               >
-                <ShoppingCart className="h-5 w-5 mr-2" />
+                <div className="relative mr-2">
+                  <ShoppingCart className="h-5 w-5" />
+                  {cartCount > 0 && (
+                    <span className="absolute -top-2 -right-2 inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-bold leading-none text-white bg-red-600 rounded-full">
+                      {cartCount}
+                    </span>
+                  )}
+                </div>
                 Carrito
               </Link>
             )}
