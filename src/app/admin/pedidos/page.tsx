@@ -35,7 +35,7 @@ export default function AdminPedidosPage() {
     setLoading(true);
     setError("");
     try {
-      const res = await fetch("/api/order", {
+      const res = await fetch("/api/order/admin", {
         method: "GET",
         credentials: "include",
       });

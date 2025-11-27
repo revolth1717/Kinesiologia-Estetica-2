@@ -17,22 +17,31 @@ import { useCart } from "@/context/CartContext";
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [theme, setTheme] = useState<"light" | "dark">(() => {
+  const [theme, setTheme] = useState<"light" | "dark">("light");
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    // Load theme preference after mount to avoid hydration mismatch
     try {
-      const cookie = typeof document !== "undefined" ? document.cookie : "";
+      const cookie = document.cookie;
       const match = cookie.match(/(?:^|; )theme=(dark|light)/);
       const fromCookie = match ? (match[1] as "dark" | "light") : null;
-      if (fromCookie) return fromCookie;
-      const saved = typeof window !== "undefined" ? localStorage.getItem("theme") : null;
-      if (saved === "dark" || saved === "light") return saved as "dark" | "light";
-      const prefersDark = typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: dark)").matches;
-      return prefersDark ? "dark" : "light";
+      if (fromCookie) {
+        setTheme(fromCookie);
+        return;
+      }
+      const saved = localStorage.getItem("theme");
+      if (saved === "dark" || saved === "light") {
+        setTheme(saved as "dark" | "light");
+        return;
+      }
+      const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+      setTheme(prefersDark ? "dark" : "light");
     } catch {
-      return "light";
+      setTheme("light");
     }
-  });
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+  }, []);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -67,6 +76,25 @@ const Navbar = () => {
     return s.includes("admin") || s === "administrador";
   })();
   const isAdminProfile = isLoggedIn && isAdmin && (pathname || "") === "/perfil";
+
+  // Don't render dynamic content until mounted to avoid hydration errors
+  if (!mounted) {
+    return (
+      <nav className="bg-white dark:bg-gray-900 shadow-md sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between h-16">
+            <div className="flex items-center">
+              <Link href="/" className="flex-shrink-0 flex items-center">
+                <span className="text-2xl font-bold text-pink-600 dark:text-pink-400">
+                  Kinesiología Estética
+                </span>
+              </Link>
+            </div>
+          </div>
+        </div>
+      </nav>
+    );
+  }
 
   return (
     <nav className="bg-white dark:bg-gray-900 shadow-md sticky top-0 z-50">
@@ -151,11 +179,13 @@ const Navbar = () => {
               aria-label="Cambiar modo"
               className="p-2 rounded-md text-gray-700 dark:text-gray-200 hover:text-pink-600 dark:hover:text-pink-400 transition-colors"
             >
-              {mounted && (theme === "dark" ? (
+              {!mounted ? (
+                <Moon className="h-5 w-5" />
+              ) : theme === "dark" ? (
                 <Sun className="h-5 w-5" />
               ) : (
                 <Moon className="h-5 w-5" />
-              ))}
+              )}
             </button>
 
             {loading ? (
@@ -239,11 +269,13 @@ const Navbar = () => {
               aria-label="Cambiar modo"
               className="ml-2 inline-flex items-center justify-center p-2 rounded-md text-gray-700 dark:text-gray-200 hover:text-pink-600 dark:hover:text-pink-400 focus:outline-none"
             >
-              {mounted && (theme === "dark" ? (
+              {!mounted ? (
+                <Moon className="h-5 w-5" />
+              ) : theme === "dark" ? (
                 <Sun className="h-5 w-5" />
               ) : (
                 <Moon className="h-5 w-5" />
-              ))}
+              )}
             </button>
           </div>
         </div>

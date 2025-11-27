@@ -1,41 +1,18 @@
 import { NextResponse } from "next/server";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || process.env.XANO_GENERAL_API_URL || process.env.XANO_AUTH_API_URL || "https://x8ki-letl-twmt.n7.xano.io/api:SzJNIj2V";
-const ORDERS_PATH = process.env.NEXT_PUBLIC_ORDERS_PATH || "/order";
-
-interface Order {
-  id: number;
-  user_id: number;
-  total: number;
-  status: string;
-  created_at: number;
-  items?: any[];
-  [key: string]: any;
-}
-
-async function getMe(origin: string, token: string): Promise<any> {
-  try {
-    const res = await fetch(`${origin}/api/auth/me`, {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        Accept: "application/json",
-      },
-    });
-    if (!res.ok) return null;
-    return await res.json();
-  } catch {
-    return null;
-  }
-}
+// Orders endpoint uses a different API than auth
+const API_URL = "https://x8ki-letl-twmt.n7.xano.io/api:-E-1dvfg";
+const ORDERS_PATH = "/order";
 
 export async function GET(req: Request): Promise<Response> {
   try {
-    // 1. Get Token
+    console.log("🔍 [API /order/user] ========== REQUEST START ==========");
+
+    // 1. Get Token from cookies
     const cookieHeader = req.headers.get("cookie") || "";
     let token = "";
 
-    // Try from header
+    // Try from Authorization header first
     const authHeader = req.headers.get("authorization");
     if (authHeader?.startsWith("Bearer ")) {
       token = authHeader.substring(7);
@@ -58,79 +35,58 @@ export async function GET(req: Request): Promise<Response> {
       return NextResponse.json({ message: "Authentication Required" }, { status: 401 });
     }
 
-    // 2. Get User ID
-    const url = new URL(req.url);
-    const origin = url.origin;
-    console.log(`🔍 [API /order/user] Calling getMe at ${origin}/api/auth/me with token length: ${token.length}`);
+    console.log("✅ [API /order/user] Token found, length:", token.length);
 
-    const me = await getMe(origin, token);
-    const userId = me?.id ?? me?.user_id ?? me?.user?.id;
+    // 2. Fetch Orders from Xano (now filtered by user on Xano side)
+    const endpoint = `${API_URL}${ORDERS_PATH}`;
+    console.log(`📡 [API /order/user] Fetching from: ${endpoint}`);
 
-    if (!userId) {
-      console.log("❌ [API /order/user] User identification failed. getMe response:", me);
-      // If we can't identify the user, it's an auth issue
-      return NextResponse.json({ message: "User identification failed" }, { status: 401 });
-    }
-
-    console.log(`✅ [API /order/user] User identified: ${userId}`);
-
-    // 3. Fetch Orders from Xano
-    // We try multiple endpoints to be safe, prioritizing the one filtering by user_id
-    const candidates = [
-      `${API_URL}${ORDERS_PATH}?user_id=${userId}`,
-      `${API_URL}/order?user_id=${userId}`,
-      `${API_URL}/orders?user_id=${userId}`,
-    ];
-
-    let orders: Order[] = [];
-    let success = false;
-
-    for (const target of candidates) {
-      try {
-        const res = await fetch(target, {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            Accept: "application/json",
-          },
-        });
-
-        if (res.ok) {
-          const data = await res.json();
-          // Handle different response structures (array, object with items, etc.)
-          if (Array.isArray(data)) {
-            orders = data;
-          } else if (Array.isArray(data?.items)) {
-            orders = data.items;
-          } else if (Array.isArray(data?.data)) {
-            orders = data.data;
-          } else if (Array.isArray(data?.records)) {
-            orders = data.records;
-          }
-          success = true;
-          break;
-        }
-      } catch (e) {
-        console.error(`Failed to fetch orders from ${target}`, e);
-      }
-    }
-
-    if (!success) {
-      // If we couldn't fetch specifically for user, we might return empty or try a fallback
-      // For now, return empty array to avoid errors in frontend
-      return NextResponse.json({ success: true, data: [] }, { status: 200 });
-    }
-
-    // Filter by user_id to ensure privacy
-    const filteredOrders = orders.filter((order) => {
-      const orderUserId = order.user_id ?? order.user?.id;
-      return String(orderUserId) === String(userId);
+    const res = await fetch(endpoint, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/json",
+      },
     });
 
-    return NextResponse.json({ success: true, data: filteredOrders }, { status: 200 });
+    console.log(`📊 [API /order/user] Response status: ${res.status}`);
+
+    if (!res.ok) {
+      const errorText = await res.text();
+      console.error(`❌ [API /order/user] Error response:`, errorText);
+      return NextResponse.json({
+        success: true,
+        data: [],
+        error: `Failed to fetch orders: ${res.status}`
+      }, { status: 200 });
+    }
+
+    const data = await res.json();
+    console.log(`📦 [API /order/user] Raw response:`, JSON.stringify(data, null, 2));
+
+    // Handle different response structures
+    let orders: any[] = [];
+    if (Array.isArray(data)) {
+      orders = data;
+    } else if (Array.isArray(data?.items)) {
+      orders = data.items;
+    } else if (Array.isArray(data?.data)) {
+      orders = data.data;
+    } else if (Array.isArray(data?.records)) {
+      orders = data.records;
+    }
+
+    console.log(`✅ [API /order/user] Found ${orders.length} orders`);
+    console.log("🔍 [API /order/user] ========== REQUEST END ==========");
+
+    // Xano is now filtering by user, so we just return the data
+    return NextResponse.json({ success: true, data: orders }, { status: 200 });
 
   } catch (err: any) {
     console.error("❌ [API /order/user] Unexpected error:", err);
-    return NextResponse.json({ message: "Unexpected error", detail: String(err?.message || err) }, { status: 500 });
+    return NextResponse.json({
+      message: "Unexpected error",
+      detail: String(err?.message || err)
+    }, { status: 500 });
   }
 }

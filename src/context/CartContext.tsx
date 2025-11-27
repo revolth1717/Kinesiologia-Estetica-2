@@ -10,6 +10,7 @@ import {
   ReactNode,
 } from "react";
 import type { NuevaCita } from "@/services/citasService";
+import { useAuth } from "@/context/AuthContext";
 
 type CartItemCita = {
   id: string;
@@ -53,6 +54,7 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 const STORAGE_KEY = "cartItems";
 
 export function CartProvider({ children }: { children: ReactNode }) {
+  const { user } = useAuth();
   const [items, setItems] = useState<CartItem[]>(() => {
     try {
       const raw =
@@ -66,10 +68,17 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
   });
 
+  // Clear cart when user logs out
+  useEffect(() => {
+    if (!user) {
+      setItems([]);
+    }
+  }, [user]);
+
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
-    } catch {}
+    } catch { }
   }, [items]);
 
   const addItem = useCallback((item: CartItem) => {
