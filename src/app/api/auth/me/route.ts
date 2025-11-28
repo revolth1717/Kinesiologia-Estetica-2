@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-const AUTH_BASE = process.env.NEXT_PUBLIC_AUTH_URL;
+const AUTH_BASE = process.env.NEXT_PUBLIC_XANO_AUTH_API ?? "https://x8ki-letl-twmt.n7.xano.io/api:-E-1dvfg";
 
 interface UserProfile {
   id?: number | string;
@@ -65,7 +65,6 @@ export async function GET(req: Request): Promise<Response> {
 
     const candidates = [
       `${AUTH_BASE}/auth/me`,
-      `${process.env.XANO_API_URL ?? AUTH_BASE}/auth/me`,
     ];
 
     let res: Response | null = null;
@@ -147,8 +146,6 @@ export async function GET(req: Request): Promise<Response> {
       const detailCandidates = [
         `${AUTH_BASE}/user/${uid}`,
         `${AUTH_BASE}/users/${uid}`,
-        `${process.env.NEXT_PUBLIC_API_URL ?? ""}/user/${uid}`,
-        `${process.env.NEXT_PUBLIC_API_URL ?? ""}/users/${uid}`,
         `${AUTH_BASE}/auth/details`,
       ].filter(Boolean);
 
