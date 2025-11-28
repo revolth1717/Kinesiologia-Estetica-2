@@ -359,11 +359,13 @@ class CitasService {
         }
         return new Date(s);
       })();
-      return date.toLocaleDateString("es-ES", {
+      // Usar la zona horaria de Chile explícitamente
+      return date.toLocaleDateString("es-CL", {
         weekday: "long",
         year: "numeric",
         month: "long",
         day: "numeric",
+        timeZone: "America/Santiago",
       });
     } catch {
       return String(appointmentDate);
@@ -392,10 +394,12 @@ class CitasService {
         }
         return new Date(s);
       })();
-      return date.toLocaleTimeString("es-ES", {
+      // Usar la zona horaria de Chile explícitamente
+      return date.toLocaleTimeString("es-CL", {
         hour: "2-digit",
         minute: "2-digit",
         hour12: false,
+        timeZone: "America/Santiago",
       });
     } catch {
       return String(appointmentDate);
