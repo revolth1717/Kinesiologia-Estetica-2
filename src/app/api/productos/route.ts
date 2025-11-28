@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const CONTENT_API_URL = process.env.NEXT_PUBLIC_CONTENT_API_URL || process.env.NEXT_PUBLIC_API_URL || process.env.XANO_GENERAL_API_URL || "https://x8ki-letl-twmt.n7.xano.io/api:SzJNIj2V";
+const CONTENT_API_URL = process.env.NEXT_PUBLIC_XANO_CONTENT_API || "https://x8ki-letl-twmt.n7.xano.io/api:SzJNIj2V";
 const PRODUCTS_PATH = process.env.NEXT_PUBLIC_PRODUCTS_PATH || "/product";
 
 interface Product {
@@ -24,7 +24,7 @@ export async function GET(_req: NextRequest) {
   try {
     const now = Date.now();
     const ttlMs = 15000;
-    
+
     const globalCache = (global as unknown as Record<string, CachedData | undefined>);
     const cached = globalCache[GLOBAL_CACHE_KEY];
 
@@ -42,11 +42,11 @@ export async function GET(_req: NextRequest) {
     ];
 
     let last: { status: number; data: unknown; target: string } | null = null;
-    
+
     for (const target of candidates) {
       try {
         let res = await fetch(target, { method: 'GET', headers: { Accept: 'application/json, text/plain, */*' } });
-        
+
         if (res.status === 429) {
           const ra = res.headers.get('retry-after');
           const wait = ra && /^\d+$/.test(ra) ? parseInt(ra, 10) * 1000 : 2200;
@@ -61,25 +61,25 @@ export async function GET(_req: NextRequest) {
         if (res.ok) {
           let items: Product[] = [];
           const responseData = data as { items?: Product[]; data?: Product[] | Product };
-          
+
           if (Array.isArray(responseData?.items)) {
-             items = responseData.items;
+            items = responseData.items;
           } else if (Array.isArray(data)) {
-             items = data as Product[];
+            items = data as Product[];
           } else if (responseData?.data) {
-             items = Array.isArray(responseData.data) ? responseData.data : [responseData.data];
+            items = Array.isArray(responseData.data) ? responseData.data : [responseData.data];
           } else {
-             items = [data as Product];
+            items = [data as Product];
           }
 
           // Update cache
           globalCache[GLOBAL_CACHE_KEY] = { items, timestamp: Date.now() };
-          
+
           return NextResponse.json({ success: true, data: items, count: items.length }, { status: 200 });
         }
-        
+
         last = { status: res.status, data, target };
-        
+
         if (res.status !== 404) {
           return NextResponse.json({ success: false, error: 'Upstream error', data }, { status: res.status });
         }
