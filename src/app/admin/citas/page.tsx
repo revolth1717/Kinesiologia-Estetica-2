@@ -41,8 +41,8 @@ export default function AdminCitasPage() {
       const list = Array.isArray(data)
         ? data
         : Array.isArray(data?.data)
-        ? data.data
-        : [];
+          ? data.data
+          : [];
       const norm = list.map((c: any) => ({
         id: Number(c?.id ?? 0),
         appointment_date: c?.appointment_date,
@@ -92,6 +92,36 @@ export default function AdminCitasPage() {
           if (parsed?.telefono) item.__userPhone = parsed.telefono;
         }
       }
+
+      // Auto-completar citas de 1 sesión que ya pasaron
+      const now = Date.now();
+      const citasParaCompletar = norm.filter(c => {
+        const citaMs = toMs(c?.appointment_date);
+        const isPast = citaMs < now;
+        const sesiones = typeof c.sesion === "number" ? c.sesion : 1;
+        const status = String(c?.status || "").toLowerCase().trim();
+
+        // Solo auto-completar si:
+        // 1. Ya pasó la fecha/hora
+        // 2. Tiene exactamente 1 sesión
+        // 3. Está confirmada (no pendiente ni cancelada)
+        return isPast && sesiones === 1 && status === "confirmada";
+      });
+
+      // Actualizar en la BD las citas de 1 sesión que ya pasaron
+      for (const cita of citasParaCompletar) {
+        try {
+          await citasService.actualizarCita(cita.id, {
+            status: "COMPLETADA",
+            sesion: 1,
+          } as any);
+          // Actualizar localmente
+          cita.status = "completada";
+        } catch (err) {
+          console.error(`Error auto-completando cita ${cita.id}:`, err);
+        }
+      }
+
       setCitas(norm);
     } catch (err) {
       setError(String(err));
@@ -217,6 +247,46 @@ export default function AdminCitasPage() {
 
   const visibleCitas = useMemo(() => {
     let arr = Array.isArray(citas) ? citas.slice() : [];
+
+    // Filtrar citas según su estado y fecha
+    const now = Date.now();
+    arr = arr.filter(c => {
+      const citaMs = toMs(c?.appointment_date);
+      const isPast = citaMs < now;
+
+      // Si la cita no ha pasado, mostrarla siempre
+      if (!isPast) return true;
+
+      // Si la cita ya pasó, aplicar lógica especial
+      const status = String(c?.status || "").toLowerCase().trim();
+      const sesionesRestantes = typeof (c as any).sesion === "number" ? (c as any).sesion : 1;
+
+      // Si es una cita de 1 sesión (sesión única) que ya pasó
+      // Solo mostrarla si está pendiente (para reprogramar)
+      if (sesionesRestantes === 1) {
+        // Si está pendiente, mostrarla para reprogramar
+        if (status === "pendiente") return true;
+        // Si está confirmada o cualquier otro estado, ocultarla (debería estar completada)
+        return false;
+      }
+
+      // Si tiene múltiples sesiones (> 1)
+      // Si está confirmada y tiene sesiones pendientes, mostrarla
+      if (status === "confirmada" && sesionesRestantes > 0) return true;
+
+      // Si NO está confirmada (pendiente), mostrarla para que se reprograme
+      if (status === "pendiente") return true;
+
+      // Si está cancelada o completada, ocultarla
+      if (status === "cancelada" || status === "completada") return false;
+
+      // Si no tiene sesiones pendientes, ocultarla
+      if (sesionesRestantes === 0) return false;
+
+      // Por defecto, mostrarla
+      return true;
+    });
+
     const q = query.trim().toLowerCase();
     if (q) {
       arr = arr.filter(c => {
@@ -544,31 +614,28 @@ export default function AdminCitasPage() {
                 <div className="mb-4 flex items-center gap-2">
                   <button
                     onClick={() => setView("lista")}
-                    className={`px-3 py-2 rounded-md border ${
-                      view === "lista"
-                        ? "bg-pink-600 text-white border-pink-600"
-                        : "bg-white text-gray-800 border-gray-300"
-                    }`}
+                    className={`px-3 py-2 rounded-md border ${view === "lista"
+                      ? "bg-pink-600 text-white border-pink-600"
+                      : "bg-white text-gray-800 border-gray-300"
+                      }`}
                   >
                     Lista
                   </button>
                   <button
                     onClick={() => setView("calendario")}
-                    className={`px-3 py-2 rounded-md border ${
-                      view === "calendario"
-                        ? "bg-pink-600 text-white border-pink-600"
-                        : "bg-white text-gray-800 border-gray-300"
-                    }`}
+                    className={`px-3 py-2 rounded-md border ${view === "calendario"
+                      ? "bg-pink-600 text-white border-pink-600"
+                      : "bg-white text-gray-800 border-gray-300"
+                      }`}
                   >
                     Calendario
                   </button>
                   <button
                     onClick={() => setView("completadas")}
-                    className={`px-3 py-2 rounded-md border ${
-                      view === "completadas"
-                        ? "bg-pink-600 text-white border-pink-600"
-                        : "bg-white text-gray-800 border-gray-300"
-                    }`}
+                    className={`px-3 py-2 rounded-md border ${view === "completadas"
+                      ? "bg-pink-600 text-white border-pink-600"
+                      : "bg-white text-gray-800 border-gray-300"
+                      }`}
                   >
                     Completadas
                   </button>
@@ -726,66 +793,94 @@ export default function AdminCitasPage() {
                             </div>
                           )}
                           <div className="mt-3 flex flex-wrap gap-2">
-                            {!restrictActionsById[cita.id] &&
-                              cita.status !== "confirmada" && (
-                                <button
-                                  onClick={() =>
-                                    doUpdateStatus(cita.id, "confirmada")
-                                  }
-                                  disabled={actionId === cita.id}
-                                  className="inline-flex items-center px-3 py-1 rounded-md bg-green-600 text-white"
-                                >
-                                  <CheckCircle className="h-4 w-4 mr-1" />{" "}
-                                  Confirmar
-                                </button>
-                              )}
-                            {cita.status === "confirmada" &&
-                              typeof (cita as any).sesion === "number" &&
-                              (cita as any).sesion > 0 && (
-                                <button
-                                  onClick={() => doDescontarSesion(cita.id)}
-                                  disabled={actionId === cita.id}
-                                  className="inline-flex items-center px-3 py-1 rounded-md bg-purple-600 text-white"
-                                >
-                                  {(cita as any).sesion === 1
-                                    ? "Completar"
-                                    : "Descontar sesión"}
-                                </button>
-                              )}
-                            {!restrictActionsById[cita.id] &&
-                              cita.status !== "pendiente" && (
-                                <button
-                                  onClick={() =>
-                                    doUpdateStatus(cita.id, "pendiente")
-                                  }
-                                  disabled={actionId === cita.id}
-                                  className="inline-flex items-center px-3 py-1 rounded-md bg-yellow-500 text-black"
-                                >
-                                  Pendiente
-                                </button>
-                              )}
-                            {!restrictActionsById[cita.id] &&
-                              cita.status !== "cancelada" && (
-                                <button
-                                  onClick={() =>
-                                    doUpdateStatus(cita.id, "cancelada")
-                                  }
-                                  disabled={actionId === cita.id}
-                                  className="inline-flex items-center px-3 py-1 rounded-md bg-red-600 text-white"
-                                >
-                                  <XCircle className="h-4 w-4 mr-1" /> Cancelar
-                                </button>
-                              )}
-                            <button
-                              onClick={() => {
-                                setSchedId(cita.id);
-                                setSchedDate("");
-                                setSchedTime("");
-                              }}
-                              className="inline-flex items-center px-3 py-1 rounded-md bg-blue-600 text-white"
-                            >
-                              <Edit3 className="h-4 w-4 mr-1" /> Reprogramar
-                            </button>
+                            {(() => {
+                              // Verificar si la cita ya pasó
+                              const citaMs = toMs(cita?.appointment_date);
+                              const isPast = citaMs < Date.now();
+                              const isPending = cita.status === "pendiente";
+
+                              // Si la cita ya pasó y está pendiente, solo mostrar botón de reprogramar
+                              if (isPast && isPending) {
+                                return (
+                                  <button
+                                    onClick={() => {
+                                      setSchedId(cita.id);
+                                      setSchedDate("");
+                                      setSchedTime("");
+                                    }}
+                                    className="inline-flex items-center px-3 py-1 rounded-md bg-blue-600 text-white"
+                                  >
+                                    <Edit3 className="h-4 w-4 mr-1" /> Reprogramar
+                                  </button>
+                                );
+                              }
+
+                              // Si no, mostrar todos los botones normalmente
+                              return (
+                                <>
+                                  {!restrictActionsById[cita.id] &&
+                                    cita.status !== "confirmada" && (
+                                      <button
+                                        onClick={() =>
+                                          doUpdateStatus(cita.id, "confirmada")
+                                        }
+                                        disabled={actionId === cita.id}
+                                        className="inline-flex items-center px-3 py-1 rounded-md bg-green-600 text-white"
+                                      >
+                                        <CheckCircle className="h-4 w-4 mr-1" />{" "}
+                                        Confirmar
+                                      </button>
+                                    )}
+                                  {cita.status === "confirmada" &&
+                                    typeof (cita as any).sesion === "number" &&
+                                    (cita as any).sesion > 0 && (
+                                      <button
+                                        onClick={() => doDescontarSesion(cita.id)}
+                                        disabled={actionId === cita.id}
+                                        className="inline-flex items-center px-3 py-1 rounded-md bg-purple-600 text-white"
+                                      >
+                                        {(cita as any).sesion === 1
+                                          ? "Completar"
+                                          : "Descontar sesión"}
+                                      </button>
+                                    )}
+                                  {!restrictActionsById[cita.id] &&
+                                    cita.status !== "pendiente" && (
+                                      <button
+                                        onClick={() =>
+                                          doUpdateStatus(cita.id, "pendiente")
+                                        }
+                                        disabled={actionId === cita.id}
+                                        className="inline-flex items-center px-3 py-1 rounded-md bg-yellow-500 text-black"
+                                      >
+                                        Pendiente
+                                      </button>
+                                    )}
+                                  {!restrictActionsById[cita.id] &&
+                                    cita.status !== "cancelada" && (
+                                      <button
+                                        onClick={() =>
+                                          doUpdateStatus(cita.id, "cancelada")
+                                        }
+                                        disabled={actionId === cita.id}
+                                        className="inline-flex items-center px-3 py-1 rounded-md bg-red-600 text-white"
+                                      >
+                                        <XCircle className="h-4 w-4 mr-1" /> Cancelar
+                                      </button>
+                                    )}
+                                  <button
+                                    onClick={() => {
+                                      setSchedId(cita.id);
+                                      setSchedDate("");
+                                      setSchedTime("");
+                                    }}
+                                    className="inline-flex items-center px-3 py-1 rounded-md bg-blue-600 text-white"
+                                  >
+                                    <Edit3 className="h-4 w-4 mr-1" /> Reprogramar
+                                  </button>
+                                </>
+                              );
+                            })()}
                           </div>
                           {actionError && actionId === null && (
                             <div className="mt-2 text-sm text-red-600">
@@ -926,13 +1021,13 @@ export default function AdminCitasPage() {
                             isEmpty || isPast
                               ? "bg-gray-100 text-gray-400"
                               : hasAppt
-                              ? "bg-pink-50 text-pink-800"
-                              : "bg-white text-gray-800";
+                                ? "bg-pink-50 text-pink-800"
+                                : "bg-white text-gray-800";
                           const border = isSel
                             ? "border-pink-600"
                             : hasAppt && !isPast
-                            ? "border-pink-500"
-                            : "border-gray-200";
+                              ? "border-pink-500"
+                              : "border-gray-200";
                           const ring = isToday ? "ring-2 ring-pink-600" : "";
                           return (
                             <button
@@ -946,9 +1041,8 @@ export default function AdminCitasPage() {
                             >
                               {hasAppt && (
                                 <span
-                                  className={`absolute top-1 right-1 h-2 w-2 rounded-full ${
-                                    isPast ? "bg-gray-400" : "bg-pink-600"
-                                  }`}
+                                  className={`absolute top-1 right-1 h-2 w-2 rounded-full ${isPast ? "bg-gray-400" : "bg-pink-600"
+                                    }`}
                                 ></span>
                               )}
                               {isToday && (
@@ -961,11 +1055,10 @@ export default function AdminCitasPage() {
                               </div>
                               {!isEmpty && (
                                 <div
-                                  className={`text-xs ${
-                                    cell.count > 0
-                                      ? "text-pink-600"
-                                      : "text-gray-500"
-                                  }`}
+                                  className={`text-xs ${cell.count > 0
+                                    ? "text-pink-600"
+                                    : "text-gray-500"
+                                    }`}
                                 >
                                   {cell.count} citas
                                 </div>
@@ -1255,10 +1348,10 @@ export default function AdminCitasPage() {
                             ?.toLowerCase()
                             .trim() === "completada"
                       ).length === 0 && (
-                        <div className="text-gray-600">
-                          No hay citas completadas.
-                        </div>
-                      )}
+                          <div className="text-gray-600">
+                            No hay citas completadas.
+                          </div>
+                        )}
                     </div>
                   </div>
                 )}
