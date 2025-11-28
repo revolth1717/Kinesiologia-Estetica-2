@@ -456,8 +456,9 @@ export default function AdminCitasPage() {
     try {
       const [yy, mm, dd] = d.split("-").map(x => parseInt(x, 10));
       const [HH, MM] = t.split(":").map(x => parseInt(x, 10));
-      const dt = new Date(yy, mm - 1, dd, HH, MM, 0, 0);
-      return dt.getTime();
+      // Crear un string ISO con la zona horaria de Chile (UTC-3)
+      const isoString = `${yy}-${String(mm).padStart(2, '0')}-${String(dd).padStart(2, '0')}T${String(HH).padStart(2, '0')}:${String(MM).padStart(2, '0')}:00-03:00`;
+      return new Date(isoString).getTime();
     } catch {
       return 0;
     }
