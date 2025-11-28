@@ -17,17 +17,17 @@ function readTokenFromRequest(req: Request): string | undefined {
 }
 
 const API_URL =
-  process.env.NEXT_PUBLIC_API_URL ||
-  process.env.XANO_GENERAL_API_URL ||
-  process.env.XANO_AUTH_API_URL ||
+  process.env.NEXT_PUBLIC_XANO_CONTENT_API ||
+  process.env.NEXT_PUBLIC_XANO_CONTENT_API ||
+  process.env.NEXT_PUBLIC_XANO_AUTH_API ||
   "https://x8ki-letl-twmt.n7.xano.io/api:SzJNIj2V";
 const CONTENT_API_URL =
-  process.env.NEXT_PUBLIC_CONTENT_API_URL ||
-  process.env.NEXT_PUBLIC_API_URL ||
-  process.env.XANO_GENERAL_API_URL ||
+  process.env.NEXT_PUBLIC_XANO_CONTENT_API ||
+  process.env.NEXT_PUBLIC_XANO_CONTENT_API ||
+  process.env.NEXT_PUBLIC_XANO_CONTENT_API ||
   API_URL;
 const AUTH_API_URL =
-  process.env.NEXT_PUBLIC_AUTH_URL || process.env.XANO_AUTH_API_URL || API_URL;
+  process.env.NEXT_PUBLIC_XANO_AUTH_API || process.env.NEXT_PUBLIC_XANO_AUTH_API || API_URL;
 const ORDERS_PATH = process.env.NEXT_PUBLIC_ORDERS_PATH || "/order";
 const PRODUCTS_PATH = process.env.NEXT_PUBLIC_PRODUCTS_PATH || "/product";
 
