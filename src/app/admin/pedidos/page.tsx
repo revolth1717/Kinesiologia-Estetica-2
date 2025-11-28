@@ -197,12 +197,19 @@ export default function AdminPedidosPage() {
   }, []);
 
   const displayItems = useMemo(() => {
-    return items.filter(x => {
+    const filtered = items.filter(x => {
       if (statusFilter === "todos") return true;
       if (statusFilter === "entregado") return x.status === "entregado";
       // Si es "confirmado", mostramos todo lo que NO esté entregado
       // (incluyendo "confirmed", "paid", "pending", etc.)
       return x.status !== "entregado";
+    });
+
+    // Sort by date descending (most recent first)
+    return filtered.sort((a, b) => {
+      const dateA = a.order_date ? new Date(a.order_date).getTime() : 0;
+      const dateB = b.order_date ? new Date(b.order_date).getTime() : 0;
+      return dateB - dateA; // Descending order
     });
   }, [items, statusFilter]);
 

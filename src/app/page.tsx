@@ -22,7 +22,7 @@ export default function Home() {
   }, [isLoggedIn, user, router]);
   useEffect(() => {
     const controller = new AbortController();
-    const CONTENT_API_URL = process.env.NEXT_PUBLIC_CONTENT_API_URL || "";
+    const CONTENT_API_URL = process.env.NEXT_PUBLIC_XANO_CONTENT_API || "";
     const PRODUCT_DIR =
       process.env.NEXT_PUBLIC_PRODUCT_IMAGES_DIR || "/productos";
 

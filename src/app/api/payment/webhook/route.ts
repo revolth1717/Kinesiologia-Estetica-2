@@ -9,7 +9,7 @@ async function updateOrder(id: number, status: string, token?: string) {
     // Como es server-to-server, idealmente tendríamos un endpoint admin o usaríamos las vars de entorno de Xano directas.
 
     // Usaremos las variables de entorno de Xano directas para evitar problemas de auth de usuario
-    const API_URL = process.env.XANO_GENERAL_API_URL || process.env.NEXT_PUBLIC_API_URL;
+    const API_URL = process.env.NEXT_PUBLIC_XANO_CONTENT_API;
     const ORDERS_PATH = process.env.NEXT_PUBLIC_ORDERS_PATH || "/order";
 
     try {
@@ -27,7 +27,7 @@ async function updateOrder(id: number, status: string, token?: string) {
 
 // Helper para actualizar cita en Xano
 async function updateAppointment(id: number, status: string) {
-    const API_URL = process.env.XANO_GENERAL_API_URL || process.env.NEXT_PUBLIC_API_URL;
+    const API_URL = process.env.NEXT_PUBLIC_XANO_CONTENT_API;
     // Asumimos endpoint de citas
     try {
         const res = await fetch(`${API_URL}/appointment/${id}`, {

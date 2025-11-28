@@ -9,16 +9,11 @@ import {
   Phone,
   Calendar,
   Clock,
-  MapPin,
-  Edit2,
-  Save,
   X,
   CheckCircle,
   XCircle,
   RefreshCw,
-  Wifi,
   WifiOff,
-  CloudCog,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { citasService, type Cita } from "@/services/citasService";
@@ -138,7 +133,7 @@ export default function PerfilPage() {
 
       if (!res.ok) throw new Error(`${res.status}`);
       const responseData = await res.json();
-      
+
       let list: Record<string, unknown>[] = [];
       if (responseData.success && Array.isArray(responseData.data)) {
         list = responseData.data as Record<string, unknown>[];
@@ -154,7 +149,7 @@ export default function PerfilPage() {
         const o = item as Record<string, unknown>;
         const product = o?.product as Record<string, unknown> | undefined;
         const pid = o?.product_id ?? o?.producto_id ?? product?.id ?? null;
-        
+
         return {
           id: (o?.id ?? o?.order_id ?? crypto.randomUUID()) as string | number,
           product_id: pid as string | number | undefined,
@@ -178,38 +173,38 @@ export default function PerfilPage() {
       try {
         const pr = await fetch("/api/productos", { method: "GET" });
         if (pr.ok) {
-            const pd = await pr.json();
-            let arr: Record<string, unknown>[] = [];
-            if (Array.isArray(pd?.data)) {
-              arr = pd.data as Record<string, unknown>[];
-            } else if (Array.isArray(pd)) {
-              arr = pd as Record<string, unknown>[];
-            }
-            
-            const byId = new Map<string, Record<string, unknown>>();
-            for (const p of arr) {
-              const pid = String(p?.id ?? p?.ID ?? p?.product_id ?? p?.producto_id ?? "");
-              if (pid) byId.set(pid, p);
-            }
+          const pd = await pr.json();
+          let arr: Record<string, unknown>[] = [];
+          if (Array.isArray(pd?.data)) {
+            arr = pd.data as Record<string, unknown>[];
+          } else if (Array.isArray(pd)) {
+            arr = pd as Record<string, unknown>[];
+          }
 
-            const aug = norm.map(o => {
-              const pid = String(o.product_id ?? "");
-              const p = byId.get(pid);
-              const name = typeof p?.nombre === "string" ? p.nombre : typeof p?.name === "string" ? p.name : undefined;
-              const imgObj = p?.imagen_url ?? p?.image_url ?? p?.imagen ?? p?.image;
-              let img = "";
-              if (typeof imgObj === "string") img = imgObj;
-              else if (imgObj && typeof imgObj === "object") {
-                const io = imgObj as Record<string, unknown>;
-                const u = io?.url ?? io?.download_url ?? io?.full_url ?? io?.href;
-                if (typeof u === "string") img = u;
-              }
-              return { ...o, product_name: name, product_image_url: img };
-            });
-            setOrders(aug);
-            return;
+          const byId = new Map<string, Record<string, unknown>>();
+          for (const p of arr) {
+            const pid = String(p?.id ?? p?.ID ?? p?.product_id ?? p?.producto_id ?? "");
+            if (pid) byId.set(pid, p);
+          }
+
+          const aug = norm.map(o => {
+            const pid = String(o.product_id ?? "");
+            const p = byId.get(pid);
+            const name = typeof p?.nombre === "string" ? p.nombre : typeof p?.name === "string" ? p.name : undefined;
+            const imgObj = p?.imagen_url ?? p?.image_url ?? p?.imagen ?? p?.image;
+            let img = "";
+            if (typeof imgObj === "string") img = imgObj;
+            else if (imgObj && typeof imgObj === "object") {
+              const io = imgObj as Record<string, unknown>;
+              const u = io?.url ?? io?.download_url ?? io?.full_url ?? io?.href;
+              if (typeof u === "string") img = u;
+            }
+            return { ...o, product_name: name, product_image_url: img };
+          });
+          setOrders(aug);
+          return;
         }
-      } catch {}
+      } catch { }
       setOrders(norm);
     } catch (err) {
       setOrdersError("Error al cargar productos comprados");
@@ -401,18 +396,14 @@ export default function PerfilPage() {
       ApiDiagnostic.logDiagnosticInfo();
 
       let result = "🔍 Diagnóstico de API completado:\n\n";
-      result += `📡 Conexión base: ${
-        connectionTest.success ? "✅ OK" : "❌ Error"
-      }\n`;
-      result += `🔐 Endpoint /auth/me: ${
-        authTest.me ? "✅ Configurado" : "⚠️ No configurado"
-      }\n`;
-      result += `📝 Endpoint /auth/login: ${
-        authTest.login ? "✅ Configurado" : "⚠️ No configurado"
-      }\n`;
-      result += `👤 Endpoint /auth/signup: ${
-        authTest.signup ? "✅ Configurado" : "⚠️ No configurado"
-      }\n\n`;
+      result += `📡 Conexión base: ${connectionTest.success ? "✅ OK" : "❌ Error"
+        }\n`;
+      result += `🔐 Endpoint /auth/me: ${authTest.me ? "✅ Configurado" : "⚠️ No configurado"
+        }\n`;
+      result += `📝 Endpoint /auth/login: ${authTest.login ? "✅ Configurado" : "⚠️ No configurado"
+        }\n`;
+      result += `👤 Endpoint /auth/signup: ${authTest.signup ? "✅ Configurado" : "⚠️ No configurado"
+        }\n\n`;
 
       if (!connectionTest.success) {
         result += "❌ La API de Xano no está respondiendo.\n";
@@ -565,11 +556,10 @@ export default function PerfilPage() {
                           name="nombre"
                           value={editForm.nombre}
                           onChange={handleEditChange}
-                          className={`w-full pl-10 pr-4 py-3 border rounded-md focus:ring-2 focus:ring-pink-500 focus:border-transparent ${
-                            fieldErrors.nombre
+                          className={`w-full pl-10 pr-4 py-3 border rounded-md focus:ring-2 focus:ring-pink-500 focus:border-transparent ${fieldErrors.nombre
                               ? "border-red-300 bg-red-50"
                               : "border-gray-300"
-                          }`}
+                            }`}
                           placeholder="Tu nombre completo"
                         />
                       </div>
@@ -603,11 +593,10 @@ export default function PerfilPage() {
                           name="email"
                           value={editForm.email}
                           onChange={handleEditChange}
-                          className={`w-full pl-10 pr-4 py-3 border rounded-md focus:ring-2 focus:ring-pink-500 focus:border-transparent ${
-                            fieldErrors.email
+                          className={`w-full pl-10 pr-4 py-3 border rounded-md focus:ring-2 focus:ring-pink-500 focus:border-transparent ${fieldErrors.email
                               ? "border-red-300 bg-red-50"
                               : "border-gray-300"
-                          }`}
+                            }`}
                           placeholder="tu@email.com"
                         />
                       </div>
@@ -641,11 +630,10 @@ export default function PerfilPage() {
                           name="phone"
                           value={editForm.phone}
                           onChange={handleEditChange}
-                          className={`w-full pl-10 pr-4 py-3 border rounded-md focus:ring-2 focus:ring-pink-500 focus:border-transparent ${
-                            fieldErrors.phone
+                          className={`w-full pl-10 pr-4 py-3 border rounded-md focus:ring-2 focus:ring-pink-500 focus:border-transparent ${fieldErrors.phone
                               ? "border-red-300 bg-red-50"
                               : "border-gray-300"
-                          }`}
+                            }`}
                           placeholder="+56 9 1234 5678"
                         />
                       </div>
@@ -759,9 +747,8 @@ export default function PerfilPage() {
                   className="flex items-center px-3 py-2 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md transition-colors disabled:opacity-50"
                 >
                   <RefreshCw
-                    className={`h-4 w-4 mr-2 ${
-                      citasLoading ? "animate-spin" : ""
-                    }`}
+                    className={`h-4 w-4 mr-2 ${citasLoading ? "animate-spin" : ""
+                      }`}
                   />
                   Actualizar
                 </button>
@@ -905,59 +892,58 @@ export default function PerfilPage() {
                               {/* eliminar cita cancelada o completada */}
                               {(cita.status === "cancelada" ||
                                 cita.status === "completada") && (
-                                <div className="flex flex-col items-end space-y-2">
-                                  <button
-                                    onClick={() => setDeleteConfirmId(cita.id)}
-                                    disabled={isDeletingId === cita.id}
-                                    className={`text-sm underline ${
-                                      isDeletingId === cita.id
-                                        ? "text-gray-400 cursor-not-allowed"
-                                        : "text-red-600 hover:text-red-800"
-                                    }`}
-                                  >
-                                    {isDeletingId === cita.id ? (
-                                      <span className="inline-flex items-center">
-                                        <RefreshCw className="h-4 w-4 mr-1 animate-spin" />{" "}
-                                        Eliminando...
-                                      </span>
-                                    ) : cita.status === "cancelada" ? (
-                                      "Eliminar cita cancelada"
-                                    ) : (
-                                      "Eliminar cita completada"
-                                    )}
-                                  </button>
-                                  {deleteConfirmId === cita.id && (
-                                    <div className="mt-2 bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-md max-w-xs">
-                                      <p className="text-sm">
-                                        ¿Seguro que deseas eliminar esta cita{" "}
-                                        {cita.status === "cancelada"
-                                          ? "cancelada"
-                                          : "completada"}
-                                        ? Esta acción es permanente.
-                                      </p>
-                                      <div className="mt-2 flex justify-end space-x-2">
-                                        <button
-                                          onClick={() =>
-                                            setDeleteConfirmId(null)
-                                          }
-                                          className="px-2 py-1 text-sm border border-gray-300 rounded-md text-black dark:text-black hover:bg-gray-50"
-                                        >
-                                          Cancelar
-                                        </button>
-                                        <button
-                                          onClick={() =>
-                                            handleEliminarCita(cita.id)
-                                          }
-                                          disabled={isDeletingId === cita.id}
-                                          className="px-2 py-1 text-sm bg-red-600 text-white rounded-md hover:bg-red-700"
-                                        >
-                                          Eliminar definitivamente
-                                        </button>
+                                  <div className="flex flex-col items-end space-y-2">
+                                    <button
+                                      onClick={() => setDeleteConfirmId(cita.id)}
+                                      disabled={isDeletingId === cita.id}
+                                      className={`text-sm underline ${isDeletingId === cita.id
+                                          ? "text-gray-400 cursor-not-allowed"
+                                          : "text-red-600 hover:text-red-800"
+                                        }`}
+                                    >
+                                      {isDeletingId === cita.id ? (
+                                        <span className="inline-flex items-center">
+                                          <RefreshCw className="h-4 w-4 mr-1 animate-spin" />{" "}
+                                          Eliminando...
+                                        </span>
+                                      ) : cita.status === "cancelada" ? (
+                                        "Eliminar cita cancelada"
+                                      ) : (
+                                        "Eliminar cita completada"
+                                      )}
+                                    </button>
+                                    {deleteConfirmId === cita.id && (
+                                      <div className="mt-2 bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-md max-w-xs">
+                                        <p className="text-sm">
+                                          ¿Seguro que deseas eliminar esta cita{" "}
+                                          {cita.status === "cancelada"
+                                            ? "cancelada"
+                                            : "completada"}
+                                          ? Esta acción es permanente.
+                                        </p>
+                                        <div className="mt-2 flex justify-end space-x-2">
+                                          <button
+                                            onClick={() =>
+                                              setDeleteConfirmId(null)
+                                            }
+                                            className="px-2 py-1 text-sm border border-gray-300 rounded-md text-black dark:text-black hover:bg-gray-50"
+                                          >
+                                            Cancelar
+                                          </button>
+                                          <button
+                                            onClick={() =>
+                                              handleEliminarCita(cita.id)
+                                            }
+                                            disabled={isDeletingId === cita.id}
+                                            className="px-2 py-1 text-sm bg-red-600 text-white rounded-md hover:bg-red-700"
+                                          >
+                                            Eliminar definitivamente
+                                          </button>
+                                        </div>
                                       </div>
-                                    </div>
-                                  )}
-                                </div>
-                              )}
+                                    )}
+                                  </div>
+                                )}
                             </div>
                           </div>
                         </div>
@@ -968,21 +954,20 @@ export default function PerfilPage() {
                       <>
                         {citas.filter(c => c.status === "completada").length >
                           0 && (
-                          <div className="px-6 mb-3 flex items-center justify-end">
-                            <button
-                              onClick={handleEliminarCompletadas}
-                              disabled={bulkDeleting}
-                              className="inline-flex items-center px-3 py-2 text-sm rounded-md bg-red-600 text-white disabled:opacity-50"
-                            >
-                              {bulkDeleting
-                                ? "Limpiando..."
-                                : `Eliminar completadas (${
-                                    citas.filter(c => c.status === "completada")
-                                      .length
+                            <div className="px-6 mb-3 flex items-center justify-end">
+                              <button
+                                onClick={handleEliminarCompletadas}
+                                disabled={bulkDeleting}
+                                className="inline-flex items-center px-3 py-2 text-sm rounded-md bg-red-600 text-white disabled:opacity-50"
+                              >
+                                {bulkDeleting
+                                  ? "Limpiando..."
+                                  : `Eliminar completadas (${citas.filter(c => c.status === "completada")
+                                    .length
                                   })`}
-                            </button>
-                          </div>
-                        )}
+                              </button>
+                            </div>
+                          )}
                         {/* Activas (pendientes/confirmadas) */}
                         <div className="divide-y divide-gray-200">
                           {citasActivas.map(c => Card(c))}
@@ -1039,9 +1024,8 @@ export default function PerfilPage() {
                   className="flex items-center px-3 py-2 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md transition-colors disabled:opacity-50"
                 >
                   <RefreshCw
-                    className={`h-4 w-4 mr-2 ${
-                      ordersLoading ? "animate-spin" : ""
-                    }`}
+                    className={`h-4 w-4 mr-2 ${ordersLoading ? "animate-spin" : ""
+                      }`}
                   />
                   Actualizar
                 </button>
@@ -1081,9 +1065,9 @@ export default function PerfilPage() {
                               <div className="text-sm font-medium text-gray-900">
                                 {String(
                                   o.product_name ||
-                                    `Producto ID: ${String(
-                                      o.product_id ?? "-"
-                                    )}`
+                                  `Producto ID: ${String(
+                                    o.product_id ?? "-"
+                                  )}`
                                 )}
                               </div>
                               <div className="text-xs text-gray-500">
@@ -1109,11 +1093,10 @@ export default function PerfilPage() {
                               ${Number(o.total).toLocaleString()}
                             </div>
                             <span
-                              className={`inline-block mt-1 px-3 py-1 rounded-full text-xs font-medium ${
-                                String(o.status) === "entregado"
+                              className={`inline-block mt-1 px-3 py-1 rounded-full text-xs font-medium ${String(o.status) === "entregado"
                                   ? "bg-green-100 text-green-700"
                                   : "bg-yellow-100 text-yellow-800"
-                              }`}
+                                }`}
                             >
                               {String(o.status) === "entregado"
                                 ? "Entregado"

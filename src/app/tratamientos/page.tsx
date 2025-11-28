@@ -68,7 +68,7 @@ function getImageSrc(t: Tratamiento): string | undefined {
     if (img.path && typeof img.path === "string") {
       // Si viene sólo 'path', construir URL absoluta con el CONTENT_API_URL público
       if (img.path.startsWith("http")) return img.path;
-      const base = process.env.NEXT_PUBLIC_CONTENT_API_URL || "";
+      const base = process.env.NEXT_PUBLIC_XANO_CONTENT_API || "";
       return base ? `${base}${img.path}` : img.path;
     }
   }

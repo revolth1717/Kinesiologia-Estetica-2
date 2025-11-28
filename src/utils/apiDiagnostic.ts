@@ -1,7 +1,7 @@
 // Herramienta de diagnóstico para verificar conectividad con Xano
 export class ApiDiagnostic {
-  private static readonly API_URL = process.env.NEXT_PUBLIC_API_URL || "https://x8ki-letl-twmt.n7.xano.io/api:SzJNIj2V";
-  private static readonly AUTH_URL = process.env.NEXT_PUBLIC_AUTH_URL || "https://x8ki-letl-twmt.n7.xano.io/api:SzJNIj2V";
+  private static readonly API_URL = process.env.NEXT_PUBLIC_XANO_CONTENT_API || "https://x8ki-letl-twmt.n7.xano.io/api:SzJNIj2V";
+  private static readonly AUTH_URL = process.env.NEXT_PUBLIC_XANO_AUTH_API || "https://x8ki-letl-twmt.n7.xano.io/api:SzJNIj2V";
 
   static async testConnection(): Promise<{
     success: boolean;

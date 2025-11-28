@@ -21,8 +21,8 @@ export default function AdminTratamientosPage() {
   const [error, setError] = useState<string | null>(null);
   const [uploadingId, setUploadingId] = useState<number | null>(null);
 
-  const API_URL = process.env.NEXT_PUBLIC_API_URL;
-  const CONTENT_API_URL = process.env.NEXT_PUBLIC_CONTENT_API_URL || API_URL;
+  const API_URL = process.env.NEXT_PUBLIC_XANO_CONTENT_API;
+  const CONTENT_API_URL = process.env.NEXT_PUBLIC_XANO_CONTENT_API || API_URL;
   const TREATMENTS_PATH = process.env.NEXT_PUBLIC_TREATMENTS_PATH || "/tratamientos";
   const LOCAL_TREATMENTS_URL = "/api/tratamientos";
 

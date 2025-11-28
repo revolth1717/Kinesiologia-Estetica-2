@@ -86,15 +86,15 @@ function AgendarContent() {
       if (img.url && typeof img.url === "string") return img.url;
       if (img.path && typeof img.path === "string") {
         if (img.path.startsWith("http")) return img.path;
-        const base = process.env.NEXT_PUBLIC_CONTENT_API_URL || "";
+        const base = process.env.NEXT_PUBLIC_XANO_CONTENT_API || "";
         return base ? `${base}${img.path}` : img.path;
       }
     }
     return getLocalFallback(t);
   }
 
-  const API_URL = process.env.NEXT_PUBLIC_API_URL;
-  const CONTENT_API_URL = process.env.NEXT_PUBLIC_CONTENT_API_URL || API_URL;
+  const API_URL = process.env.NEXT_PUBLIC_XANO_CONTENT_API;
+  const CONTENT_API_URL = process.env.NEXT_PUBLIC_XANO_CONTENT_API || API_URL;
   const TREATMENTS_PATH =
     process.env.NEXT_PUBLIC_TREATMENTS_PATH || "/tratamientos";
   const LOCAL_TREATMENTS_URL = "/api/tratamientos";
