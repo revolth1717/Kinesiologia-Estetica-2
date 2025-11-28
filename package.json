@@ -6,8 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint",
-    "postinstall": "node scripts/setup-env.js"
+    "lint": "eslint"
   },
   "dependencies": {
     "framer-motion": "^12.23.24",
