@@ -63,7 +63,8 @@ export default function Chatbot() {
                         message: newMessage.content,
                         userId: user?.id || "anonymous",
                         userEmail: user?.email || "anonymous",
-                        userName: user?.name || "Guest",
+                        userName: user?.nombre || "Guest",
+                        userTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
                     }),
                 }
             );

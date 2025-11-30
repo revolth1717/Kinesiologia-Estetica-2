@@ -12,7 +12,7 @@ const XANO_AUTH =
   clean(process.env.NEXT_PUBLIC_AUTH_URL) ||
   "https://x8ki-letl-twmt.n7.xano.io/api:-E-1dvfg";
 
-function readTokenFromRequest(req: Request): string | undefined {
+async function readTokenFromRequest(req: Request): Promise<string | undefined> {
   const cookieHeader = req.headers.get("cookie") || "";
   const parts = cookieHeader.split(";");
   for (const part of parts) {
@@ -20,7 +20,7 @@ function readTokenFromRequest(req: Request): string | undefined {
     if (k === "authToken" && v) return decodeURIComponent(v);
   }
   try {
-    const store = cookies();
+    const store = await cookies();
     return store.get("authToken")?.value;
   } catch {
     return undefined;
@@ -39,7 +39,7 @@ export async function GET(req: Request): Promise<Response> {
       );
     }
 
-    const token = readTokenFromRequest(req);
+    const token = await readTokenFromRequest(req);
     if (!token) {
       return NextResponse.json({ taken_times: [] }, { status: 200 });
     }
@@ -63,10 +63,10 @@ export async function GET(req: Request): Promise<Response> {
     const arr: any[] = Array.isArray(data?.items)
       ? data.items
       : Array.isArray(data)
-      ? data
-      : Array.isArray(data?.data)
-      ? data.data
-      : [];
+        ? data
+        : Array.isArray(data?.data)
+          ? data.data
+          : [];
 
     const fmtDate = new Intl.DateTimeFormat("es-CL", {
       timeZone: tz,
@@ -120,7 +120,9 @@ export async function GET(req: Request): Promise<Response> {
       if (
         status !== "confirmada" &&
         status !== "confirmed" &&
-        status !== "CONFIRMADA".toLowerCase()
+        status !== "CONFIRMADA".toLowerCase() &&
+        status !== "pendiente" &&
+        status !== "pending"
       )
         continue;
       const d = toDate(it?.appointment_date);
