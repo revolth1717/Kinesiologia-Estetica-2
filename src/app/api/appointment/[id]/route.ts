@@ -171,6 +171,8 @@ export async function PATCH(
       String(payload?.status || "").toUpperCase() === "CANCELADA";
     if (isCancel) {
       const cancelTargets = [
+        `${XANO_AUTH}/appointment/user/${encodeURIComponent(idStr)}`,
+        `${XANO_AUTH}/appointment/user/${encodeURIComponent(idStr)}/`,
         `${XANO_AUTH}/appointment/cancel/${encodeURIComponent(idStr)}`,
         `${XANO_AUTH}/appointment/cancel`,
         `${XANO_GENERAL}/appointment/cancel/${encodeURIComponent(idStr)}`,
