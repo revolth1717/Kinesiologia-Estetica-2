@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Trash2, CreditCard } from "lucide-react";
 import { useState } from "react";
 import { useCart } from "@/context/CartContext";
+import { useAuth } from "@/context/AuthContext";
 
 export default function CarritoPage() {
   const {
@@ -13,6 +14,7 @@ export default function CarritoPage() {
     subtotalProductos,
     updateProductQuantity,
   } = useCart();
+  const { user } = useAuth();
   const [buying, setBuying] = useState(false);
   const [buyError, setBuyError] = useState("");
   const [buySuccess, setBuySuccess] = useState("");
@@ -47,35 +49,15 @@ export default function CarritoPage() {
     setBuyError("");
     setBuySuccess("");
     try {
-      // Procesar productos (si los hay)
+      const itemsToPay: any[] = [];
+
+      // 1. Procesar productos (crear órdenes pendientes)
       const prod = productos.slice();
       if (prod.length > 0) {
-        if (prod.length > 1) {
-          const payload = {
-            items: prod.map(p => ({
-              product_id: (p as any).productId,
-              quantity: p.cantidad,
-              unit_price: p.precioUnitario,
-            })),
-          };
-          const res = await fetch("/api/order/bulk", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            credentials: "include",
-            body: JSON.stringify(payload),
-          });
-          if (!res.ok) {
-            const txt = await res.text().catch(() => "");
-            throw new Error(`${res.status} ${txt || res.statusText}`);
-          }
-          for (const p of prod) removeItem(p.id);
-        } else {
-          const p = prod[0];
+        for (const p of prod) {
           const productId = (p as any).productId as string | undefined;
-          if (!productId) {
-            setBuyError("Falta el identificador del producto");
-            return;
-          }
+          if (!productId) continue;
+
           const res = await fetch("/api/order", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -84,17 +66,32 @@ export default function CarritoPage() {
               product_id: productId,
               quantity: p.cantidad,
               unit_price: p.precioUnitario,
+              status: "pendiente", // IMPORTANTE: Crear como pendiente
             }),
           });
+
           if (!res.ok) {
-            const txt = await res.text().catch(() => "");
-            throw new Error(`${res.status} ${txt || res.statusText}`);
+            throw new Error("Error al crear orden pendiente");
           }
-          removeItem(p.id);
+
+          const data = await res.json();
+          // Asumimos que data.data contiene la orden creada y tiene un id
+          // Ajustar según la respuesta real de Xano/API
+          const orderId = data.data?.id || data.data?.order_id || data.id;
+
+          itemsToPay.push({
+            id: productId,
+            title: p.nombre,
+            quantity: p.cantidad,
+            unit_price: p.precioUnitario,
+            type: "product",
+            xano_id: orderId,
+            product_id: productId
+          });
         }
       }
 
-      // Procesar citas (si las hay)
+      // 2. Procesar citas (crear citas pendientes)
       const citasLines = citas.slice();
       if (citasLines.length > 0) {
         for (const c of citasLines) {
@@ -103,17 +100,22 @@ export default function CarritoPage() {
             ({
               appointment_date: `${c.fecha} ${c.hora}`,
               service: c.tratamiento,
-              comments: `Sesiones: ${c.sesiones}${
-                c.zona ? ` - Zona: ${c.zona}` : ""
-              }`,
+              comments: `Sesiones: ${c.sesiones}${c.zona ? ` - Zona: ${c.zona}` : ""
+                }`,
             } as any);
-          const payload = { ...basePayload, sesion: c.sesiones } as any;
+          const payload = {
+            ...basePayload,
+            sesion: c.sesiones,
+            status: "pendiente" // IMPORTANTE: Crear como pendiente
+          } as any;
+
           let res = await fetch("/api/appointment", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             credentials: "include",
             body: JSON.stringify(payload),
           });
+
           if (res.status === 429) {
             await new Promise(r => setTimeout(r, 1200));
             res = await fetch("/api/appointment", {
@@ -123,19 +125,55 @@ export default function CarritoPage() {
               body: JSON.stringify(payload),
             });
           }
+
           if (!res.ok) {
-            const txt = await res.text().catch(() => "");
-            throw new Error(`${res.status} ${txt || res.statusText}`);
+            throw new Error("Error al crear cita pendiente");
           }
-          removeItem(c.id);
+
+          const cita = await res.json();
+          itemsToPay.push({
+            id: `cita-${cita.id}`,
+            title: `Tratamiento: ${c.tratamiento}`,
+            quantity: 1,
+            unit_price: c.precioAgenda,
+            type: "service",
+            xano_id: cita.id,
+            service_name: c.tratamiento
+          });
         }
       }
-      setBuySuccess("Compra confirmada");
-      setTimeout(() => setBuySuccess(""), 4000);
+
+      if (itemsToPay.length === 0) {
+        throw new Error("No se pudieron procesar los items");
+      }
+
+      // 3. Crear Preferencia de Mercado Pago
+      const prefRes = await fetch("/api/payment/create-preference", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          items: itemsToPay,
+          payer: { email: user?.email || "test_user_123@test.com" },
+          userId: user?.id,
+        }),
+      });
+
+      if (!prefRes.ok) {
+        throw new Error("Error al conectar con Mercado Pago");
+      }
+
+      const prefData = await prefRes.json();
+
+      // 4. Redirigir a Mercado Pago
+      if (prefData.init_point) {
+        window.location.href = prefData.init_point;
+      } else {
+        throw new Error("No se recibió link de pago");
+      }
+
     } catch (err: any) {
       setBuyError(String(err?.message || err));
       setTimeout(() => setBuyError(""), 6000);
-    } finally {
       setBuying(false);
     }
   };
@@ -446,14 +484,13 @@ export default function CarritoPage() {
                   <button
                     onClick={confirmarCompra}
                     disabled={buying || productos.length + citas.length === 0}
-                    className={`w-full py-3 px-4 rounded-md font-medium flex items-center justify-center ${
-                      buying || productos.length + citas.length === 0
+                    className={`w-full py-3 px-4 rounded-md font-medium flex items-center justify-center ${buying || productos.length + citas.length === 0
                         ? "bg-gray-300 text-gray-600"
                         : "bg-pink-600 text-white hover:bg-pink-700"
-                    }`}
+                      }`}
                   >
                     <CreditCard className="mr-2 h-5 w-5" />
-                    {buying ? "Procesando..." : "Confirmar compra"}
+                    {buying ? "Procesando..." : "Pagar con Mercado Pago"}
                   </button>
                   {buyError && (
                     <div className="mt-3 text-sm text-red-600">{buyError}</div>

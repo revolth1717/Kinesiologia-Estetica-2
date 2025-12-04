@@ -17,19 +17,21 @@ function readTokenFromRequest(req: Request): string | undefined {
 }
 
 const API_URL =
-  process.env.NEXT_PUBLIC_API_URL ||
-  process.env.XANO_GENERAL_API_URL ||
-  process.env.XANO_AUTH_API_URL ||
-  "https://x8ki-letl-twmt.n7.xano.io/api:SzJNIj2V";
+  process.env.NEXT_PUBLIC_XANO_CONTENT_API ||
+  process.env.NEXT_PUBLIC_XANO_CONTENT_API ||
+  process.env.NEXT_PUBLIC_XANO_AUTH_API ||
+  "https://x8ki-letl-twmt.n7.xano.io/api:-E-1dvfg";
 const CONTENT_API_URL =
-  process.env.NEXT_PUBLIC_CONTENT_API_URL ||
-  process.env.NEXT_PUBLIC_API_URL ||
-  process.env.XANO_GENERAL_API_URL ||
+  process.env.NEXT_PUBLIC_XANO_CONTENT_API ||
+  process.env.NEXT_PUBLIC_XANO_CONTENT_API ||
+  process.env.NEXT_PUBLIC_XANO_CONTENT_API ||
   API_URL;
 const AUTH_API_URL =
-  process.env.NEXT_PUBLIC_AUTH_URL || process.env.XANO_AUTH_API_URL || API_URL;
+  process.env.NEXT_PUBLIC_XANO_AUTH_API || process.env.NEXT_PUBLIC_XANO_AUTH_API || API_URL;
 const ORDERS_PATH = process.env.NEXT_PUBLIC_ORDERS_PATH || "/order";
 const PRODUCTS_PATH = process.env.NEXT_PUBLIC_PRODUCTS_PATH || "/product";
+// URL específica para productos (stock) y pagos
+const PRODUCT_API_URL = process.env.NEXT_PUBLIC_XANO_PAYMENT_API || "https://x8ki-letl-twmt.n7.xano.io/api:SzJNIj2V";
 
 async function getMe(origin: string, cookieHeader: string): Promise<any> {
   const res = await fetch(`${origin}/api/auth/me`, {
@@ -48,7 +50,7 @@ async function getMe(origin: string, cookieHeader: string): Promise<any> {
 }
 
 async function fetchProductById(id: string): Promise<any> {
-  const target = `${CONTENT_API_URL}${PRODUCTS_PATH}/${encodeURIComponent(id)}`;
+  const target = `${PRODUCT_API_URL}${PRODUCTS_PATH}/${encodeURIComponent(id)}`;
   const res = await fetch(target, {
     method: "GET",
     headers: { Accept: "application/json, text/plain, */*" },
@@ -66,7 +68,7 @@ async function updateProductStock(
   newStock: number,
   token?: string
 ): Promise<{ ok: boolean; status: number; body: any }> {
-  const target = `${CONTENT_API_URL}${PRODUCTS_PATH}/${encodeURIComponent(id)}`;
+  const target = `${PRODUCT_API_URL}${PRODUCTS_PATH}/${encodeURIComponent(id)}`;
   const res = await fetch(target, {
     method: "PATCH",
     headers: {
@@ -83,6 +85,75 @@ async function updateProductStock(
     body = { raw: text };
   }
   return { ok: res.ok, status: res.status, body };
+}
+
+export async function GET(req: Request): Promise<Response> {
+  try {
+    const token = readTokenFromRequest(req);
+    if (!token)
+      return NextResponse.json(
+        { message: "Authentication Required" },
+        { status: 401 }
+      );
+
+    const url = new URL(req.url);
+    const id = url.searchParams.get("id");
+
+    // Construct target URLs
+    const targets = [];
+    if (id) {
+      targets.push(`${CONTENT_API_URL}${ORDERS_PATH}/${id}`);
+      targets.push(`${API_URL}${ORDERS_PATH}/${id}`);
+      targets.push(`${AUTH_API_URL}${ORDERS_PATH}/${id}`);
+    } else {
+      targets.push(`${CONTENT_API_URL}${ORDERS_PATH}`);
+      targets.push(`${API_URL}${ORDERS_PATH}`);
+      targets.push(`${AUTH_API_URL}${ORDERS_PATH}`);
+      targets.push(`${CONTENT_API_URL}/orders`);
+      targets.push(`${API_URL}/orders`);
+    }
+
+    let res: Response | null = null;
+    let data: any = null;
+    let lastStatus = 404;
+
+    for (const target of targets) {
+      res = await fetch(target, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: "application/json, text/plain, */*",
+          "Content-Type": "application/json",
+        },
+      });
+
+      const text = await res.text();
+      try {
+        data = JSON.parse(text);
+      } catch {
+        data = { raw: text };
+      }
+
+      if (res.ok) return NextResponse.json(data, { status: 200 });
+      
+      lastStatus = res.status;
+      if (res.status !== 404 && res.status !== 405) {
+        // If it's a real error (not just not found), return it
+        return NextResponse.json(data, { status: res.status });
+      }
+    }
+
+    return NextResponse.json(
+      { message: "Endpoint not found", tried: targets },
+      { status: lastStatus }
+    );
+
+  } catch (err: any) {
+    return NextResponse.json(
+      { message: "Unexpected error", detail: String(err?.message || err) },
+      { status: 500 }
+    );
+  }
 }
 
 export async function POST(req: Request): Promise<Response> {
@@ -133,7 +204,7 @@ export async function POST(req: Request): Promise<Response> {
     const orderPayload = {
       user_id: /^\d+$/.test(String(userId)) ? Number(userId) : userId,
       product_id: /^\d+$/.test(productId) ? Number(productId) : productId,
-      status: "confirmado",
+      status: body?.status || "confirmado",
       order_date: new Date().toISOString(),
       total: Number(unitPrice) * Number(quantity),
       quantity,
@@ -178,18 +249,23 @@ export async function POST(req: Request): Promise<Response> {
       if (res && res.ok) break;
       if (res && res.status !== 404) break;
     }
-    if (!res)
+    if (!res) {
+      console.error("No order endpoint found. Candidates tried:", candidates);
       return NextResponse.json(
         { success: false, data: { message: "No order endpoint" } },
         { status: 502 }
       );
-    if (!res.ok)
+    }
+    if (!res.ok) {
+      console.error("Order creation failed at target:", res.url, "Status:", res.status, "Data:", data);
       return NextResponse.json(
         { success: false, data },
         { status: res.status }
       );
+    }
 
     const stockRes = await updateProductStock(productId, nextStock, token);
+    
     const responseBody = {
       success: res.ok,
       data,
@@ -200,6 +276,7 @@ export async function POST(req: Request): Promise<Response> {
     };
     return NextResponse.json(responseBody, { status: res.status });
   } catch (err: any) {
+    console.error("Unexpected error in POST /api/order:", err);
     return NextResponse.json(
       { message: "Unexpected error", detail: String(err?.message || err) },
       { status: 500 }

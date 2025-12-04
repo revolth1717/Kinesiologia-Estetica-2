@@ -35,7 +35,7 @@ export default function AdminPedidosPage() {
     setLoading(true);
     setError("");
     try {
-      const res = await fetch(process.env.NEXT_PUBLIC_AUTH_URL + "/order", {
+      const res = await fetch("/api/order/admin", {
         method: "GET",
         credentials: "include",
       });
@@ -44,8 +44,8 @@ export default function AdminPedidosPage() {
       const list: any[] = Array.isArray(data?.data)
         ? data.data
         : Array.isArray(data)
-        ? data
-        : [];
+          ? data
+          : [];
       const norm: Pedido[] = list.map((o: any) => ({
         id: (() => {
           const raw = String(o?.id ?? o?.order_id ?? o?.ID ?? "");
@@ -92,8 +92,8 @@ export default function AdminPedidosPage() {
         const arr: any[] = Array.isArray(pd?.data)
           ? pd.data
           : Array.isArray(pd)
-          ? pd
-          : [];
+            ? pd
+            : [];
         const byId = new Map<string, any>();
         for (const p of arr) {
           const pid = String(
@@ -108,8 +108,8 @@ export default function AdminPedidosPage() {
             typeof p?.nombre === "string"
               ? p.nombre
               : typeof p?.name === "string"
-              ? p.name
-              : undefined;
+                ? p.name
+                : undefined;
           const imgObj = p?.imagen_url ?? p?.image_url ?? p?.imagen ?? p?.image;
           let img = "";
           if (typeof imgObj === "string") img = imgObj as string;
@@ -143,8 +143,8 @@ export default function AdminPedidosPage() {
           const arr: any[] = Array.isArray(ldata?.data)
             ? ldata.data
             : Array.isArray(ldata)
-            ? ldata
-            : [];
+              ? ldata
+              : [];
           for (const u of arr) {
             const uid = String(u?.id ?? u?.user_id ?? "");
             if (!uid) continue;
@@ -155,23 +155,23 @@ export default function AdminPedidosPage() {
               typeof nombreRaw === "string"
                 ? nombreRaw
                 : nombreRaw
-                ? String(nombreRaw)
-                : undefined;
+                  ? String(nombreRaw)
+                  : undefined;
             const email =
               typeof emailRaw === "string"
                 ? emailRaw
                 : emailRaw
-                ? String(emailRaw)
-                : undefined;
+                  ? String(emailRaw)
+                  : undefined;
             const phone =
               typeof phoneRaw === "string"
                 ? phoneRaw
                 : phoneRaw
-                ? String(phoneRaw)
-                : undefined;
+                  ? String(phoneRaw)
+                  : undefined;
             contacts.set(uid, { nombre, email, phone });
           }
-        } catch {}
+        } catch { }
         const final = aug.map(x => {
           const c = contacts.get(String(x.user_id || ""));
           return {
@@ -197,9 +197,20 @@ export default function AdminPedidosPage() {
   }, []);
 
   const displayItems = useMemo(() => {
-    return items.filter(x =>
-      statusFilter === "todos" ? true : x.status === statusFilter
-    );
+    const filtered = items.filter(x => {
+      if (statusFilter === "todos") return true;
+      if (statusFilter === "entregado") return x.status === "entregado";
+      // Si es "confirmado", mostramos todo lo que NO esté entregado
+      // (incluyendo "confirmed", "paid", "pending", etc.)
+      return x.status !== "entregado";
+    });
+
+    // Ordenar por fecha (más recientes primero)
+    return filtered.sort((a, b) => {
+      const dateA = a.order_date ? new Date(a.order_date).getTime() : 0;
+      const dateB = b.order_date ? new Date(b.order_date).getTime() : 0;
+      return dateB - dateA;
+    });
   }, [items, statusFilter]);
 
   const limpiarEntregados = () => {
@@ -276,31 +287,28 @@ export default function AdminPedidosPage() {
           <div className="flex items-center mb-4 gap-2 flex-wrap">
             <button
               onClick={() => setStatusFilter("confirmado")}
-              className={`px-3 py-1 rounded-md text-sm ${
-                statusFilter === "confirmado"
-                  ? "bg-pink-600 text-white"
-                  : "bg-gray-100 text-gray-700"
-              }`}
+              className={`px-3 py-1 rounded-md text-sm ${statusFilter === "confirmado"
+                ? "bg-pink-600 text-white"
+                : "bg-gray-100 text-gray-700"
+                }`}
             >
               Confirmados
             </button>
             <button
               onClick={() => setStatusFilter("entregado")}
-              className={`px-3 py-1 rounded-md text-sm ${
-                statusFilter === "entregado"
-                  ? "bg-pink-600 text-white"
-                  : "bg-gray-100 text-gray-700"
-              }`}
+              className={`px-3 py-1 rounded-md text-sm ${statusFilter === "entregado"
+                ? "bg-pink-600 text-white"
+                : "bg-gray-100 text-gray-700"
+                }`}
             >
               Entregados
             </button>
             <button
               onClick={() => setStatusFilter("todos")}
-              className={`px-3 py-1 rounded-md text-sm ${
-                statusFilter === "todos"
-                  ? "bg-pink-600 text-white"
-                  : "bg-gray-100 text-gray-700"
-              }`}
+              className={`px-3 py-1 rounded-md text-sm ${statusFilter === "todos"
+                ? "bg-pink-600 text-white"
+                : "bg-gray-100 text-gray-700"
+                }`}
             >
               Todos
             </button>
@@ -322,7 +330,9 @@ export default function AdminPedidosPage() {
                 <div className="p-6 text-gray-600">Cargando...</div>
               ) : displayItems.length === 0 ? (
                 <div className="p-6 text-gray-600">
-                  No hay pedidos confirmados
+                  {statusFilter === "entregado"
+                    ? "No hay pedidos entregados"
+                    : "No hay pedidos confirmados"}
                 </div>
               ) : (
                 displayItems.map(o => (
@@ -344,7 +354,7 @@ export default function AdminPedidosPage() {
                         <div className="text-sm font-medium text-gray-900">
                           {String(
                             o.product_name ||
-                              `Producto ID: ${String(o.product_id ?? "-")}`
+                            `Producto ID: ${String(o.product_id ?? "-")}`
                           )}
                         </div>
                         <div className="text-xs text-gray-500">
@@ -352,8 +362,8 @@ export default function AdminPedidosPage() {
                           Total: ${Number(o.total).toLocaleString()}{" "}
                           {o.order_date
                             ? `• ${new Date(o.order_date).toLocaleString(
-                                "es-CL"
-                              )}`
+                              "es-CL"
+                            )}`
                             : ""}
                         </div>
                         <div className="mt-2 text-xs text-gray-600 bg-gray-50 p-2 rounded border border-gray-200">
@@ -374,11 +384,10 @@ export default function AdminPedidosPage() {
                     </div>
                     <div className="text-left md:text-right flex flex-col md:items-end gap-2">
                       <span
-                        className={`inline-block mt-1 px-3 py-1 rounded-full text-xs font-medium ${
-                          o.status === "entregado"
-                            ? "bg-green-100 text-green-700"
-                            : "bg-yellow-100 text-yellow-800"
-                        }`}
+                        className={`inline-block mt-1 px-3 py-1 rounded-full text-xs font-medium ${o.status === "entregado"
+                          ? "bg-green-100 text-green-700"
+                          : "bg-yellow-100 text-yellow-800"
+                          }`}
                       >
                         {o.status === "entregado" ? "Entregado" : "Confirmado"}
                       </span>
@@ -408,11 +417,10 @@ export default function AdminPedidosPage() {
       {actionMsg && (
         <div className="fixed bottom-4 right-4 z-50">
           <div
-            className={`flex items-center gap-2 px-4 py-3 rounded-lg shadow-lg ${
-              actionMsg.toLowerCase().includes("entregado")
-                ? "bg-green-600 text-white"
-                : "bg-red-600 text-white"
-            }`}
+            className={`flex items-center gap-2 px-4 py-3 rounded-lg shadow-lg ${actionMsg.toLowerCase().includes("entregado")
+              ? "bg-green-600 text-white"
+              : "bg-red-600 text-white"
+              }`}
           >
             {actionMsg.toLowerCase().includes("entregado") ? (
               <CheckCircle className="h-5 w-5" />

@@ -8,12 +8,12 @@ const clean = (s?: string) =>
     .replace(/^"+|"+$/g, "")
     .replace(/^'+|'+$/g, "");
 const XANO_GENERAL =
-  clean(process.env.XANO_GENERAL_API_URL) ||
-  clean(process.env.NEXT_PUBLIC_API_URL) ||
+  clean(process.env.NEXT_PUBLIC_XANO_CONTENT_API) ||
+  clean(process.env.NEXT_PUBLIC_XANO_CONTENT_API) ||
   "https://x8ki-letl-twmt.n7.xano.io/api:SzJNIj2V";
 const XANO_AUTH =
-  clean(process.env.XANO_AUTH_API_URL) ||
-  clean(process.env.NEXT_PUBLIC_AUTH_URL) ||
+  clean(process.env.NEXT_PUBLIC_XANO_AUTH_API) ||
+  clean(process.env.NEXT_PUBLIC_XANO_AUTH_API) ||
   "https://x8ki-letl-twmt.n7.xano.io/api:-E-1dvfg";
 
 function readTokenFromRequest(req: Request): string | undefined {
