@@ -1,8 +1,8 @@
 "use client";
 import Image from "next/image";
 import Link from "next/link";
-import { Calendar, CreditCard, ShieldCheck, Users } from "lucide-react";
-import TrustBadges from "@/components/TrustBadges";
+import { Calendar, CreditCard, ShieldCheck } from "lucide-react";
+
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
@@ -264,58 +264,29 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Información de pagos - Webpay */}
+      {/* Información de Pagos - Mercado Pago */}
       <section className="py-16 bg-gray-50 dark:bg-gray-900">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <h2 className="text-3xl font-bold text-center mb-4 text-gray-800 dark:text-gray-100">
-            Información de Pagos
+            Pagos Seguros con Mercado Pago
           </h2>
           <p className="text-center text-gray-600 dark:text-gray-300 mb-12 max-w-3xl mx-auto">
-            Aceptamos pagos seguros a través de Webpay. Puedes pagar con
-            tarjetas de crédito y débito, y contamos con medidas de seguridad
-            para proteger tus datos.
+            Para tu comodidad y seguridad, utilizamos Mercado Pago. Puedes pagar tus productos y reservar tus citas utilizando tus tarjetas de crédito, débito o dinero en cuenta.
           </p>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg text-center shadow">
-              <div className="mx-auto w-12 h-12 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mb-4">
-                <CreditCard className="h-6 w-6 text-gray-600 dark:text-gray-300" />
+          <div className="flex justify-center items-center gap-8 flex-wrap">
+            <div className="flex flex-col items-center">
+              <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-2 text-blue-600">
+                <CreditCard className="h-8 w-8" />
               </div>
-              <h3 className="text-xl font-semibold mb-2 text-gray-800 dark:text-gray-100">
-                Medios de pago
-              </h3>
-              <p className="text-gray-600 dark:text-gray-300">
-                Tarjetas de crédito y débito (Webpay).
-              </p>
+              <span className="font-medium text-gray-700 dark:text-gray-200">Tarjetas</span>
             </div>
-            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg text-center shadow">
-              <div className="mx-auto w-12 h-12 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mb-4">
-                <ShieldCheck className="h-6 w-6 text-gray-600 dark:text-gray-300" />
+            <div className="flex flex-col items-center">
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-2 text-green-600">
+                <ShieldCheck className="h-8 w-8" />
               </div>
-              <h3 className="text-xl font-semibold mb-2 text-gray-800 dark:text-gray-100">
-                Pago seguro
-              </h3>
-              <p className="text-gray-600 dark:text-gray-300">
-                Transacciones protegidas y encriptadas a través de Webpay.
-              </p>
-            </div>
-            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg text-center shadow">
-              <div className="mx-auto w-12 h-12 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mb-4">
-                <Users className="h-6 w-6 text-gray-600 dark:text-gray-300" />
-              </div>
-              <h3 className="text-xl font-semibold mb-2 text-gray-800 dark:text-gray-100">
-                Comodidad
-              </h3>
-              <p className="text-gray-600 dark:text-gray-300">
-                Paga rápido desde tu dispositivo sin complicaciones.
-              </p>
+              <span className="font-medium text-gray-700 dark:text-gray-200">100% Seguro</span>
             </div>
           </div>
-          <p className="text-center text-sm text-gray-500 dark:text-gray-400 mt-8">
-            Nota: Esta es información de referencia. La integración de pago en
-            línea se habilita en el flujo de compra y agendamiento cuando
-            corresponda.
-          </p>
-          <TrustBadges />
         </div>
       </section>
     </div>
