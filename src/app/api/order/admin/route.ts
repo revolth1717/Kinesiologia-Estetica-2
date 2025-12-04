@@ -1,109 +1,99 @@
 import { NextResponse } from "next/server";
 
-function readTokenFromRequest(req: Request): string | undefined {
-  const cookieHeader = req.headers.get("cookie") || "";
-  const parts = cookieHeader.split(";");
-  for (const part of parts) {
-    const [k, v] = part.trim().split("=");
-    if (k === "authToken" && v) return decodeURIComponent(v);
-  }
-  try {
-    const { cookies } = require("next/headers");
-    const store = cookies();
-    return store.get("authToken")?.value;
-  } catch {
-    return undefined;
-  }
-}
-
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL ||
-  process.env.XANO_GENERAL_API_URL ||
-  process.env.XANO_AUTH_API_URL ||
-  "https://x8ki-letl-twmt.n7.xano.io/api:SzJNIj2V";
-const CONTENT_API_URL =
-  process.env.NEXT_PUBLIC_CONTENT_API_URL ||
-  process.env.NEXT_PUBLIC_API_URL ||
-  process.env.XANO_GENERAL_API_URL ||
-  API_URL;
-const AUTH_API_URL =
-  process.env.NEXT_PUBLIC_AUTH_URL || process.env.XANO_AUTH_API_URL || API_URL;
-const ORDERS_PATH = process.env.NEXT_PUBLIC_ORDERS_PATH || "/order";
-
-async function fetchWithRetry(target: string, headers: Record<string, string>) {
-  let res = await fetch(target, { method: "GET", headers });
-  if (res.status === 429) {
-    const ra = res.headers.get("retry-after");
-    const wait = ra && /^\d+$/.test(ra) ? parseInt(ra, 10) * 1000 : 2200;
-    await new Promise(r => setTimeout(r, wait));
-    res = await fetch(target, { method: "GET", headers });
-  }
-  const text = await res.text();
-  let data: any = null;
-  try { data = JSON.parse(text); } catch { data = { raw: text }; }
-  return { res, data };
-}
+// Admin orders endpoint
+const API_URL = "https://x8ki-letl-twmt.n7.xano.io/api:-E-1dvfg";
+const ADMIN_ORDERS_PATH = "/orderAllAdmin";
 
 export async function GET(req: Request): Promise<Response> {
   try {
-    const token = readTokenFromRequest(req);
+    console.log("🔍 [API /order/admin] ========== REQUEST START ==========");
+
+    // 1. Get Token from cookies
+    const cookieHeader = req.headers.get("cookie") || "";
+    let token = "";
+
+    // Try from Authorization header first
+    const authHeader = req.headers.get("authorization");
+    if (authHeader?.startsWith("Bearer ")) {
+      token = authHeader.substring(7);
+    }
+
+    // Try from cookie if no header
     if (!token) {
-      return NextResponse.json(
-        { message: "Authentication Required" },
-        { status: 401 }
-      );
-    }
-
-    const headers: Record<string, string> = {
-      Accept: "application/json, text/plain, */*",
-      Authorization: `Bearer ${token}`,
-    };
-
-    const bases = [
-      `${CONTENT_API_URL}${ORDERS_PATH}`,
-      `${API_URL}${ORDERS_PATH}`,
-      `${AUTH_API_URL}${ORDERS_PATH}`,
-      `${CONTENT_API_URL}/orders`,
-      `${API_URL}/orders`,
-      `${AUTH_API_URL}/orders`,
-    ];
-
-    let last: { status: number; data: any; target: string } | null = null;
-    for (const target of bases) {
-      const { res, data } = await fetchWithRetry(target, headers);
-      if (res.ok) {
-        const arr: any[] = Array.isArray(data?.data)
-          ? data.data
-          : Array.isArray(data)
-          ? data
-          : [];
-        const normalized = arr.map(o => {
-          const statusRaw = o?.status;
-          const status = String(statusRaw ?? "confirmado").toLowerCase();
-          return { ...o, status };
-        });
-        return NextResponse.json({ data: normalized }, { status: 200 });
-      }
-      last = { status: res.status, data, target };
-      if (res.status !== 404 && res.status !== 405) {
-        return NextResponse.json(
-          { data, target },
-          { status: res.status }
-        );
+      const parts = cookieHeader.split(";");
+      for (const part of parts) {
+        const [k, v] = part.trim().split("=");
+        if (k === "authToken" && v) {
+          token = decodeURIComponent(v);
+          break;
+        }
       }
     }
-    const fallback = last ?? { status: 404, data: [] as any[], target: "" };
-    const arr: any[] = Array.isArray(fallback.data?.data)
-      ? fallback.data.data
-      : Array.isArray(fallback.data)
-      ? fallback.data
-      : [];
-    const normalized = arr.map(o => ({ ...o, status: "confirmado" }));
-    return NextResponse.json({ data: normalized }, { status: 200 });
+
+    if (!token) {
+      console.log("❌ [API /order/admin] No token found in cookie or header");
+      return NextResponse.json({ message: "Authentication Required" }, { status: 401 });
+    }
+
+    console.log("✅ [API /order/admin] Token found, length:", token.length);
+
+    // 2. Fetch ALL Orders from Xano (admin endpoint with role verification)
+    const endpoint = `${API_URL}${ADMIN_ORDERS_PATH}`;
+    console.log(`📡 [API /order/admin] Fetching from: ${endpoint}`);
+
+    const res = await fetch(endpoint, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/json",
+      },
+    });
+
+    console.log(`📊 [API /order/admin] Response status: ${res.status}`);
+
+    if (!res.ok) {
+      const errorText = await res.text();
+      console.error(`❌ [API /order/admin] Error response:`, errorText);
+
+      // If 403, user is not admin
+      if (res.status === 403) {
+        return NextResponse.json({
+          message: "Forbidden: Admin access required"
+        }, { status: 403 });
+      }
+
+      return NextResponse.json({
+        success: false,
+        data: [],
+        error: `Failed to fetch orders: ${res.status}`
+      }, { status: res.status });
+    }
+
+    const data = await res.json();
+    console.log(`📦 [API /order/admin] Raw response:`, JSON.stringify(data, null, 2));
+
+    // Handle different response structures
+    let orders: any[] = [];
+    if (Array.isArray(data)) {
+      orders = data;
+    } else if (Array.isArray(data?.items)) {
+      orders = data.items;
+    } else if (Array.isArray(data?.data)) {
+      orders = data.data;
+    } else if (Array.isArray(data?.records)) {
+      orders = data.records;
+    }
+
+    console.log(`✅ [API /order/admin] Found ${orders.length} orders`);
+    console.log("🔍 [API /order/admin] ========== REQUEST END ==========");
+
+    return NextResponse.json({ success: true, data: orders }, { status: 200 });
+
   } catch (err: any) {
-    return NextResponse.json(
-      { message: "Unexpected error", detail: String(err?.message || err) },
-      { status: 500 }
-    );
+    console.error("❌ [API /order/admin] Unexpected error:", err);
+    return NextResponse.json({
+      message: "Unexpected error",
+      detail: String(err?.message || err)
+    }, { status: 500 });
   }
 }

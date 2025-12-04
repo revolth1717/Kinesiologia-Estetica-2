@@ -176,11 +176,6 @@ function AgendarContent() {
     const controller = new AbortController();
     const didFetch = { current: false } as { current: boolean };
     const loadTratamientos = async () => {
-      if (!API_URL) {
-        setErrorTrat("Falta configurar NEXT_PUBLIC_API_URL en .env.local");
-        setLoadingTrat(false);
-        return;
-      }
       try {
         const res = await fetch(LOCAL_TREATMENTS_URL, {
           signal: controller.signal,
@@ -357,9 +352,8 @@ function AgendarContent() {
         const selectedZona = zonasList.find(z => z.id.toString() === zonaId);
         servicioNombre += ` - ${selectedZona?.nombre || ""}`;
       }
-      servicioNombre += ` (${selectedSessions} ${
-        selectedSessions === 1 ? "sesión" : "sesiones"
-      })`;
+      servicioNombre += ` (${selectedSessions} ${selectedSessions === 1 ? "sesión" : "sesiones"
+        })`;
 
       // Construir fecha y hora en horario LOCAL para evitar desfases por UTC
       const [year, month, day] = selectedDate.split("-").map(Number);
@@ -370,13 +364,11 @@ function AgendarContent() {
         // Enviar milisegundos locales para que el backend los registre correctamente
         appointment_date: localDate.getTime(),
         service: servicioNombre,
-        comments: `Tratamiento: ${selectedTrat.nombre}${
-          selectedTrat.tipo === "multi_zona" && zonaId
-            ? ` - Zona: ${
-                zonasList.find(z => z.id.toString() === zonaId)?.nombre
-              }`
-            : ""
-        }\nSesiones: ${selectedSessions}\nContacto: ${name} - ${email} - ${phone}`,
+        comments: `Tratamiento: ${selectedTrat.nombre}${selectedTrat.tipo === "multi_zona" && zonaId
+          ? ` - Zona: ${zonasList.find(z => z.id.toString() === zonaId)?.nombre
+          }`
+          : ""
+          }\nSesiones: ${selectedSessions}\nContacto: ${name} - ${email} - ${phone}`,
       };
       // Calcular precios
       let price: number | undefined;
@@ -443,7 +435,7 @@ function AgendarContent() {
               }
             }
           }
-        } catch {}
+        } catch { }
 
         // Horas ya agendadas por el usuario autenticado
         if (isLoggedIn) {
@@ -612,22 +604,20 @@ function AgendarContent() {
                       <button
                         type="button"
                         onClick={() => setSelectedSessions(1)}
-                        className={`px-3 py-1 text-sm border ${
-                          selectedSessions === 1
-                            ? "bg-pink-600 text-white border-pink-600"
-                            : "bg-white text-gray-700 border-gray-300"
-                        } rounded-l-md`}
+                        className={`px-3 py-1 text-sm border ${selectedSessions === 1
+                          ? "bg-pink-600 text-white border-pink-600"
+                          : "bg-white text-gray-700 border-gray-300"
+                          } rounded-l-md`}
                       >
                         1 sesión
                       </button>
                       <button
                         type="button"
                         onClick={() => setSelectedSessions(8)}
-                        className={`px-3 py-1 text-sm border ${
-                          selectedSessions === 8
-                            ? "bg-pink-600 text-white border-pink-600"
-                            : "bg-white text-gray-700 border-gray-300"
-                        } rounded-r-md`}
+                        className={`px-3 py-1 text-sm border ${selectedSessions === 8
+                          ? "bg-pink-600 text-white border-pink-600"
+                          : "bg-white text-gray-700 border-gray-300"
+                          } rounded-r-md`}
                       >
                         8 sesiones
                       </button>
@@ -791,16 +781,14 @@ function AgendarContent() {
           {/* Pasos actualizados */}
           <div className="flex items-center justify-center mb-8">
             <div
-              className={`flex items-center ${
-                step >= 1 ? "text-pink-600" : "text-gray-400"
-              }`}
+              className={`flex items-center ${step >= 1 ? "text-pink-600" : "text-gray-400"
+                }`}
             >
               <div
-                className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                  step >= 1
-                    ? "bg-pink-600 text-white"
-                    : "bg-gray-200 text-gray-600"
-                }`}
+                className={`w-8 h-8 rounded-full flex items-center justify-center ${step >= 1
+                  ? "bg-pink-600 text-white"
+                  : "bg-gray-200 text-gray-600"
+                  }`}
               >
                 1
               </div>
@@ -808,23 +796,20 @@ function AgendarContent() {
             </div>
             <div className="w-16 h-1 mx-4 bg-gray-200">
               <div
-                className={`h-full ${
-                  step >= 2 ? "bg-pink-600" : "bg-gray-200"
-                }`}
+                className={`h-full ${step >= 2 ? "bg-pink-600" : "bg-gray-200"
+                  }`}
                 style={{ width: step >= 2 ? "100%" : "0%" }}
               ></div>
             </div>
             <div
-              className={`flex items-center ${
-                step >= 2 ? "text-pink-600" : "text-gray-400"
-              }`}
+              className={`flex items-center ${step >= 2 ? "text-pink-600" : "text-gray-400"
+                }`}
             >
               <div
-                className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                  step >= 2
-                    ? "bg-pink-600 text-white"
-                    : "bg-gray-200 text-gray-600"
-                }`}
+                className={`w-8 h-8 rounded-full flex items-center justify-center ${step >= 2
+                  ? "bg-pink-600 text-white"
+                  : "bg-gray-200 text-gray-600"
+                  }`}
               >
                 2
               </div>
@@ -832,23 +817,20 @@ function AgendarContent() {
             </div>
             <div className="w-16 h-1 mx-4 bg-gray-200">
               <div
-                className={`h-full ${
-                  step >= 3 ? "bg-pink-600" : "bg-gray-200"
-                }`}
+                className={`h-full ${step >= 3 ? "bg-pink-600" : "bg-gray-200"
+                  }`}
                 style={{ width: step >= 3 ? "100%" : "0%" }}
               ></div>
             </div>
             <div
-              className={`flex items-center ${
-                step >= 3 ? "text-pink-600" : "text-gray-400"
-              }`}
+              className={`flex items-center ${step >= 3 ? "text-pink-600" : "text-gray-400"
+                }`}
             >
               <div
-                className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                  step >= 3
-                    ? "bg-pink-600 text-white"
-                    : "bg-gray-200 text-gray-600"
-                }`}
+                className={`w-8 h-8 rounded-full flex items-center justify-center ${step >= 3
+                  ? "bg-pink-600 text-white"
+                  : "bg-gray-200 text-gray-600"
+                  }`}
               >
                 3
               </div>
@@ -986,11 +968,10 @@ function AgendarContent() {
                     <button
                       key={date}
                       onClick={() => handleDateSelect(date)}
-                      className={`p-3 rounded-md border ${
-                        selectedDate === date
-                          ? "bg-pink-600 text-white border-pink-600"
-                          : "bg-white text-gray-700 border-gray-300 hover:border-pink-400"
-                      }`}
+                      className={`p-3 rounded-md border ${selectedDate === date
+                        ? "bg-pink-600 text-white border-pink-600"
+                        : "bg-white text-gray-700 border-gray-300 hover:border-pink-400"
+                        }`}
                     >
                       {(() => {
                         const [yy, mm, dd] = date.split("-").map(Number);
@@ -1020,8 +1001,8 @@ function AgendarContent() {
                       const classes = disabled
                         ? "p-3 rounded-md border bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed"
                         : selectedTime === time
-                        ? "p-3 rounded-md border bg-pink-600 text-white border-pink-600"
-                        : "p-3 rounded-md border bg-white text-gray-700 border-gray-300 hover:border-pink-400";
+                          ? "p-3 rounded-md border bg-pink-600 text-white border-pink-600"
+                          : "p-3 rounded-md border bg-white text-gray-700 border-gray-300 hover:border-pink-400";
                       return (
                         <button
                           key={time}
@@ -1033,8 +1014,8 @@ function AgendarContent() {
                             isTaken
                               ? "Horario ocupado"
                               : isPast
-                              ? "Horario pasado"
-                              : "Seleccionar horario"
+                                ? "Horario pasado"
+                                : "Seleccionar horario"
                           }
                         >
                           {time}
@@ -1135,9 +1116,8 @@ function AgendarContent() {
                   <div className="relative w-full h-48 md:h-64 rounded-lg overflow-hidden bg-gray-100">
                     <img
                       src={selectedImgSrc}
-                      alt={`Tratamiento: ${
-                        selectedTrat?.nombre ?? "seleccionado"
-                      }`}
+                      alt={`Tratamiento: ${selectedTrat?.nombre ?? "seleccionado"
+                        }`}
                       className="w-full h-full object-cover"
                       referrerPolicy="no-referrer"
                       onError={e => {
@@ -1198,22 +1178,20 @@ function AgendarContent() {
                       <button
                         type="button"
                         onClick={() => setSelectedSessions(1)}
-                        className={`px-3 py-1 text-sm border ${
-                          selectedSessions === 1
-                            ? "bg-pink-600 text-white border-pink-600"
-                            : "bg-white text-gray-700 border-gray-300"
-                        } rounded-l-md`}
+                        className={`px-3 py-1 text-sm border ${selectedSessions === 1
+                          ? "bg-pink-600 text-white border-pink-600"
+                          : "bg-white text-gray-700 border-gray-300"
+                          } rounded-l-md`}
                       >
                         1 sesión
                       </button>
                       <button
                         type="button"
                         onClick={() => setSelectedSessions(8)}
-                        className={`px-3 py-1 text-sm border ${
-                          selectedSessions === 8
-                            ? "bg-pink-600 text-white border-pink-600"
-                            : "bg-white text-gray-700 border-gray-300"
-                        } rounded-r-md`}
+                        className={`px-3 py-1 text-sm border ${selectedSessions === 8
+                          ? "bg-pink-600 text-white border-pink-600"
+                          : "bg-white text-gray-700 border-gray-300"
+                          } rounded-r-md`}
                       >
                         8 sesiones
                       </button>
@@ -1405,7 +1383,7 @@ function AgendarContent() {
           )}
 
           <div className="flex justify-between mt-8">
-            {step > 1 && (
+            {step > 1 && step < 3 && (
               <button
                 onClick={() => setStep(step - 1)}
                 className="px-6 py-3 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 hover:text-gray-900 dark:hover:bg-gray-700 font-medium"
@@ -1427,8 +1405,7 @@ function AgendarContent() {
                       (selectedTrat?.tipo === "multi_zona" && !zonaId) ||
                       !isLoggedIn))
                 }
-                className={`px-6 py-3 rounded-md font-medium ${
-                  (step === 1 && (!selectedDate || !selectedTime)) ||
+                className={`px-6 py-3 rounded-md font-medium ${(step === 1 && (!selectedDate || !selectedTime)) ||
                   (step === 2 &&
                     (!name ||
                       !email ||
@@ -1436,9 +1413,9 @@ function AgendarContent() {
                       !tratamiento ||
                       (selectedTrat?.tipo === "multi_zona" && !zonaId) ||
                       !isLoggedIn))
-                    ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                    : "bg-pink-600 text-white hover:bg-pink-700"
-                } ${step === 1 ? "ml-auto" : ""}`}
+                  ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                  : "bg-pink-600 text-white hover:bg-pink-700"
+                  } ${step === 1 ? "ml-auto" : ""}`}
               >
                 Continuar
               </button>

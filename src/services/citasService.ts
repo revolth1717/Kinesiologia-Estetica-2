@@ -99,7 +99,7 @@ class CitasService {
       // Feature flag para activar/desactivar disponibilidad global
       const enableGlobal =
         (
-          process.env.NEXT_PUBLIC_ENABLE_GLOBAL_AVAILABILITY || "false"
+          process.env.NEXT_PUBLIC_ENABLE_GLOBAL_AVAILABILITY || "true"
         ).toLowerCase() === "true";
       if (!enableGlobal) {
         return [];
@@ -218,8 +218,7 @@ class CitasService {
       if (!response.ok) {
         const txt = await response.text().catch(() => "");
         throw new Error(
-          `Error ${response.status}: ${response.statusText}${
-            txt ? ` - ${txt}` : ""
+          `Error ${response.status}: ${response.statusText}${txt ? ` - ${txt}` : ""
           }`
         );
       }
@@ -247,7 +246,7 @@ class CitasService {
             if (!Number.isNaN(n)) sesionValue = n;
           }
         }
-      } catch {}
+      } catch { }
       if (typeof sesionValue !== "number") {
         throw new Error(
           "Falta el campo 'sesion' en la cita para actualizar el estado"
@@ -285,7 +284,7 @@ class CitasService {
               if (!Number.isNaN(n)) sesionValue = n;
             }
           }
-        } catch {}
+        } catch { }
       }
       if (typeof sesionValue === "undefined") sesionValue = 1;
       const response = await fetch(`${API_LOCAL_BASE}/${id}`, {
@@ -302,8 +301,7 @@ class CitasService {
       if (!response.ok) {
         const errorText = await response.text().catch(() => "");
         throw new Error(
-          `Error ${response.status}: ${response.statusText}${
-            errorText ? ` - ${errorText}` : ""
+          `Error ${response.status}: ${response.statusText}${errorText ? ` - ${errorText}` : ""
           }`
         );
       }
@@ -326,8 +324,7 @@ class CitasService {
       if (!response.ok) {
         const errorText = await response.text().catch(() => "");
         throw new Error(
-          `Error ${response.status}: ${response.statusText}${
-            errorText ? ` - ${errorText}` : ""
+          `Error ${response.status}: ${response.statusText}${errorText ? ` - ${errorText}` : ""
           }`
         );
       }
@@ -362,11 +359,13 @@ class CitasService {
         }
         return new Date(s);
       })();
-      return date.toLocaleDateString("es-ES", {
+      // Usar la zona horaria de Chile explícitamente
+      return date.toLocaleDateString("es-CL", {
         weekday: "long",
         year: "numeric",
         month: "long",
         day: "numeric",
+        timeZone: "America/Santiago",
       });
     } catch {
       return String(appointmentDate);
@@ -395,10 +394,12 @@ class CitasService {
         }
         return new Date(s);
       })();
-      return date.toLocaleTimeString("es-ES", {
+      // Usar la zona horaria de Chile explícitamente
+      return date.toLocaleTimeString("es-CL", {
         hour: "2-digit",
         minute: "2-digit",
         hour12: false,
+        timeZone: "America/Santiago",
       });
     } catch {
       return String(appointmentDate);
