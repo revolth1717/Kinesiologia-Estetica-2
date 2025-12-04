@@ -908,9 +908,23 @@ export default function PerfilPage() {
                               >
                                 {citasService.obtenerTextoEstado(cita.status)}
                               </span>
+                              {(cita.status !== "cancelada" && cita.status !== "completada") && (
+                                <button
+                                  onClick={() => handleCancelarCita(cita.id)}
+                                  disabled={isCancellingId === cita.id}
+                                  className={`inline-flex items-center px-3 py-2 text-sm rounded-md ${isCancellingId === cita.id ? "bg-gray-300 text-gray-600 cursor-not-allowed" : "bg-red-600 text-white hover:bg-red-700"} disabled:opacity-50`}
+                                >
+                                  {isCancellingId === cita.id ? (
+                                    <span className="inline-flex items-center">
+                                      <RefreshCw className="h-4 w-4 mr-1 animate-spin" /> Cancelando...
+                                    </span>
+                                  ) : (
+                                    "Cancelar cita"
+                                  )}
+                                </button>
+                              )}
                               {/* eliminar cita cancelada o completada */}
-                              {(cita.status === "cancelada" ||
-                                cita.status === "completada") && (
+                              {(cita.status === "completada") && (
                                   <div className="flex flex-col items-end space-y-2">
                                     <button
                                       onClick={() => setDeleteConfirmId(cita.id)}
@@ -925,8 +939,6 @@ export default function PerfilPage() {
                                           <RefreshCw className="h-4 w-4 mr-1 animate-spin" />{" "}
                                           Eliminando...
                                         </span>
-                                      ) : cita.status === "cancelada" ? (
-                                        "Eliminar cita cancelada"
                                       ) : (
                                         "Eliminar cita completada"
                                       )}
