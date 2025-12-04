@@ -148,8 +148,6 @@ export default function PerfilPage() {
         list = responseData.items as Record<string, unknown>[];
       }
 
-      console.log(list)
-
       const norm: Order[] = list.map((item) => {
         const o = item as Record<string, unknown>;
         const product = o?.product as Record<string, unknown> | undefined;

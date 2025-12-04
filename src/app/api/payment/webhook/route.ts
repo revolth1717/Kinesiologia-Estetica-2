@@ -42,6 +42,54 @@ async function updateAppointment(id: number, status: string) {
     }
 }
 
+// Helper para crear pago en Xano
+async function createPaymentInXano(paymentData: any, userId: any) {
+    // Usamos la URL específica para pagos provista por el usuario
+    const API_URL = process.env.NEXT_PUBLIC_XANO_PAYMENT_API || "https://x8ki-letl-twmt.n7.xano.io/api:SzJNIj2V";
+    const PAYMENT_PATH = "/payment"; 
+    
+    try {
+        // 1. Primero verificamos si ya existe el pago para evitar duplicados
+        // Intentamos filtrar por external_id. Si Xano no tiene habilitado el filtrado, 
+        // esto podría devolver todos, así que filtramos en memoria también por seguridad.
+        const checkRes = await fetch(`${API_URL}${PAYMENT_PATH}?external_id=${paymentData.id}`, {
+            method: "GET",
+            headers: { "Content-Type": "application/json" }
+        });
+
+        if (checkRes.ok) {
+            const existingPayments = await checkRes.json();
+            // Si devuelve un array y encontramos el ID, o si devuelve un objeto que es el pago
+            const exists = Array.isArray(existingPayments) 
+                ? existingPayments.some((p: any) => p.external_id === String(paymentData.id))
+                : existingPayments?.external_id === String(paymentData.id);
+
+            if (exists) {
+                console.log("Pago ya existe en Xano, saltando creación:", paymentData.id);
+                return;
+            }
+        }
+
+        // 2. Si no existe, lo creamos
+        await fetch(`${API_URL}${PAYMENT_PATH}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                external_id: String(paymentData.id),
+                amount: paymentData.transaction_amount,
+                status: paymentData.status,
+                payment_method: paymentData.payment_type_id,
+                date: paymentData.date_approved,
+                items: JSON.stringify(paymentData.metadata.items),
+                payer_email: paymentData.payer.email,
+                user_id: userId ? Number(userId) : undefined
+            })
+        });
+    } catch (e) {
+        console.error("Error creating payment in Xano:", e);
+    }
+}
+
 export async function POST(req: Request) {
     try {
         const url = new URL(req.url);
@@ -54,6 +102,10 @@ export async function POST(req: Request) {
             if (paymentData.status === "approved") {
                 const metadata = paymentData.metadata as any;
                 const items = metadata.items || [];
+                const userId = metadata.user_id;
+
+                // Guardar pago en Xano
+                await createPaymentInXano(paymentData, userId);
 
                 for (const item of items) {
                     if (item.type === "product") {

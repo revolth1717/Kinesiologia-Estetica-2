@@ -4,7 +4,7 @@ import { preference } from "@/lib/mercadopago";
 export async function POST(req: Request) {
     try {
         const body = await req.json();
-        const { items, payer } = body;
+        const { items, payer, userId } = body;
 
         const mpItems = items.map((item: any) => ({
             id: String(item.id),
@@ -14,11 +14,30 @@ export async function POST(req: Request) {
             currency_id: "CLP",
         }));
 
-        const metadataItems = items.map((item: any) => ({
-            id: item.id,
-            type: item.type,
-            xano_id: item.xano_id,
-        }));
+        const metadataItems = items.map((item: any) => {
+            if (item.type === "service") {
+                return {
+                    id: item.id,
+                    type: item.type,
+                    appointment_id: item.xano_id,
+                    service: item.service_name
+                };
+            } else if (item.type === "product") {
+                return {
+                    id: item.id,
+                    type: item.type,
+                    order_id: item.xano_id,
+                    product_id: item.product_id,
+                    name: item.title,
+                    quantity: item.quantity
+                };
+            }
+            return {
+                id: item.id,
+                type: item.type,
+                xano_id: item.xano_id,
+            };
+        });
 
         const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://127.0.0.1:3000";
 
@@ -38,6 +57,7 @@ export async function POST(req: Request) {
                 : undefined,
             metadata: {
                 items: metadataItems,
+                user_id: userId,
             },
         };
 

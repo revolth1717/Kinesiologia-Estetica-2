@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Trash2, CreditCard } from "lucide-react";
 import { useState } from "react";
 import { useCart } from "@/context/CartContext";
+import { useAuth } from "@/context/AuthContext";
 
 export default function CarritoPage() {
   const {
@@ -13,6 +14,7 @@ export default function CarritoPage() {
     subtotalProductos,
     updateProductQuantity,
   } = useCart();
+  const { user } = useAuth();
   const [buying, setBuying] = useState(false);
   const [buyError, setBuyError] = useState("");
   const [buySuccess, setBuySuccess] = useState("");
@@ -83,7 +85,8 @@ export default function CarritoPage() {
             quantity: p.cantidad,
             unit_price: p.precioUnitario,
             type: "product",
-            xano_id: orderId
+            xano_id: orderId,
+            product_id: productId
           });
         }
       }
@@ -134,7 +137,8 @@ export default function CarritoPage() {
             quantity: 1,
             unit_price: c.precioAgenda,
             type: "service",
-            xano_id: cita.id
+            xano_id: cita.id,
+            service_name: c.tratamiento
           });
         }
       }
@@ -149,7 +153,8 @@ export default function CarritoPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           items: itemsToPay,
-          payer: { email: "test_user_123@test.com" } // Idealmente obtener del user context
+          payer: { email: user?.email || "test_user_123@test.com" },
+          userId: user?.id,
         }),
       });
 

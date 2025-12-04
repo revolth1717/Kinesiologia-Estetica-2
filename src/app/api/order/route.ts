@@ -20,7 +20,7 @@ const API_URL =
   process.env.NEXT_PUBLIC_XANO_CONTENT_API ||
   process.env.NEXT_PUBLIC_XANO_CONTENT_API ||
   process.env.NEXT_PUBLIC_XANO_AUTH_API ||
-  "https://x8ki-letl-twmt.n7.xano.io/api:SzJNIj2V";
+  "https://x8ki-letl-twmt.n7.xano.io/api:-E-1dvfg";
 const CONTENT_API_URL =
   process.env.NEXT_PUBLIC_XANO_CONTENT_API ||
   process.env.NEXT_PUBLIC_XANO_CONTENT_API ||
@@ -30,6 +30,8 @@ const AUTH_API_URL =
   process.env.NEXT_PUBLIC_XANO_AUTH_API || process.env.NEXT_PUBLIC_XANO_AUTH_API || API_URL;
 const ORDERS_PATH = process.env.NEXT_PUBLIC_ORDERS_PATH || "/order";
 const PRODUCTS_PATH = process.env.NEXT_PUBLIC_PRODUCTS_PATH || "/product";
+// URL específica para productos (stock) y pagos
+const PRODUCT_API_URL = process.env.NEXT_PUBLIC_XANO_PAYMENT_API || "https://x8ki-letl-twmt.n7.xano.io/api:SzJNIj2V";
 
 async function getMe(origin: string, cookieHeader: string): Promise<any> {
   const res = await fetch(`${origin}/api/auth/me`, {
@@ -48,7 +50,7 @@ async function getMe(origin: string, cookieHeader: string): Promise<any> {
 }
 
 async function fetchProductById(id: string): Promise<any> {
-  const target = `${CONTENT_API_URL}${PRODUCTS_PATH}/${encodeURIComponent(id)}`;
+  const target = `${PRODUCT_API_URL}${PRODUCTS_PATH}/${encodeURIComponent(id)}`;
   const res = await fetch(target, {
     method: "GET",
     headers: { Accept: "application/json, text/plain, */*" },
@@ -66,7 +68,7 @@ async function updateProductStock(
   newStock: number,
   token?: string
 ): Promise<{ ok: boolean; status: number; body: any }> {
-  const target = `${CONTENT_API_URL}${PRODUCTS_PATH}/${encodeURIComponent(id)}`;
+  const target = `${PRODUCT_API_URL}${PRODUCTS_PATH}/${encodeURIComponent(id)}`;
   const res = await fetch(target, {
     method: "PATCH",
     headers: {
@@ -247,18 +249,23 @@ export async function POST(req: Request): Promise<Response> {
       if (res && res.ok) break;
       if (res && res.status !== 404) break;
     }
-    if (!res)
+    if (!res) {
+      console.error("No order endpoint found. Candidates tried:", candidates);
       return NextResponse.json(
         { success: false, data: { message: "No order endpoint" } },
         { status: 502 }
       );
-    if (!res.ok)
+    }
+    if (!res.ok) {
+      console.error("Order creation failed at target:", res.url, "Status:", res.status, "Data:", data);
       return NextResponse.json(
         { success: false, data },
         { status: res.status }
       );
+    }
 
     const stockRes = await updateProductStock(productId, nextStock, token);
+    
     const responseBody = {
       success: res.ok,
       data,
@@ -269,6 +276,7 @@ export async function POST(req: Request): Promise<Response> {
     };
     return NextResponse.json(responseBody, { status: res.status });
   } catch (err: any) {
+    console.error("Unexpected error in POST /api/order:", err);
     return NextResponse.json(
       { message: "Unexpected error", detail: String(err?.message || err) },
       { status: 500 }
