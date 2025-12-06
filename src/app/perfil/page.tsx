@@ -351,6 +351,20 @@ export default function PerfilPage() {
 
     try {
       await citasService.cancelarCita(citaId);
+
+      // Notificar cancelación a n8n (Fire and forget)
+      const citaParaCancelar = citas.find(c => c.id === citaId);
+      if (citaParaCancelar && user) {
+        fetch("/api/notifications/cancel-appointment", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            appointment: citaParaCancelar,
+            user: user
+          })
+        }).catch(err => console.error("Error notificando cancelación:", err));
+      }
+
       // Recargar citas después de cancelar
       await cargarCitas();
       setCancelSuccess("Cita cancelada correctamente.");
@@ -576,8 +590,8 @@ export default function PerfilPage() {
                           value={editForm.nombre}
                           onChange={handleEditChange}
                           className={`w-full pl-10 pr-4 py-3 border rounded-md focus:ring-2 focus:ring-pink-500 focus:border-transparent ${fieldErrors.nombre
-                              ? "border-red-300 bg-red-50"
-                              : "border-gray-300"
+                            ? "border-red-300 bg-red-50"
+                            : "border-gray-300"
                             }`}
                           placeholder="Tu nombre completo"
                         />
@@ -613,8 +627,8 @@ export default function PerfilPage() {
                           value={editForm.email}
                           onChange={handleEditChange}
                           className={`w-full pl-10 pr-4 py-3 border rounded-md focus:ring-2 focus:ring-pink-500 focus:border-transparent ${fieldErrors.email
-                              ? "border-red-300 bg-red-50"
-                              : "border-gray-300"
+                            ? "border-red-300 bg-red-50"
+                            : "border-gray-300"
                             }`}
                           placeholder="tu@email.com"
                         />
@@ -650,8 +664,8 @@ export default function PerfilPage() {
                           value={editForm.phone}
                           onChange={handleEditChange}
                           className={`w-full pl-10 pr-4 py-3 border rounded-md focus:ring-2 focus:ring-pink-500 focus:border-transparent ${fieldErrors.phone
-                              ? "border-red-300 bg-red-50"
-                              : "border-gray-300"
+                            ? "border-red-300 bg-red-50"
+                            : "border-gray-300"
                             }`}
                           placeholder="+56 9 1234 5678"
                         />
@@ -925,56 +939,56 @@ export default function PerfilPage() {
                               )}
                               {/* eliminar cita cancelada o completada */}
                               {(cita.status === "completada") && (
-                                  <div className="flex flex-col items-end space-y-2">
-                                    <button
-                                      onClick={() => setDeleteConfirmId(cita.id)}
-                                      disabled={isDeletingId === cita.id}
-                                      className={`text-sm underline ${isDeletingId === cita.id
-                                          ? "text-gray-400 cursor-not-allowed"
-                                          : "text-red-600 hover:text-red-800"
-                                        }`}
-                                    >
-                                      {isDeletingId === cita.id ? (
-                                        <span className="inline-flex items-center">
-                                          <RefreshCw className="h-4 w-4 mr-1 animate-spin" />{" "}
-                                          Eliminando...
-                                        </span>
-                                      ) : (
-                                        "Eliminar cita completada"
-                                      )}
-                                    </button>
-                                    {deleteConfirmId === cita.id && (
-                                      <div className="mt-2 bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-md max-w-xs">
-                                        <p className="text-sm">
-                                          ¿Seguro que deseas eliminar esta cita{" "}
-                                          {cita.status === "cancelada"
-                                            ? "cancelada"
-                                            : "completada"}
-                                          ? Esta acción es permanente.
-                                        </p>
-                                        <div className="mt-2 flex justify-end space-x-2">
-                                          <button
-                                            onClick={() =>
-                                              setDeleteConfirmId(null)
-                                            }
-                                            className="px-2 py-1 text-sm border border-gray-300 rounded-md text-black dark:text-black hover:bg-gray-50"
-                                          >
-                                            Cancelar
-                                          </button>
-                                          <button
-                                            onClick={() =>
-                                              handleEliminarCita(cita.id)
-                                            }
-                                            disabled={isDeletingId === cita.id}
-                                            className="px-2 py-1 text-sm bg-red-600 text-white rounded-md hover:bg-red-700"
-                                          >
-                                            Eliminar definitivamente
-                                          </button>
-                                        </div>
-                                      </div>
+                                <div className="flex flex-col items-end space-y-2">
+                                  <button
+                                    onClick={() => setDeleteConfirmId(cita.id)}
+                                    disabled={isDeletingId === cita.id}
+                                    className={`text-sm underline ${isDeletingId === cita.id
+                                      ? "text-gray-400 cursor-not-allowed"
+                                      : "text-red-600 hover:text-red-800"
+                                      }`}
+                                  >
+                                    {isDeletingId === cita.id ? (
+                                      <span className="inline-flex items-center">
+                                        <RefreshCw className="h-4 w-4 mr-1 animate-spin" />{" "}
+                                        Eliminando...
+                                      </span>
+                                    ) : (
+                                      "Eliminar cita completada"
                                     )}
-                                  </div>
-                                )}
+                                  </button>
+                                  {deleteConfirmId === cita.id && (
+                                    <div className="mt-2 bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-md max-w-xs">
+                                      <p className="text-sm">
+                                        ¿Seguro que deseas eliminar esta cita{" "}
+                                        {cita.status === "cancelada"
+                                          ? "cancelada"
+                                          : "completada"}
+                                        ? Esta acción es permanente.
+                                      </p>
+                                      <div className="mt-2 flex justify-end space-x-2">
+                                        <button
+                                          onClick={() =>
+                                            setDeleteConfirmId(null)
+                                          }
+                                          className="px-2 py-1 text-sm border border-gray-300 rounded-md text-black dark:text-black hover:bg-gray-50"
+                                        >
+                                          Cancelar
+                                        </button>
+                                        <button
+                                          onClick={() =>
+                                            handleEliminarCita(cita.id)
+                                          }
+                                          disabled={isDeletingId === cita.id}
+                                          className="px-2 py-1 text-sm bg-red-600 text-white rounded-md hover:bg-red-700"
+                                        >
+                                          Eliminar definitivamente
+                                        </button>
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -1125,8 +1139,8 @@ export default function PerfilPage() {
                             </div>
                             <span
                               className={`inline-block mt-1 px-3 py-1 rounded-full text-xs font-medium ${String(o.status) === "entregado"
-                                  ? "bg-green-100 text-green-700"
-                                  : "bg-yellow-100 text-yellow-800"
+                                ? "bg-green-100 text-green-700"
+                                : "bg-yellow-100 text-yellow-800"
                                 }`}
                             >
                               {String(o.status) === "entregado"

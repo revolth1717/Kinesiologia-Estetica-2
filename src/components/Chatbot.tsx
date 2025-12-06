@@ -65,6 +65,7 @@ export default function Chatbot() {
                         userEmail: user?.email || "anonymous",
                         userName: user?.nombre || "Guest",
                         userTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+                        role: user?.role || "cliente", // Enviar rol a n8n
                     }),
                 }
             );
@@ -112,6 +113,10 @@ export default function Chatbot() {
         }
     };
 
+    // Número de WhatsApp de prueba (Meta)
+    const WHATSAPP_NUMBER = "15551828558";
+    const whatsappLink = `https://wa.me/${WHATSAPP_NUMBER}`;
+
     return (
         <>
             {/* Toggle Button */}
@@ -144,75 +149,127 @@ export default function Chatbot() {
                             <div>
                                 <h3 className="font-bold text-lg">Asistente Virtual</h3>
                                 <p className="text-xs text-blue-100 flex items-center gap-1">
-                                    <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
-                                    En línea
+                                    <span className={`w-2 h-2 rounded-full ${user ? "bg-green-400 animate-pulse" : "bg-gray-400"}`}></span>
+                                    {user ? "En línea" : "Desconectado"}
                                 </p>
                             </div>
                         </div>
 
-                        {/* Messages Area */}
-                        <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50 dark:bg-gray-900/50">
-                            {messages.map((msg) => (
-                                <div
-                                    key={msg.id}
-                                    className={`flex ${msg.sender === "user" ? "justify-end" : "justify-start"
-                                        }`}
-                                >
-                                    <div
-                                        className={`max-w-[80%] p-3 rounded-2xl text-sm shadow-sm ${msg.sender === "user"
-                                            ? "bg-blue-600 text-white rounded-br-none"
-                                            : "bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-bl-none border border-gray-100 dark:border-gray-600"
-                                            }`}
+                        {!user ? (
+                            // Login Required State
+                            <div className="flex-1 flex flex-col items-center justify-center p-6 text-center space-y-6 bg-gray-50 dark:bg-gray-900/50">
+                                <div className="bg-blue-100 dark:bg-blue-900/30 p-4 rounded-full">
+                                    <User size={48} className="text-blue-600 dark:text-blue-400" />
+                                </div>
+                                <div>
+                                    <h4 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
+                                        ¡Hola! 👋
+                                    </h4>
+                                    <p className="text-gray-600 dark:text-gray-300">
+                                        Para poder responder tus preguntas y ayudarte mejor, necesitas iniciar sesión o crear una cuenta.
+                                    </p>
+                                </div>
+                                <div className="flex flex-col w-full gap-3">
+                                    <a
+                                        href="/login"
+                                        className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 rounded-lg transition-colors"
                                     >
-                                        <p className="whitespace-pre-wrap">{msg.content}</p>
-                                        <span
-                                            className={`text-[10px] mt-1 block opacity-70 ${msg.sender === "user" ? "text-blue-100" : "text-gray-400"
+                                        Iniciar Sesión
+                                    </a>
+                                    <a
+                                        href="/registro"
+                                        className="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 font-medium py-2.5 rounded-lg transition-colors"
+                                    >
+                                        Crear Cuenta
+                                    </a>
+                                </div>
+                            </div>
+                        ) : (
+                            // Authenticated Chat Interface
+                            <>
+                                {/* WhatsApp Link for Clients */}
+                                {user?.role !== "administrador" && (
+                                    <div className="bg-green-50 dark:bg-green-900/20 p-3 border-b border-green-100 dark:border-green-800 flex justify-between items-center">
+                                        <span className="text-xs text-green-800 dark:text-green-300 font-medium">
+                                            ¿Prefieres hablar por WhatsApp?
+                                        </span>
+                                        <a
+                                            href={whatsappLink}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="bg-green-500 hover:bg-green-600 text-white text-xs px-3 py-1.5 rounded-full transition-colors font-medium flex items-center gap-1"
+                                        >
+                                            <MessageCircle size={12} />
+                                            Chatear
+                                        </a>
+                                    </div>
+                                )}
+
+                                {/* Messages Area */}
+                                <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50 dark:bg-gray-900/50">
+                                    {messages.map((msg) => (
+                                        <div
+                                            key={msg.id}
+                                            className={`flex ${msg.sender === "user" ? "justify-end" : "justify-start"
                                                 }`}
                                         >
-                                            {msg.timestamp.toLocaleTimeString([], {
-                                                hour: "2-digit",
-                                                minute: "2-digit",
-                                            })}
-                                        </span>
-                                    </div>
+                                            <div
+                                                className={`max-w-[80%] p-3 rounded-2xl text-sm shadow-sm ${msg.sender === "user"
+                                                    ? "bg-blue-600 text-white rounded-br-none"
+                                                    : "bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-bl-none border border-gray-100 dark:border-gray-600"
+                                                    }`}
+                                            >
+                                                <p className="whitespace-pre-wrap">{msg.content}</p>
+                                                <span
+                                                    className={`text-[10px] mt-1 block opacity-70 ${msg.sender === "user" ? "text-blue-100" : "text-gray-400"
+                                                        }`}
+                                                >
+                                                    {msg.timestamp.toLocaleTimeString([], {
+                                                        hour: "2-digit",
+                                                        minute: "2-digit",
+                                                    })}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    ))}
+                                    {isLoading && (
+                                        <div className="flex justify-start">
+                                            <div className="bg-white dark:bg-gray-700 p-3 rounded-2xl rounded-bl-none border border-gray-100 dark:border-gray-600 flex items-center gap-2">
+                                                <Loader2 size={16} className="animate-spin text-blue-600" />
+                                                <span className="text-xs text-gray-500 dark:text-gray-400">
+                                                    Escribiendo...
+                                                </span>
+                                            </div>
+                                        </div>
+                                    )}
+                                    <div ref={messagesEndRef} />
                                 </div>
-                            ))}
-                            {isLoading && (
-                                <div className="flex justify-start">
-                                    <div className="bg-white dark:bg-gray-700 p-3 rounded-2xl rounded-bl-none border border-gray-100 dark:border-gray-600 flex items-center gap-2">
-                                        <Loader2 size={16} className="animate-spin text-blue-600" />
-                                        <span className="text-xs text-gray-500 dark:text-gray-400">
-                                            Escribiendo...
-                                        </span>
-                                    </div>
-                                </div>
-                            )}
-                            <div ref={messagesEndRef} />
-                        </div>
 
-                        {/* Input Area */}
-                        <form
-                            onSubmit={handleSendMessage}
-                            className="p-4 bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700"
-                        >
-                            <div className="flex gap-2">
-                                <input
-                                    type="text"
-                                    value={inputValue}
-                                    onChange={(e) => setInputValue(e.target.value)}
-                                    placeholder="Escribe tu mensaje..."
-                                    className="flex-1 px-4 py-2 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 border-transparent"
-                                    disabled={isLoading}
-                                />
-                                <button
-                                    type="submit"
-                                    disabled={!inputValue.trim() || isLoading}
-                                    className="p-2 rounded-full bg-blue-600 text-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-blue-700 transition-colors"
+                                {/* Input Area */}
+                                <form
+                                    onSubmit={handleSendMessage}
+                                    className="p-4 bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700"
                                 >
-                                    <Send size={20} />
-                                </button>
-                            </div>
-                        </form>
+                                    <div className="flex gap-2">
+                                        <input
+                                            type="text"
+                                            value={inputValue}
+                                            onChange={(e) => setInputValue(e.target.value)}
+                                            placeholder="Escribe tu mensaje..."
+                                            className="flex-1 px-4 py-2 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 border-transparent"
+                                            disabled={isLoading}
+                                        />
+                                        <button
+                                            type="submit"
+                                            disabled={!inputValue.trim() || isLoading}
+                                            className="p-2 rounded-full bg-blue-600 text-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-blue-700 transition-colors"
+                                        >
+                                            <Send size={20} />
+                                        </button>
+                                    </div>
+                                </form>
+                            </>
+                        )}
                     </motion.div>
                 )}
             </AnimatePresence>
