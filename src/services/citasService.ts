@@ -417,7 +417,7 @@ class CitasService {
       case "cancelada":
         return "bg-red-500 text-black ring-1 ring-red-400 dark:bg-red-500 dark:text-black dark:ring-red-400";
       case "completada":
-        return "bg-red-600 text-white ring-1 ring-red-500 dark:bg-red-600 dark:text-white dark:ring-red-500";
+        return "bg-green-600 text-white ring-1 ring-green-500 dark:bg-green-600 dark:text-white dark:ring-green-500";
       case "reagendada":
         return "bg-blue-500 text-white ring-1 ring-blue-400 dark:bg-blue-500 dark:text-white dark:ring-blue-400";
       default:
