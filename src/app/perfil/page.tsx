@@ -341,7 +341,34 @@ export default function PerfilPage() {
   const [bulkDeleteSuccess, setBulkDeleteSuccess] = useState("");
 
   const handleCancelarCita = async (citaId: number) => {
-    // Confirmación previa para evitar toques accidentales
+    const cita = citas.find(c => c.id === citaId);
+    if (cita) {
+      const v: any = cita.appointment_date as any;
+      const date = (() => {
+        if (typeof v === "number") return new Date(v);
+        const s = String(v).trim();
+        const m = s.match(/^([0-9]{4})-([0-9]{2})-([0-9]{2})$/);
+        if (m) {
+          const yy = parseInt(m[1], 10);
+          const mm = parseInt(m[2], 10);
+          const dd = parseInt(m[3], 10);
+          return new Date(yy, mm - 1, dd);
+        }
+        if (/^\d+$/.test(s)) {
+          const num = parseInt(s, 10);
+          const ms = s.length >= 13 ? num : num * 1000;
+          return new Date(ms);
+        }
+        return new Date(s);
+      })();
+      const diffMs = date.getTime() - Date.now();
+      if (diffMs < 24 * 60 * 60 * 1000) {
+        setCancelError("No puedes cancelar una cita con menos de 24 horas de anticipación.");
+        setTimeout(() => setCancelError(""), 5000);
+        return;
+      }
+    }
+
     const confirmed = window.confirm("¿Seguro que quieres cancelar esta cita?");
     if (!confirmed) return;
 
@@ -852,6 +879,28 @@ export default function PerfilPage() {
 
                     const Card = (cita: (typeof citas)[number]) => {
                       const contacto = parseContacto(cita.comments);
+                      const puedeCancelar = (() => {
+                        const v = cita.appointment_date as any;
+                        const date = (() => {
+                          if (typeof v === "number") return new Date(v);
+                          const s = String(v).trim();
+                          const m = s.match(/^([0-9]{4})-([0-9]{2})-([0-9]{2})$/);
+                          if (m) {
+                            const yy = parseInt(m[1], 10);
+                            const mm = parseInt(m[2], 10);
+                            const dd = parseInt(m[3], 10);
+                            return new Date(yy, mm - 1, dd);
+                          }
+                          if (/^\d+$/.test(s)) {
+                            const num = parseInt(s, 10);
+                            const ms = s.length >= 13 ? num : num * 1000;
+                            return new Date(ms);
+                          }
+                          return new Date(s);
+                        })();
+                        const diff = date.getTime() - Date.now();
+                        return diff >= 24 * 60 * 60 * 1000;
+                      })();
                       return (
                         <div key={cita.id} className="p-6">
                           <div className="flex flex-col md:flex-row md:justify-between md:items-start">
@@ -909,72 +958,27 @@ export default function PerfilPage() {
                                 {citasService.obtenerTextoEstado(cita.status)}
                               </span>
                               {(cita.status !== "cancelada" && cita.status !== "completada") && (
-                                <button
-                                  onClick={() => handleCancelarCita(cita.id)}
-                                  disabled={isCancellingId === cita.id}
-                                  className={`inline-flex items-center px-3 py-2 text-sm rounded-md ${isCancellingId === cita.id ? "bg-gray-300 text-gray-600 cursor-not-allowed" : "bg-red-600 text-white hover:bg-red-700"} disabled:opacity-50`}
-                                >
-                                  {isCancellingId === cita.id ? (
-                                    <span className="inline-flex items-center">
-                                      <RefreshCw className="h-4 w-4 mr-1 animate-spin" /> Cancelando...
-                                    </span>
-                                  ) : (
-                                    "Cancelar cita"
-                                  )}
-                                </button>
-                              )}
-                              {/* eliminar cita cancelada o completada */}
-                              {(cita.status === "completada") && (
-                                  <div className="flex flex-col items-end space-y-2">
-                                    <button
-                                      onClick={() => setDeleteConfirmId(cita.id)}
-                                      disabled={isDeletingId === cita.id}
-                                      className={`text-sm underline ${isDeletingId === cita.id
-                                          ? "text-gray-400 cursor-not-allowed"
-                                          : "text-red-600 hover:text-red-800"
-                                        }`}
-                                    >
-                                      {isDeletingId === cita.id ? (
-                                        <span className="inline-flex items-center">
-                                          <RefreshCw className="h-4 w-4 mr-1 animate-spin" />{" "}
-                                          Eliminando...
-                                        </span>
-                                      ) : (
-                                        "Eliminar cita completada"
-                                      )}
-                                    </button>
-                                    {deleteConfirmId === cita.id && (
-                                      <div className="mt-2 bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-md max-w-xs">
-                                        <p className="text-sm">
-                                          ¿Seguro que deseas eliminar esta cita{" "}
-                                          {cita.status === "cancelada"
-                                            ? "cancelada"
-                                            : "completada"}
-                                          ? Esta acción es permanente.
-                                        </p>
-                                        <div className="mt-2 flex justify-end space-x-2">
-                                          <button
-                                            onClick={() =>
-                                              setDeleteConfirmId(null)
-                                            }
-                                            className="px-2 py-1 text-sm border border-gray-300 rounded-md text-black dark:text-black hover:bg-gray-50"
-                                          >
-                                            Cancelar
-                                          </button>
-                                          <button
-                                            onClick={() =>
-                                              handleEliminarCita(cita.id)
-                                            }
-                                            disabled={isDeletingId === cita.id}
-                                            className="px-2 py-1 text-sm bg-red-600 text-white rounded-md hover:bg-red-700"
-                                          >
-                                            Eliminar definitivamente
-                                          </button>
-                                        </div>
-                                      </div>
+                                <div className="flex flex-col items-end">
+                                  <button
+                                    onClick={() => handleCancelarCita(cita.id)}
+                                    disabled={isCancellingId === cita.id || !puedeCancelar}
+                                    title={!puedeCancelar ? "No se puede cancelar con menos de 24 horas de anticipación" : undefined}
+                                    className={`inline-flex items-center px-3 py-2 text-sm rounded-md ${isCancellingId === cita.id || !puedeCancelar ? "bg-gray-300 text-gray-600 cursor-not-allowed" : "bg-red-600 text-white hover:bg-red-700"} disabled:opacity-50`}
+                                  >
+                                    {isCancellingId === cita.id ? (
+                                      <span className="inline-flex items-center">
+                                        <RefreshCw className="h-4 w-4 mr-1 animate-spin" /> Cancelando...
+                                      </span>
+                                    ) : (
+                                      !puedeCancelar ? "No cancelable" : "Cancelar cita"
                                     )}
-                                  </div>
-                                )}
+                                  </button>
+                                  {!puedeCancelar && (
+                                    <span className="mt-1 text-xs text-gray-500">Solo puedes cancelar hasta 24 horas antes.</span>
+                                  )}
+                                </div>
+                              )}
+
                             </div>
                           </div>
                         </div>
@@ -983,22 +987,6 @@ export default function PerfilPage() {
 
                     return (
                       <>
-                        {citas.filter(c => c.status === "completada").length >
-                          0 && (
-                            <div className="px-6 mb-3 flex items-center justify-end">
-                              <button
-                                onClick={handleEliminarCompletadas}
-                                disabled={bulkDeleting}
-                                className="inline-flex items-center px-3 py-2 text-sm rounded-md bg-red-600 text-white disabled:opacity-50"
-                              >
-                                {bulkDeleting
-                                  ? "Limpiando..."
-                                  : `Eliminar completadas (${citas.filter(c => c.status === "completada")
-                                    .length
-                                  })`}
-                              </button>
-                            </div>
-                          )}
                         {/* Activas (pendientes/confirmadas) */}
                         <div className="divide-y divide-gray-200">
                           {citasActivas.map(c => Card(c))}
