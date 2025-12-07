@@ -242,12 +242,6 @@ export default function Home() {
                   <h3 className="text-lg font-semibold mb-2 text-gray-800 dark:text-gray-100">
                     {t.name}
                   </h3>
-                  <Link
-                    href={`/tratamientos/${t.slug}`}
-                    className="text-pink-600 hover:text-pink-800 font-medium"
-                  >
-                    Ver detalles
-                  </Link>
                 </div>
               </div>
             ))}
