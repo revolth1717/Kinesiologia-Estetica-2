@@ -25,12 +25,19 @@ export default function AdminUsuariosPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [q, setQ] = useState("");
+  const [productsMap, setProductsMap] = useState<Map<string, string> | null>(null);
   const [openUserId, setOpenUserId] = useState<string | number | null>(null);
+  const [activeTab, setActiveTab] = useState<"citas" | "products">("citas");
   const [citasByUser, setCitasByUser] = useState<Record<string, any[]>>({});
+  const [ordersByUser, setOrdersByUser] = useState<Record<string, any[]>>({});
   const [loadingUserId, setLoadingUserId] = useState<string | number | null>(
     null
   );
+  const [loadingOrdersUserId, setLoadingOrdersUserId] = useState<
+    string | number | null
+  >(null);
   const [errorUser, setErrorUser] = useState<string>("");
+  const [errorOrders, setErrorOrders] = useState<string>("");
   const [selectedCitaId, setSelectedCitaId] = useState<number | null>(null);
   const [actionId, setActionId] = useState<number | null>(null);
   const [actionError, setActionError] = useState<string>("");
@@ -127,6 +134,74 @@ export default function AdminUsuariosPage() {
       setErrorUser(String(err?.message || err));
     } finally {
       setLoadingUserId(null);
+    }
+  };
+
+  const loadOrdersForUser = async (userId: string | number) => {
+    try {
+      setLoadingOrdersUserId(userId);
+      setErrorOrders("");
+      const res = await fetch(`/api/order/admin`, {
+        method: "GET",
+        credentials: "include",
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(String(data?.error || data?.message || res.statusText));
+      }
+
+      const list = Array.isArray(data?.data)
+        ? data.data
+        : Array.isArray(data)
+        ? data
+        : [];
+      const uid = Number(userId);
+
+      // Ensure products map is loaded
+      let currentMap = productsMap;
+      if (!currentMap) {
+         try {
+           const pRes = await fetch("/api/productos");
+           const pText = await pRes.text();
+           let pData: any = null;
+           try { pData = JSON.parse(pText); } catch { pData = { raw: pText }; }
+           
+           const pList = Array.isArray(pData?.data) ? pData.data : Array.isArray(pData) ? pData : [];
+           const map = new Map<string, string>();
+           for(const p of pList) {
+              const pid = String(p?.id ?? p?.ID ?? p?.product_id ?? "");
+              const name = p?.nombre ?? p?.name ?? "Producto sin nombre";
+              if (pid) map.set(pid, name);
+           }
+           setProductsMap(map);
+           currentMap = map;
+         } catch(e) {
+           console.error("Error loading products for lookup", e);
+         }
+      }
+
+      // Filter orders by user_id
+      const mine = list.filter((o: any) => {
+        const oid = Number(o?.user_id ?? o?.usuario_id ?? 0);
+        return oid === uid;
+      }).map((o: any) => {
+         const pid = String(o?.product_id ?? o?.producto_id ?? "");
+         const pName = currentMap?.get(pid) || o?.product_name || "Producto desconocido";
+         return { ...o, product_name: pName };
+      });
+
+      // Sort by date desc
+      mine.sort((a: any, b: any) => {
+        const da = new Date(a.created_at || 0).getTime();
+        const db = new Date(b.created_at || 0).getTime();
+        return db - da;
+      });
+
+      setOrdersByUser(prev => ({ ...prev, [String(userId)]: mine }));
+    } catch (err: any) {
+      setErrorOrders(String(err?.message || err));
+    } finally {
+      setLoadingOrdersUserId(null);
     }
   };
 
@@ -291,37 +366,80 @@ export default function AdminUsuariosPage() {
                             onClick={() => {
                               const idv = u.id as any;
                               const key = String(idv);
-                              setOpenUserId(prev =>
-                                prev === idv ? null : idv
-                              );
-                              if (openUserId !== idv && !citasByUser[key]) {
+                              
+                              // Create toggle behavior or switch behavior?
+                              // User wants separation. 
+                              // Current behavior: click opens user.
+                              
+                              if (openUserId !== idv) {
+                                setOpenUserId(idv);
+                                setActiveTab("citas");
+                              } else if (activeTab === "products") {
+                                setActiveTab("citas");
+                              } else {
+                                // optional: close if clicking same button twice?
+                                // setOpenUserId(null); 
+                                // For now let's just make sure it switches/opens
+                              }
+
+                              if (!citasByUser[key]) {
                                 loadCitasForUser(idv);
                               }
                             }}
-                            className="inline-flex items-center px-3 py-2 rounded-md bg-pink-600 text-white hover:bg-pink-700"
+                            className={`inline-flex items-center px-3 py-2 rounded-md transition-colors ${
+                                openUserId === u.id && activeTab === "citas"
+                                ? "bg-pink-700 text-white" 
+                                : "bg-pink-600 text-white hover:bg-pink-700"
+                            }`}
                           >
-                            <RefreshCw className="h-4 w-4 mr-2" /> Ver citas
+                            <Calendar className="h-4 w-4 mr-2" /> Ver citas
+                          </button>
+                          <button
+                            onClick={() => {
+                              const idv = u.id as any;
+                              const key = String(idv);
+                              
+                              if (openUserId !== idv) {
+                                setOpenUserId(idv);
+                                setActiveTab("products");
+                              } else if (activeTab === "citas") {
+                                setActiveTab("products");
+                              }
+
+                              if (!ordersByUser[key]) {
+                                loadOrdersForUser(idv);
+                              }
+                            }}
+                            className={`inline-flex items-center px-3 py-2 rounded-md transition-colors ${
+                                openUserId === u.id && activeTab === "products"
+                                ? "bg-purple-700 text-white" 
+                                : "bg-purple-600 text-white hover:bg-purple-700"
+                            }`}
+                          >
+                            <RefreshCw className="h-4 w-4 mr-2" /> Ver productos
                           </button>
                         </div>
                       </div>
 
-                      {openUserId === u.id && (
-                        <div className="mt-4">
-                          {loadingUserId === u.id && (
-                            <div className="text-gray-600">
-                              Cargando citas...
-                            </div>
-                          )}
-                          {errorUser && loadingUserId === null && (
-                            <div className="text-red-600">{errorUser}</div>
-                          )}
-                          {!loadingUserId && !errorUser && (
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                              {(citasByUser[String(u.id)] || []).map(
-                                (cita, i2) => (
+                        {openUserId === u.id && (
+                        <div className="mt-4 space-y-6">
+                          {activeTab === "citas" && (
+                          <div className="animate-fadeIn">
+                            <h3 className="text-md font-bold text-gray-700 mb-2 flex items-center border-b pb-2">
+                              <Calendar className="h-5 w-5 mr-2" /> Citas Agendadas
+                            </h3>
+                            {loadingUserId === u.id && (
+                              <div className="text-gray-600 py-4">Cargando citas...</div>
+                            )}
+                            {errorUser && loadingUserId === null && (
+                              <div className="text-red-600 py-4">{errorUser}</div>
+                            )}
+                            {!loadingUserId && !errorUser && (
+                              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
+                                {(citasByUser[String(u.id)] || []).map((cita, i2) => (
                                   <div
                                     key={`${cita.id}-${i2}`}
-                                    className="border border-gray-200 rounded-md p-3 bg-white cursor-pointer"
+                                    className="border border-gray-200 rounded-md p-3 bg-white cursor-pointer hover:shadow-sm transition-shadow"
                                     onClick={e => {
                                       const target = e.target as HTMLElement;
                                       if (
@@ -342,17 +460,13 @@ export default function AdminUsuariosPage() {
                                     <div className="flex items-center mb-1">
                                       <Calendar className="h-4 w-4 text-pink-600 mr-2" />
                                       <span className="text-gray-800 font-medium">
-                                        {citasService.formatearFecha(
-                                          cita.appointment_date
-                                        )}
+                                        {citasService.formatearFecha(cita.appointment_date)}
                                       </span>
                                     </div>
                                     <div className="flex items-center mb-1">
                                       <Clock className="h-4 w-4 text-pink-600 mr-2" />
                                       <span className="text-gray-700">
-                                        {citasService.formatearHora(
-                                          cita.appointment_date
-                                        )}
+                                        {citasService.formatearHora(cita.appointment_date)}
                                       </span>
                                     </div>
                                     <div
@@ -370,76 +484,48 @@ export default function AdminUsuariosPage() {
                                           "reagendada"
                                         )}`}
                                       >
-                                        {citasService.obtenerTextoEstado(
-                                          "reagendada"
-                                        )}
+                                        {citasService.obtenerTextoEstado("reagendada")}
                                       </div>
                                     )}
-
                                     {selectedCitaId === cita.id && (
                                       <div className="mt-3">
-                                        {String(cita.status)
-                                          .toLowerCase()
-                                          .trim() !== "completada" && (
+                                        {String(cita.status).toLowerCase().trim() !== "completada" && (
                                           <>
                                             <div className="flex flex-wrap gap-2">
-                                              {String(cita.status)
-                                                .toLowerCase()
-                                                .trim() !== "confirmada" && (
+                                              {String(cita.status).toLowerCase().trim() !== "confirmada" && (
                                                 <button
                                                   onClick={e => {
                                                     e.stopPropagation();
-                                                    doUpdateStatus(
-                                                      cita.id,
-                                                      "confirmada"
-                                                    );
+                                                    doUpdateStatus(cita.id, "confirmada");
                                                   }}
-                                                  disabled={
-                                                    actionId === cita.id
-                                                  }
+                                                  disabled={actionId === cita.id}
                                                   className="inline-flex items-center px-3 py-1 rounded-md bg-green-600 text-white"
                                                 >
-                                                  <CheckCircle className="h-4 w-4 mr-1" />{" "}
-                                                  Confirmar
+                                                  <CheckCircle className="h-4 w-4 mr-1" /> Confirmar
                                                 </button>
                                               )}
-                                              {String(cita.status)
-                                                .toLowerCase()
-                                                .trim() !== "pendiente" && (
+                                              {String(cita.status).toLowerCase().trim() !== "pendiente" && (
                                                 <button
                                                   onClick={e => {
                                                     e.stopPropagation();
-                                                    doUpdateStatus(
-                                                      cita.id,
-                                                      "pendiente"
-                                                    );
+                                                    doUpdateStatus(cita.id, "pendiente");
                                                   }}
-                                                  disabled={
-                                                    actionId === cita.id
-                                                  }
+                                                  disabled={actionId === cita.id}
                                                   className="inline-flex items-center px-3 py-1 rounded-md bg-yellow-500 text-black"
                                                 >
                                                   Pendiente
                                                 </button>
                                               )}
-                                              {String(cita.status)
-                                                .toLowerCase()
-                                                .trim() !== "cancelada" && (
+                                              {String(cita.status).toLowerCase().trim() !== "cancelada" && (
                                                 <button
                                                   onClick={e => {
                                                     e.stopPropagation();
-                                                    doUpdateStatus(
-                                                      cita.id,
-                                                      "cancelada"
-                                                    );
+                                                    doUpdateStatus(cita.id, "cancelada");
                                                   }}
-                                                  disabled={
-                                                    actionId === cita.id
-                                                  }
+                                                  disabled={actionId === cita.id}
                                                   className="inline-flex items-center px-3 py-1 rounded-md bg-red-600 text-white"
                                                 >
-                                                  <XCircle className="h-4 w-4 mr-1" />{" "}
-                                                  Cancelar
+                                                  <XCircle className="h-4 w-4 mr-1" /> Cancelar
                                                 </button>
                                               )}
                                               <button
@@ -452,8 +538,7 @@ export default function AdminUsuariosPage() {
                                                 }}
                                                 className="inline-flex items-center px-3 py-1 rounded-md bg-blue-600 text-white"
                                               >
-                                                <Edit3 className="h-4 w-4 mr-1" />{" "}
-                                                Reprogramar
+                                                <Edit3 className="h-4 w-4 mr-1" /> Reprogramar
                                               </button>
                                             </div>
                                             {schedId === cita.id && (
@@ -462,28 +547,18 @@ export default function AdminUsuariosPage() {
                                                   <input
                                                     type="date"
                                                     value={schedDate}
-                                                    onChange={e =>
-                                                      setSchedDate(
-                                                        e.target.value
-                                                      )
-                                                    }
+                                                    onChange={e => setSchedDate(e.target.value)}
                                                     className="border border-gray-300 rounded-md px-3 py-2 w-full"
                                                   />
                                                   <input
                                                     type="time"
                                                     value={schedTime}
-                                                    onChange={e =>
-                                                      setSchedTime(
-                                                        e.target.value
-                                                      )
-                                                    }
+                                                    onChange={e => setSchedTime(e.target.value)}
                                                     className="border border-gray-300 rounded-md px-3 py-2 w-full"
                                                   />
                                                 </div>
                                                 {schedError && (
-                                                  <div className="text-sm text-red-600">
-                                                    {schedError}
-                                                  </div>
+                                                  <div className="text-sm text-red-600">{schedError}</div>
                                                 )}
                                                 <div className="flex gap-2">
                                                   <button
@@ -514,27 +589,76 @@ export default function AdminUsuariosPage() {
                                           </>
                                         )}
                                         {actionError && actionId === null && (
-                                          <div className="mt-2 text-sm text-red-600">
-                                            {actionError}
-                                          </div>
+                                          <div className="mt-2 text-sm text-red-600">{actionError}</div>
                                         )}
                                         {reschedMsgById[cita.id] && (
-                                          <div className="mt-2 text-sm text-blue-700">
-                                            {reschedMsgById[cita.id]}
-                                          </div>
+                                          <div className="mt-2 text-sm text-blue-700">{reschedMsgById[cita.id]}</div>
                                         )}
                                       </div>
                                     )}
                                   </div>
-                                )
-                              )}
-                              {(citasByUser[String(u.id)] || []).length ===
-                                0 && (
-                                <div className="text-gray-600">
-                                  Sin citas para este usuario.
+                                ))}
+                                {(citasByUser[String(u.id)] || []).length === 0 && (
+                                  <div className="text-gray-600 italic py-2">
+                                    Sin citas registradas.
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                          )}
+
+                          {/* Sección Productos */}
+                          {activeTab === "products" && (
+                          <div className="animate-fadeIn">
+                            <h3 className="text-md font-bold text-gray-700 mb-2 flex items-center border-b pb-2">
+                              <RefreshCw className="h-5 w-5 mr-2" /> Productos Comprados
+                            </h3>
+                             {loadingOrdersUserId === u.id && (
+                                <div className="text-gray-600 py-4">Cargando productos...</div>
+                             )}
+                             {errorOrders && loadingOrdersUserId === null && (
+                                <div className="text-red-600 py-4">{errorOrders}</div>
+                             )}
+                             {!loadingOrdersUserId && !errorOrders && (
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
+                                  {(ordersByUser[String(u.id)] || []).map((order, i3) => (
+                                     <div key={`${order.id}-${i3}`} className="border border-gray-200 rounded-md p-3 bg-white hover:shadow-sm transition-shadow">
+                                        <div className="text-md font-semibold text-gray-900 mb-1">
+                                          {order.items && Array.isArray(order.items) 
+                                            ? order.items.map((i:any) => i.product_name).join(", ") 
+                                            : order.product_name || "Producto sin nombre"}
+                                        </div>
+                                        <div className="text-sm text-gray-600">
+                                          Total: ${Number(order.total || 0).toLocaleString()}
+                                        </div>
+                                        <div className="text-sm text-gray-600">
+                                          Fecha: {new Date(order.created_at).toLocaleDateString("es-CL")}
+                                        </div>
+                                        <div className={`inline-block mt-2 px-3 py-1 rounded-full text-xs font-semibold ${
+                                          (() => {
+                                            const s = String(order.status || "confirmado").toLowerCase().trim();
+                                            switch(s) {
+                                              case 'entregado': return 'bg-green-600 text-white';
+                                              case 'pendiente': return 'bg-yellow-400 text-yellow-900';
+                                              case 'confirmado': return 'bg-blue-600 text-white';
+                                              case 'cancelado': return 'bg-red-600 text-white';
+                                              default: return 'bg-gray-200 text-gray-800';
+                                            }
+                                          })()
+                                        }`}>
+                                          {String(order.status || "confirmado").toUpperCase()}
+                                        </div>
+                                     </div>
+                                  ))}
+                                  {(ordersByUser[String(u.id)] || []).length === 0 && (
+                                     <div className="text-gray-600 italic py-2">
+                                       No hay compras registradas.
+                                     </div>
+                                  )}
                                 </div>
-                              )}
-                            </div>
+                             )}
+                          </div>
                           )}
                         </div>
                       )}

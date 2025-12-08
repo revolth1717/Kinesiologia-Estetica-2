@@ -1139,7 +1139,7 @@ function AgendarContent() {
                     htmlFor="zona"
                     className="block text-sm font-medium text-gray-700 mb-1"
                   >
-                    Zona
+                    Zonas del tratamiento
                   </label>
                   <select
                     id="zona"
