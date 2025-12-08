@@ -963,7 +963,7 @@ export default function PerfilPage() {
                                     onClick={() => handleCancelarCita(cita.id)}
                                     disabled={isCancellingId === cita.id || !puedeCancelar}
                                     title={!puedeCancelar ? "No se puede cancelar con menos de 24 horas de anticipación" : undefined}
-                                    className={`inline-flex items-center px-3 py-2 text-sm rounded-md ${isCancellingId === cita.id || !puedeCancelar ? "bg-gray-300 text-gray-600 cursor-not-allowed" : "bg-red-600 text-white hover:bg-red-700"} disabled:opacity-50`}
+                                    className={`inline-flex items-center px-3 py-2 text-sm rounded-md ${isCancellingId === cita.id || !puedeCancelar ? "bg-gray-300 text-gray-600 dark:bg-gray-700 dark:text-gray-400 cursor-not-allowed" : "bg-red-600 text-white hover:bg-red-700"} disabled:opacity-50`}
                                   >
                                     {isCancellingId === cita.id ? (
                                       <span className="inline-flex items-center">
@@ -974,7 +974,7 @@ export default function PerfilPage() {
                                     )}
                                   </button>
                                   {!puedeCancelar && (
-                                    <span className="mt-1 text-xs text-gray-500">Solo puedes cancelar hasta 24 horas antes.</span>
+                                    <span className="mt-1 text-xs text-gray-500 dark:text-gray-400">Solo puedes cancelar hasta 24 horas antes.</span>
                                   )}
                                 </div>
                               )}

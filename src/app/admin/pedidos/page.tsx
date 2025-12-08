@@ -198,14 +198,28 @@ export default function AdminPedidosPage() {
 
   const displayItems = useMemo(() => {
     const filtered = items.filter(x => {
-      if (statusFilter === "todos") return true;
-      if (statusFilter === "entregado") return x.status === "entregado";
-      // Si es "confirmado", mostramos todo lo que NO esté entregado
-      // (incluyendo "confirmed", "paid", "pending", etc.)
-      return x.status !== "entregado";
+      // Pestaña ENTREGADOS: Muestra entregados y archivados
+      if (statusFilter === "entregado") {
+        return x.status === "entregado" || x.status === "archivado";
+      }
+      
+      // Pestaña CONFIRMADO (o cualquier otra específica si la hubiera):
+      if (statusFilter === "confirmado") {
+         // Lógica original: confirmado es todo lo que no es entregado/archivado
+         // O si el usuario quiere STRICTLY "confirmado" strings? 
+         // El código original trataba "confirmado" como "pendientes".
+         // Asumiremos que "confirmado" aqui actua igual que "Todos" en exclusion.
+         return x.status !== "entregado" && x.status !== "archivado";
+      }
+
+      // Pestaña TODOS: Solamente "pendientes" (excluir entregados y archivados)
+      if (statusFilter === "todos") {
+         return x.status !== "entregado" && x.status !== "archivado";
+      }
+      
+      return true;
     });
 
-    // Ordenar por fecha (más recientes primero)
     return filtered.sort((a, b) => {
       const dateA = a.order_date ? new Date(a.order_date).getTime() : 0;
       const dateB = b.order_date ? new Date(b.order_date).getTime() : 0;
@@ -213,12 +227,41 @@ export default function AdminPedidosPage() {
     });
   }, [items, statusFilter]);
 
-  const limpiarEntregados = () => {
+  const limpiarEntregados = async () => {
     try {
-      setItems(prev =>
-        prev.filter(x => String(x.status || "").toLowerCase() !== "entregado")
-      );
-      setCleanMsg("Pedidos entregados removidos de la vista");
+      const delivered = items.filter(x => String(x.status || "").toLowerCase() === "entregado");
+      if (delivered.length === 0) {
+        setCleanMsg("No hay pedidos entregados para limpiar");
+        setTimeout(() => setCleanMsg(""), 2500);
+        return;
+      }
+
+      setCleanMsg(`Archivando ${delivered.length} pedidos...`);
+      let successCount = 0;
+
+      // Process in batches of 3 to avoid overwhelming browser/network
+      for (let i = 0; i < delivered.length; i += 3) {
+        const batch = delivered.slice(i, i + 3);
+        await Promise.all(batch.map(async (order) => {
+          try {
+            const numericOrStringId = /^\d+$/.test(String(order.id)) ? Number(order.id) : order.id;
+            const target = `/api/order?id=${encodeURIComponent(String(numericOrStringId))}`;
+            const res = await fetch(target, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ status: "archivado" }),
+            });
+            if (res.ok) {
+              successCount++;
+              setItems(prev => prev.map(p => p.id === order.id ? { ...p, status: "archivado" } : p));
+            }
+          } catch (e) {
+            console.error(e);
+          }
+        }));
+      }
+
+      setCleanMsg(`${successCount} pedidos archivados correctamente`);
       setTimeout(() => setCleanMsg(""), 2500);
     } catch (err: any) {
       setCleanMsg(String(err?.message || err));
@@ -292,7 +335,7 @@ export default function AdminPedidosPage() {
                 : "bg-gray-100 text-gray-700"
                 }`}
             >
-              Confirmados
+              Pendientes
             </button>
             <button
               onClick={() => setStatusFilter("entregado")}
@@ -303,26 +346,7 @@ export default function AdminPedidosPage() {
             >
               Entregados
             </button>
-            <button
-              onClick={() => setStatusFilter("todos")}
-              className={`px-3 py-1 rounded-md text-sm ${statusFilter === "todos"
-                ? "bg-pink-600 text-white"
-                : "bg-gray-100 text-gray-700"
-                }`}
-            >
-              Todos
-            </button>
           </div>
-          {statusFilter === "todos" && (
-            <div className="mb-3">
-              <button
-                onClick={limpiarEntregados}
-                className="px-3 py-2 rounded-md text-sm bg-gray-100 text-gray-700 hover:bg-gray-200"
-              >
-                Limpiar entregados
-              </button>
-            </div>
-          )}
           {error && <div className="mb-4 text-red-600">{error}</div>}
           <div className="bg-white shadow rounded-lg overflow-hidden">
             <div className="divide-y divide-gray-200">
@@ -384,14 +408,27 @@ export default function AdminPedidosPage() {
                     </div>
                     <div className="text-left md:text-right flex flex-col md:items-end gap-2">
                       <span
-                        className={`inline-block mt-1 px-3 py-1 rounded-full text-xs font-medium ${o.status === "entregado"
-                          ? "bg-green-100 text-green-700"
-                          : "bg-yellow-100 text-yellow-800"
-                          }`}
+                        className={`inline-block mt-1 px-3 py-1 rounded-full text-xs font-semibold ${
+                          (() => {
+                            const s = String(o.status || "confirmado").toLowerCase().trim();
+                            // Visualmente "archivado" se ve igual a "entregado"
+                            if (s === 'archivado' || s === 'entregado') return 'bg-green-600 text-white';
+                            switch(s) {
+                              case 'pendiente': return 'bg-yellow-400 text-yellow-900';
+                              case 'confirmado': return 'bg-blue-600 text-white';
+                              case 'cancelado': return 'bg-red-600 text-white';
+                              default: return 'bg-gray-200 text-gray-800';
+                            }
+                          })()
+                        }`}
                       >
-                        {o.status === "entregado" ? "Entregado" : "Confirmado"}
+                        {(() => {
+                           const s = String(o.status || "confirmado").toLowerCase().trim();
+                           if (s === 'archivado') return 'ENTREGADO';
+                           return s.toUpperCase();
+                        })()}
                       </span>
-                      {o.status !== "entregado" && (
+                      {o.status !== "entregado" && o.status !== "archivado" && (
                         <button
                           onClick={() => marcarEntregado(o.id)}
                           disabled={actionId === o.id}
