@@ -15,7 +15,7 @@ const XANO_AUTH =
   clean(process.env.NEXT_PUBLIC_AUTH_URL) ||
   "https://x8ki-letl-twmt.n7.xano.io/api:-E-1dvfg";
 
-function readTokenFromRequest(req: Request): string | undefined {
+async function readTokenFromRequest(req: Request): Promise<string | undefined> {
   const cookieHeader = req.headers.get("cookie") || "";
   const parts = cookieHeader.split(";");
   for (const part of parts) {
@@ -23,7 +23,7 @@ function readTokenFromRequest(req: Request): string | undefined {
     if (k === "authToken" && v) return decodeURIComponent(v);
   }
   try {
-    const store = cookies();
+    const store = await cookies();
     return store.get("authToken")?.value;
   } catch {
     return undefined;
@@ -35,7 +35,7 @@ export async function PATCH(
   { params }: { params: any }
 ): Promise<Response> {
   try {
-    const token = readTokenFromRequest(req);
+    const token = await readTokenFromRequest(req);
     if (!token) {
       return NextResponse.json(
         { message: "Authentication Required" },
@@ -122,13 +122,30 @@ export async function PATCH(
         }
       };
       const d = toDate(payload.appointment_date);
-      const dd = String(d.getDate()).padStart(2, "0");
-      const mm = String(d.getMonth() + 1).padStart(2, "0");
-      const yy = String(d.getFullYear());
-      const dmy = `${dd}-${mm}-${yy}`;
-      const hhmm = `${String(d.getHours()).padStart(2, "0")}:${String(
-        d.getMinutes()
-      ).padStart(2, "0")}`;
+      const extractChileTime = (dateObj: Date) => {
+        const fmt = new Intl.DateTimeFormat("es-CL", {
+          timeZone: "America/Santiago",
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: false,
+        });
+        const parts = fmt.formatToParts(dateObj);
+        const getPart = (type: string) => parts.find(p => p.type === type)?.value || "";
+        return {
+          day: getPart("day"),
+          month: getPart("month"),
+          year: getPart("year"),
+          hour: getPart("hour"),
+          minute: getPart("minute"),
+        };
+      };
+
+      const { day, month, year, hour, minute } = extractChileTime(d);
+      const dmy = `${day}-${month}-${year}`;
+      const hhmm = `${hour}:${minute}`;
       console.log("[proxy] reschedule compose", {
         id: idStr,
         input: payload.appointment_date,
@@ -285,7 +302,7 @@ export async function DELETE(
   { params }: { params: any }
 ): Promise<Response> {
   try {
-    const token = readTokenFromRequest(req);
+    const token = await readTokenFromRequest(req);
     if (!token) {
       return NextResponse.json(
         { message: "Authentication Required" },
