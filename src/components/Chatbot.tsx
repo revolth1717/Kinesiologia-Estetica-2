@@ -52,8 +52,18 @@ export default function Chatbot() {
         setIsLoading(true);
 
         try {
+            // Ruteo dinámico según el rol
+            const webhookUrl = user?.role === "administrador"
+                ? "https://kinesiologia.app.n8n.cloud/webhook/prueba" // Bot Admin
+                : "https://kinesiologia.app.n8n.cloud/webhook/kine-cliente-web"; // Bot Cliente - NOMBRE ÚNICO
+
+            console.log("🔍 DEBUG CHATBOT:", {
+                rol: user?.role,
+                url_elegida: webhookUrl
+            });
+
             const response = await fetch(
-                "https://kinesiologia.app.n8n.cloud/webhook/prueba",
+                webhookUrl,
                 {
                     method: "POST",
                     headers: {
@@ -112,10 +122,36 @@ export default function Chatbot() {
             setIsLoading(false);
         }
     };
-
     // Número de WhatsApp de prueba (Meta)
     const WHATSAPP_NUMBER = "15551828558";
     const whatsappLink = `https://wa.me/${WHATSAPP_NUMBER}`;
+
+    const renderMessageWithLinks = (text: string) => {
+        // Expresión regular para detectar URLs (excluyendo paréntesis de cierre)
+        const urlRegex = /(https?:\/\/[^\s)]+)/g;
+
+        // Dividir el texto por la URL
+        const parts = text.split(urlRegex);
+
+        return parts.map((part, index) => {
+            // Si la parte coincide con la regex, renderizarla como link
+            if (part.match(urlRegex)) {
+                return (
+                    <a
+                        key={index}
+                        href={part}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-200 underline hover:text-white break-all"
+                    >
+                        {part}
+                    </a>
+                );
+            }
+            // Si no, renderizar como texto normal
+            return part;
+        });
+    };
 
     return (
         <>
@@ -219,7 +255,7 @@ export default function Chatbot() {
                                                     : "bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-bl-none border border-gray-100 dark:border-gray-600"
                                                     }`}
                                             >
-                                                <p className="whitespace-pre-wrap">{msg.content}</p>
+                                                <p className="whitespace-pre-wrap">{renderMessageWithLinks(msg.content)}</p>
                                                 <span
                                                     className={`text-[10px] mt-1 block opacity-70 ${msg.sender === "user" ? "text-blue-100" : "text-gray-400"
                                                         }`}

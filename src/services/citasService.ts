@@ -46,6 +46,8 @@ class CitasService {
     };
   }
 
+  private userCitasPromise: Promise<Cita[]> | null = null;
+
   // Obtener todas las citas del usuario autenticado (DB-only)
   async obtenerCitasUsuario(): Promise<Cita[]> {
     try {
@@ -57,36 +59,54 @@ class CitasService {
       ) {
         return this.lastUserCitasCache.data;
       }
-      // Consultar citas del usuario a través del backend local
-      const response = await fetch(`${API_LOCAL_BASE}/user`, {
-        method: "GET",
-        headers: this.getAuthHeaders(),
-        credentials: "include",
-      });
 
-      if (!response.ok) {
-        if ([401, 403].includes(response.status)) {
-          throw new Error("No autorizado. Inicia sesión para ver tus citas.");
+      // Si ya hay una solicitud en vuelo, devolver la misma promesa (Deduplicación)
+      if (this.userCitasPromise) {
+        return this.userCitasPromise;
+      }
+
+      this.userCitasPromise = (async () => {
+        try {
+          // Consultar citas del usuario a través del backend local
+          const response = await fetch(`${API_LOCAL_BASE}/user`, {
+            method: "GET",
+            headers: this.getAuthHeaders(),
+            credentials: "include",
+          });
+
+          if (!response.ok) {
+            if ([401, 403].includes(response.status)) {
+              throw new Error("No autorizado. Inicia sesión para ver tus citas.");
+            }
+            if (response.status === 429) {
+              console.warn("Rate limit exceeded (429). Returning empty list/cache.");
+              return this.lastUserCitasCache?.data || [];
+            }
+            throw new Error(`Error ${response.status}: ${response.statusText}`);
+          }
+
+          const citas = await response.json();
+          // Asegurar que los estados estén en minúsculas para la UI
+          if (Array.isArray(citas)) {
+            const data = citas.map((c: any) => this.normalizarCita(c));
+            this.lastUserCitasCache = { data, ts: Date.now() };
+            return data;
+          }
+          // Si el backend devolviera un objeto único, normalizar y envolver en array
+          if (citas && typeof citas === "object") {
+            const data = [this.normalizarCita(citas)];
+            this.lastUserCitasCache = { data, ts: Date.now() };
+            return data;
+          }
+          const data: Cita[] = [];
+          this.lastUserCitasCache = { data, ts: Date.now() };
+          return data;
+        } finally {
+          this.userCitasPromise = null;
         }
-        throw new Error(`Error ${response.status}: ${response.statusText}`);
-      }
+      })();
 
-      const citas = await response.json();
-      // Asegurar que los estados estén en minúsculas para la UI
-      if (Array.isArray(citas)) {
-        const data = citas.map((c: any) => this.normalizarCita(c));
-        this.lastUserCitasCache = { data, ts: now };
-        return data;
-      }
-      // Si el backend devolviera un objeto único, normalizar y envolver en array
-      if (citas && typeof citas === "object") {
-        const data = [this.normalizarCita(citas)];
-        this.lastUserCitasCache = { data, ts: now };
-        return data;
-      }
-      const data: Cita[] = [];
-      this.lastUserCitasCache = { data, ts: now };
-      return data;
+      return this.userCitasPromise;
     } catch (error) {
       console.error("Error al obtener citas del usuario:", error);
       throw error;
