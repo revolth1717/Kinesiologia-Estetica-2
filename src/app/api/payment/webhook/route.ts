@@ -71,7 +71,7 @@ async function createPaymentInXano(paymentData: any, userId: any) {
         }
 
         // 2. Si no existe, lo creamos
-        await fetch(`${API_URL}${PAYMENT_PATH}`, {
+        const res = await fetch(`${API_URL}${PAYMENT_PATH}`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -80,11 +80,16 @@ async function createPaymentInXano(paymentData: any, userId: any) {
                 status: paymentData.status,
                 payment_method: paymentData.payment_type_id,
                 date: paymentData.date_approved,
-                items: JSON.stringify(paymentData.metadata.items),
+                items: paymentData.metadata.items,
                 payer_email: paymentData.payer.email,
-                user_id: userId ? Number(userId) : undefined
+                user_id: userId ? Number(userId) : undefined,
+                appointment_id: paymentData.metadata.items.find((i: any) => i.type === 'service')?.appointment_id ? Number(paymentData.metadata.items.find((i: any) => i.type === 'service')?.appointment_id) : undefined
             })
         });
+
+        if (!res.ok) {
+            console.error(`Failed to create payment in Xano. Status: ${res.status}`, await res.text());
+        }
     } catch (e) {
         console.error("Error creating payment in Xano:", e);
     }

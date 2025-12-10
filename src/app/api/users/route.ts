@@ -5,7 +5,7 @@ const clean = (s?: string) => String(s || "").trim().replace(/^`+|`+$/g, "").rep
 const XANO_GENERAL = clean(process.env.NEXT_PUBLIC_XANO_CONTENT_API) || clean(process.env.NEXT_PUBLIC_XANO_CONTENT_API) || "https://x1xv-egpg-1mua.b2.xano.io/api:SzJNIj2V";
 const XANO_AUTH = clean(process.env.NEXT_PUBLIC_XANO_AUTH_API) || clean(process.env.NEXT_PUBLIC_XANO_AUTH_API) || "https://x1xv-egpg-1mua.b2.xano.io/api:-E-1dvfg";
 
-function readTokenFromRequest(req: Request): string | undefined {
+async function readTokenFromRequest(req: Request): Promise<string | undefined> {
   const cookieHeader = req.headers.get("cookie") || "";
   const parts = cookieHeader.split(";");
   for (const part of parts) {
@@ -13,7 +13,7 @@ function readTokenFromRequest(req: Request): string | undefined {
     if (k === "authToken" && v) return decodeURIComponent(v);
   }
   try {
-    const store = cookies();
+    const store = await cookies();
     return store.get("authToken")?.value;
   } catch {
     return undefined;
@@ -30,7 +30,7 @@ export async function GET(req: NextRequest): Promise<Response> {
       const cached = (global as any).__USERS_CACHE;
       return NextResponse.json({ success: true, data: cached }, { status: 200 });
     }
-    const token = readTokenFromRequest(req);
+    const token = await readTokenFromRequest(req);
     if (!token) {
       return NextResponse.json({ message: "Authentication Required" }, { status: 401 });
     }

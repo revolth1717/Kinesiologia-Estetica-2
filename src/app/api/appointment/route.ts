@@ -16,7 +16,7 @@ const XANO_AUTH =
   clean(process.env.NEXT_PUBLIC_XANO_AUTH_API) ||
   "https://x1xv-egpg-1mua.b2.xano.io/api:-E-1dvfg";
 
-function readTokenFromRequest(req: Request): string | undefined {
+async function readTokenFromRequest(req: Request): Promise<string | undefined> {
   const cookieHeader = req.headers.get("cookie") || "";
   const parts = cookieHeader.split(";");
   for (const part of parts) {
@@ -24,7 +24,7 @@ function readTokenFromRequest(req: Request): string | undefined {
     if (k === "authToken" && v) return decodeURIComponent(v);
   }
   try {
-    const store = cookies();
+    const store = await cookies();
     return store.get("authToken")?.value;
   } catch {
     return undefined;
@@ -33,7 +33,7 @@ function readTokenFromRequest(req: Request): string | undefined {
 
 export async function POST(req: Request): Promise<Response> {
   try {
-    const token = readTokenFromRequest(req);
+    const token = await readTokenFromRequest(req);
     if (!token) {
       return NextResponse.json(
         { message: "Authentication Required" },
@@ -64,7 +64,7 @@ export async function POST(req: Request): Promise<Response> {
 
 export async function GET(req: Request): Promise<Response> {
   try {
-    const token = readTokenFromRequest(req);
+    const token = await readTokenFromRequest(req);
     if (!token) {
       return NextResponse.json(
         { message: "Authentication Required" },

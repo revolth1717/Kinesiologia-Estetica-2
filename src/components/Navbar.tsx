@@ -289,18 +289,21 @@ const Navbar = () => {
               <>
                 <Link
                   href="/tratamientos"
+                  onClick={() => setIsMenuOpen(false)}
                   className="block px-3 py-2 text-gray-700 dark:text-gray-200 hover:text-pink-600 dark:hover:text-pink-400 transition-colors"
                 >
                   Tratamientos
                 </Link>
                 <Link
                   href="/productos"
+                  onClick={() => setIsMenuOpen(false)}
                   className="block px-3 py-2 text-gray-700 dark:text-gray-200 hover:text-pink-600 dark:hover:text-pink-400 transition-colors"
                 >
                   Productos
                 </Link>
                 <Link
                   href="/contacto"
+                  onClick={() => setIsMenuOpen(false)}
                   className="block px-3 py-2 text-gray-700 dark:text-gray-200 hover:text-pink-600 dark:hover:text-pink-400 transition-colors"
                 >
                   Contacto
@@ -311,24 +314,28 @@ const Navbar = () => {
               <>
                 <Link
                   href="/admin/citas"
+                  onClick={() => setIsMenuOpen(false)}
                   className="block px-3 py-2 text-pink-700 dark:text-pink-300 hover:text-pink-900 dark:hover:text-pink-200 transition-colors border rounded-md border-pink-300"
                 >
                   Gestión de citas
                 </Link>
                 <Link
                   href="/admin/pedidos"
+                  onClick={() => setIsMenuOpen(false)}
                   className="block px-3 py-2 text-pink-700 dark:text-pink-300 hover:text-pink-900 dark:hover:text-pink-200 transition-colors border rounded-md border-pink-300"
                 >
                   Productos comprados
                 </Link>
                 <Link
                   href="/admin/inventario"
+                  onClick={() => setIsMenuOpen(false)}
                   className="block px-3 py-2 text-pink-700 dark:text-pink-300 hover:text-pink-900 dark:hover:text-pink-200 transition-colors border rounded-md border-pink-300"
                 >
                   Gestión de inventario
                 </Link>
                 <Link
                   href="/admin/usuarios"
+                  onClick={() => setIsMenuOpen(false)}
                   className="block px-3 py-2 text-pink-700 dark:text-pink-300 hover:text-pink-900 dark:hover:text-pink-200 transition-colors border rounded-md border-pink-300"
                 >
                   Buscador de usuarios
@@ -338,6 +345,7 @@ const Navbar = () => {
             {!(isLoggedIn && isAdmin) && (
               <Link
                 href="/carrito"
+                onClick={() => setIsMenuOpen(false)}
                 className="flex items-center px-3 py-2 text-gray-700 dark:text-gray-200 hover:text-pink-600 dark:hover:text-pink-400 transition-colors"
               >
                 <div className="relative mr-2">
@@ -360,13 +368,17 @@ const Navbar = () => {
               <>
                 <Link
                   href="/perfil"
+                  onClick={() => setIsMenuOpen(false)}
                   className="flex items-center px-3 py-2 text-gray-700 dark:text-gray-200 hover:text-pink-600 dark:hover:text-pink-400 transition-colors"
                 >
                   <User className="h-5 w-5 mr-2" />
                   Mi Perfil
                 </Link>
                 <button
-                  onClick={logout}
+                  onClick={() => {
+                    logout();
+                    setIsMenuOpen(false);
+                  }}
                   className="flex items-center w-full text-left px-3 py-2 text-gray-700 dark:text-gray-200 hover:text-pink-600 dark:hover:text-pink-400 transition-colors"
                 >
                   <LogOut className="h-5 w-5 mr-2" />
@@ -377,6 +389,7 @@ const Navbar = () => {
               <>
                 <Link
                   href="/login"
+                  onClick={() => setIsMenuOpen(false)}
                   className="flex items-center px-3 py-2 text-gray-700 dark:text-gray-200 hover:text-pink-600 dark:hover:text-pink-400 transition-colors"
                 >
                   <LogIn className="h-5 w-5 mr-2" />
@@ -384,6 +397,7 @@ const Navbar = () => {
                 </Link>
                 <Link
                   href="/registro"
+                  onClick={() => setIsMenuOpen(false)}
                   className="flex items-center px-3 py-2 text-gray-700 dark:text-gray-200 hover:text-pink-600 dark:hover:text-pink-400 transition-colors"
                 >
                   <UserPlus className="h-5 w-5 mr-2" />

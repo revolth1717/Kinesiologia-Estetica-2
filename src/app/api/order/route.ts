@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-function readTokenFromRequest(req: Request): string | undefined {
+async function readTokenFromRequest(req: Request): Promise<string | undefined> {
   const cookieHeader = req.headers.get("cookie") || "";
   const parts = cookieHeader.split(";");
   for (const part of parts) {
@@ -9,7 +9,7 @@ function readTokenFromRequest(req: Request): string | undefined {
   }
   try {
     const { cookies } = require("next/headers");
-    const store = cookies();
+    const store = await cookies();
     return store.get("authToken")?.value;
   } catch {
     return undefined;
@@ -89,7 +89,7 @@ async function updateProductStock(
 
 export async function GET(req: Request): Promise<Response> {
   try {
-    const token = readTokenFromRequest(req);
+    const token = await readTokenFromRequest(req);
     if (!token)
       return NextResponse.json(
         { message: "Authentication Required" },
@@ -158,7 +158,7 @@ export async function GET(req: Request): Promise<Response> {
 
 export async function POST(req: Request): Promise<Response> {
   try {
-    const token = readTokenFromRequest(req);
+    const token = await readTokenFromRequest(req);
     if (!token)
       return NextResponse.json(
         { message: "Authentication Required" },
@@ -286,7 +286,7 @@ export async function POST(req: Request): Promise<Response> {
 
 export async function PATCH(req: Request): Promise<Response> {
   try {
-    const token = readTokenFromRequest(req);
+    const token = await readTokenFromRequest(req);
     if (!token)
       return NextResponse.json(
         { message: "Authentication Required" },
