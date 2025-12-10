@@ -1,6 +1,6 @@
 import { NextResponse, NextRequest } from "next/server";
 
-const CONTENT_API_URL = process.env.NEXT_PUBLIC_XANO_CONTENT_API || process.env.NEXT_PUBLIC_XANO_CONTENT_API || "https://x8ki-letl-twmt.n7.xano.io/api:SzJNIj2V";
+const CONTENT_API_URL = process.env.NEXT_PUBLIC_XANO_CONTENT_API || process.env.NEXT_PUBLIC_XANO_CONTENT_API || "https://x1xv-egpg-1mua.b2.xano.io/api:SzJNIj2V";
 const ZONES_BY_TREATMENT_PATH = process.env.NEXT_PUBLIC_ZONES_BY_TREATMENT_PATH || "/zonas-por-tratamiento";
 
 export async function GET(req: NextRequest): Promise<Response> {

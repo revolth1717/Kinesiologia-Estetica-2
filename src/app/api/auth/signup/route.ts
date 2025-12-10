@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-const XANO_API_URL = process.env.NEXT_PUBLIC_XANO_AUTH_API ?? "https://x8ki-letl-twmt.n7.xano.io/api:-E-1dvfg";
+const XANO_API_URL = process.env.NEXT_PUBLIC_XANO_AUTH_API ?? "https://x1xv-egpg-1mua.b2.xano.io/api:-E-1dvfg";
 
 export async function POST(req: Request): Promise<Response> {
   try {

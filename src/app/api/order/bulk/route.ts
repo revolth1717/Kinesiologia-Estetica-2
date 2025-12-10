@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-function readTokenFromRequest(req: Request): string | undefined {
+async function readTokenFromRequest(req: Request): Promise<string | undefined> {
   const cookieHeader = req.headers.get("cookie") || "";
   const parts = cookieHeader.split(";");
   for (const part of parts) {
@@ -9,7 +9,7 @@ function readTokenFromRequest(req: Request): string | undefined {
   }
   try {
     const { cookies } = require("next/headers");
-    const store = cookies();
+    const store = await cookies();
     return store.get("authToken")?.value;
   } catch {
     return undefined;
@@ -20,7 +20,7 @@ const API_URL =
   process.env.NEXT_PUBLIC_XANO_CONTENT_API ||
   process.env.NEXT_PUBLIC_XANO_CONTENT_API ||
   process.env.NEXT_PUBLIC_XANO_AUTH_API ||
-  "https://x8ki-letl-twmt.n7.xano.io/api:SzJNIj2V";
+  "https://x1xv-egpg-1mua.b2.xano.io/api:SzJNIj2V";
 const CONTENT_API_URL =
   process.env.NEXT_PUBLIC_XANO_CONTENT_API ||
   process.env.NEXT_PUBLIC_XANO_CONTENT_API ||
@@ -91,7 +91,7 @@ function sleep(ms: number) {
 
 export async function POST(req: Request): Promise<Response> {
   try {
-    const token = readTokenFromRequest(req);
+    const token = await readTokenFromRequest(req);
     if (!token)
       return NextResponse.json(
         { message: "Authentication Required" },

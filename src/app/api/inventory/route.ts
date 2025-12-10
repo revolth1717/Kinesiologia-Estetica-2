@@ -8,13 +8,13 @@ const clean = (s?: string) =>
     .replace(/^"+|"+$/g, "")
     .replace(/^'+|'+$/g, "");
 // Force the general group for inventory as per user setup
-const XANO_GENERAL = "https://x8ki-letl-twmt.n7.xano.io/api:SzJNIj2V";
+const XANO_GENERAL = process.env.XANO_GENERAL_API_URL || "https://x1xv-egpg-1mua.b2.xano.io/api:SzJNIj2V";
 const XANO_AUTH =
   clean(process.env.NEXT_PUBLIC_XANO_AUTH_API) ||
   clean(process.env.NEXT_PUBLIC_XANO_AUTH_API) ||
-  "https://x8ki-letl-twmt.n7.xano.io/api:-E-1dvfg";
+  "https://x1xv-egpg-1mua.b2.xano.io/api:-E-1dvfg";
 
-function readTokenFromRequest(req: Request): string | undefined {
+async function readTokenFromRequest(req: Request): Promise<string | undefined> {
   const cookieHeader = req.headers.get("cookie") || "";
   const parts = cookieHeader.split(";");
   for (const part of parts) {
@@ -22,7 +22,7 @@ function readTokenFromRequest(req: Request): string | undefined {
     if (k === "authToken" && v) return decodeURIComponent(v);
   }
   try {
-    const store = cookies();
+    const store = await cookies();
     return store.get("authToken")?.value;
   } catch {
     return undefined;
@@ -61,7 +61,7 @@ async function ensureAdmin(req: Request, token: string | undefined): Promise<boo
 
 export async function GET(req: Request): Promise<Response> {
   try {
-    const token = readTokenFromRequest(req);
+    const token = await readTokenFromRequest(req);
     if (!token) {
       return NextResponse.json({ message: "Authentication Required" }, { status: 401 });
     }
@@ -121,7 +121,7 @@ export async function GET(req: Request): Promise<Response> {
 
 export async function POST(req: Request): Promise<Response> {
   try {
-    const token = readTokenFromRequest(req);
+    const token = await readTokenFromRequest(req);
     if (!token) {
       return NextResponse.json({ message: "Authentication Required" }, { status: 401 });
     }
