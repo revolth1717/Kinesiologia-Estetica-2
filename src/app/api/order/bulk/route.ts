@@ -20,7 +20,7 @@ const API_URL =
   process.env.NEXT_PUBLIC_XANO_CONTENT_API ||
   process.env.NEXT_PUBLIC_XANO_CONTENT_API ||
   process.env.NEXT_PUBLIC_XANO_AUTH_API ||
-  "https://x8ki-letl-twmt.n7.xano.io/api:SzJNIj2V";
+  "https://x1xv-egpg-1mua.b2.xano.io/api:SzJNIj2V";
 const CONTENT_API_URL =
   process.env.NEXT_PUBLIC_XANO_CONTENT_API ||
   process.env.NEXT_PUBLIC_XANO_CONTENT_API ||

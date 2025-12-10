@@ -1,0 +1,126 @@
+{
+  "name": "Notificación Cancelación Cita Kinesiologia",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "cancelar-cita",
+        "options": {}
+      },
+      "id": "1acbac57-697f-47c1-9654-ab363870547e",
+      "name": "Webhook Cancelación",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        80,
+        -64
+      ],
+      "webhookId": "cancelar-cita"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Formatear fecha y hora para lectura humana\nconst rawDate = $input.item.json.body.cita.fecha_hora;\nconst dateObj = new Date(rawDate);\n\n// Opciones de formato\nconst options = { \n  weekday: 'long', \n  year: 'numeric', \n  month: 'long', \n  day: 'numeric', \n  hour: '2-digit', \n  minute: '2-digit',\n  timeZone: 'America/Santiago'\n};\n\nconst formattedDate = dateObj.toLocaleDateString('es-CL', options);\n\nreturn {\n  formatted_date: formattedDate,\n  ...$input.item.json.body\n};"
+      },
+      "id": "217bdbe7-0b8a-45f2-9329-5f5d62bc55e1",
+      "name": "Formatear Fecha",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        304,
+        -64
+      ]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "mensaje_admin",
+              "value": "=⚠️ *CITA CANCELADA* ⚠️\n\n👤 *Cliente:* {{ $json.cliente.nombre }}\n📧 *Email:* {{ $json.cliente.email }}\n📱 *Teléfono:* {{ $json.cliente.telefono }}\n\n📅 *Fecha:* {{ $json.formatted_date }}\n💆‍♀️ *Tratamiento:* {{ $json.cita.tratamiento }}\n🔢 *Sesión:* {{ $json.cita.sesion }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "fcf1a037-b05e-45e5-a5cb-3b23ca872afa",
+      "name": "Crear Mensaje",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [
+        528,
+        -64
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "phoneNumberId": "=859073053961225",
+        "recipientPhoneNumber": "56948879401",
+        "textBody": "={{ $json.mensaje_admin }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        736,
+        -64
+      ],
+      "id": "c04a0b30-f08a-4530-87f0-59d9d9cff573",
+      "name": "Send message",
+      "webhookId": "ab37489b-bafa-4d98-93e6-42eb34529c07",
+      "credentials": {
+        "whatsAppApi": {
+          "id": "etLi0H2UEZ8cYy4H",
+          "name": "WhatsApp account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook Cancelación": {
+      "main": [
+        [
+          {
+            "node": "Formatear Fecha",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatear Fecha": {
+      "main": [
+        [
+          {
+            "node": "Crear Mensaje",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Crear Mensaje": {
+      "main": [
+        [
+          {
+            "node": "Send message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "cc2580e3-c063-4c20-a745-7506c4c79f34",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "21f8575bd0d27876eaa98ef5e25907a565138b1a6ef12b351e0c355a5f0dc751"
+  },
+  "id": "wjXphY4mmQgLq6Je",
+  "tags": []
+}

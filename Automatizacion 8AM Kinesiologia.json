@@ -1,0 +1,197 @@
+{
+  "name": "Automatizacion 8AM Kinesiologia",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 8
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "id": "b05c722c-08fb-434f-bf45-5fa92c6753c7",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "url": "https://x1xv-egpg-1mua.b2.xano.io/api:SzJNIj2V/inventory",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        208,
+        0
+      ],
+      "id": "14ab09d7-6de5-422c-9202-ac689c5b6e41",
+      "name": "Inventario",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "MktND4LeT01vR0VS",
+          "name": "Header Auth Xano"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "https://x1xv-egpg-1mua.b2.xano.io/api:-E-1dvfg/appointment",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        624,
+        0
+      ],
+      "id": "c758ba81-25ae-46ce-abcb-6164c2d07879",
+      "name": "Citas",
+      "executeOnce": true,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "MktND4LeT01vR0VS",
+          "name": "Header Auth Xano"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "https://x1xv-egpg-1mua.b2.xano.io/api:SzJNIj2V/product",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        416,
+        0
+      ],
+      "id": "165c9e07-bc0d-4c5a-8a1c-c84df8093fcd",
+      "name": "Productos",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "MktND4LeT01vR0VS",
+          "name": "Header Auth Xano"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// 1. Obtener datos de los nodos anteriores\nconst inventoryItems = $('Inventario').all();\nconst productItems = $('Productos').all();\nconst appointmentItems = $('Citas').all();\n\n// Función auxiliar para asegurar que siempre sea un array\nfunction normalize(data) {\n  if (!data) return [];\n  if (Array.isArray(data)) return data;\n  if (data.json && Array.isArray(data.json)) return data.json;\n  if (data.json && data.json.items && Array.isArray(data.json.items)) return data.json.items;\n  // Si es un solo objeto dentro de json\n  if (data.json) return [data.json];\n  // Si es un array de objetos n8n\n  if (Array.isArray(data) && data[0].json) return data.map(i => i.json);\n  return [];\n}\n\n// 2. Extraer los arrays de datos usando la función segura\n// Nota: .all() devuelve un array de objetos n8n, así que mapeamos\nconst inventory = inventoryItems.map(i => i.json);\nconst products = productItems.map(i => i.json);\nconst appointments = appointmentItems.map(i => i.json);\n\n// 3. Filtrar Citas de HOY (Chile GMT-3)\nconst today = new Date().toLocaleDateString('es-CL', { timeZone: 'America/Santiago' });\n\nlet todayAppointments = [];\nif (Array.isArray(appointments)) {\n    todayAppointments = appointments.filter(app => {\n      if (!app || !app.appointment_date) return false;\n      const appDate = new Date(app.appointment_date).toLocaleDateString('es-CL', { timeZone: 'America/Santiago' });\n      return appDate === today;\n    });\n}\n\n// 4. Calcular Alertas de Stock (<= 3)\nconst alerts = [];\n\n// Revisar Inventario\nif (Array.isArray(inventory)) {\n    for (const item of inventory) {\n      const stock = Number(item.current_stock || 0);\n      if (stock <= 3) {\n        alerts.push(`⚠️ Insumo: ${item.product_name || item.name} (Stock: ${stock})`);\n      }\n    }\n}\n\n// Revisar Productos\nif (Array.isArray(products)) {\n    for (const item of products) {\n      const stock = Number(item.stock || item.current_stock || 0);\n      if (stock <= 3) {\n        alerts.push(`⚠️ Producto: ${item.name || item.title} (Stock: ${stock})`);\n      }\n    }\n}\n\n// 5. Crear Resumen\nconst summary = `\n📅 *Reporte Diario - ${today}*\n\n📌 *Citas de Hoy:* ${todayAppointments.length}\n📦 *Items en Inventario:* ${inventory.length}\n🛍️ *Productos en Venta:* ${products.length}\n\n🚨 *Alertas de Stock Bajo:*\n${alerts.length > 0 ? alerts.join('\\n') : '✅ Todo en orden'}\n`;\n\nreturn {\n  json: {\n    summary_text: summary,\n    alerts_count: alerts.length,\n    appointments_count: todayAppointments.length\n  }\n};\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        832,
+        0
+      ],
+      "id": "577b2c4e-51b5-47de-859a-398542d8eb8d",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "phoneNumberId": "=859073053961225",
+        "recipientPhoneNumber": "56948879401",
+        "textBody": "={{ $json.summary_text }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        1040,
+        0
+      ],
+      "id": "91fd4580-e933-4e7d-a80c-28e96515be22",
+      "name": "Send message",
+      "webhookId": "e1e261c9-ab7b-4167-83c5-b96f99791375",
+      "credentials": {
+        "whatsAppApi": {
+          "id": "etLi0H2UEZ8cYy4H",
+          "name": "WhatsApp account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Inventario",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Inventario": {
+      "main": [
+        [
+          {
+            "node": "Productos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Productos": {
+      "main": [
+        [
+          {
+            "node": "Citas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Citas": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Send message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "b79c7e0d-609e-4903-b2f3-008345590f3a",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "21f8575bd0d27876eaa98ef5e25907a565138b1a6ef12b351e0c355a5f0dc751"
+  },
+  "id": "9lUycBS68PQaN9cE",
+  "tags": []
+}

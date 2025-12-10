@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 // Usa la URL pública configurada para contenido y el path de tratamientos
-const CONTENT_API_URL = process.env.NEXT_PUBLIC_XANO_CONTENT_API || "https://x8ki-letl-twmt.n7.xano.io/api:SzJNIj2V";
+const CONTENT_API_URL = process.env.NEXT_PUBLIC_XANO_CONTENT_API || "https://x1xv-egpg-1mua.b2.xano.io/api:SzJNIj2V";
 const TREATMENTS_PATH = process.env.NEXT_PUBLIC_TREATMENTS_PATH || "/tratamientos";
 
 export async function GET(): Promise<Response> {

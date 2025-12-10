@@ -1,0 +1,883 @@
+{
+  "name": "Kinesiologia Estética Cliente",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "kine-cliente-web",
+        "responseMode": "responseNode",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              },
+              {
+                "name": "Access-Control-Allow-Methods",
+                "value": "POST, OPTIONS"
+              },
+              {
+                "name": "Access-Control-Allow-Headers",
+                "value": "Content-Type"
+              }
+            ]
+          }
+        }
+      },
+      "id": "6af2bdb0-c4c9-4ff7-a9cb-f636ba112ef4",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        736,
+        384
+      ],
+      "webhookId": "prueba"
+    },
+    {
+      "parameters": {
+        "agent": "openAiFunctionsAgent",
+        "text": "={{ $json.chatInput || $json.body.entry[0].changes[0].value.messages[0].text.body }}",
+        "options": {
+          "systemMessage": "=Current Date: {{ $now.format('YYYY-MM-DD') }}\n\nYou are \"KineBot\", the professional and friendly AI assistant for \"Kinesiología Estética\" clinic in Chile.\nThe timezone is America/Santiago (UTC-3).\n\nCRITICAL DATA CORRECTIONS (READING DATA):\n- The 'appointment_date' and 'appointment_time' in the JSON are ALREADY in the correct Timezone (Chile).\n- DO NOT subtract or add hours. Read them EXACTLY as they appear.\n\n📋 MANEJO INTELIGENTE DE CITAS:\n1. Cuando uses 'Client_Get_History' (Ver citas):\n   - Lee el JSON completo.\n   - **ASOCIA MENTALMENTE** cada 'id' y 'sesion' con su fecha y hora legible.\n   - NO le digas el ID al usuario, solo la hora.\n\n🚀 ESTRATEGIA DE CANCELACIÓN (Chain of Thought):\nCuando el usuario pida cancelar por fecha/hora (ej: \"Cancela la del 12/12 a las 10:00\"):\n1. 🛑 ¡ALTO! No adivines el ID ni uses tu memoria antigua.\n2. 🔍 EJECUTA `Client_Get_History` (silenciosamente) para obtener la lista actualizada.\n3. 🕵️‍♂️ BUSCA en esa lista nueva la cita que coincida con la fecha y hora que dijo el usuario.\n4. 🆔 EXTRAE el 'id' y la 'sesion' de esa cita específica.\n5. 🗑️ EJECUTA `Client_Cancel_Appointment` usando esos datos exactos.\n   - Si no encuentras coincidencia, solo entonces pregunta al usuario.\n\nCREATION RULES (WRITING DATA):\n1. TIMEZONE: Convert Chile time to UTC for saving.\n   - User's Chile Time + 3 HOURS = UTC. (e.g. 09:00 -> 12:00).\n2. SESSIONS:\n   - Extract session number from user request (e.g. \"1 sesion\"). Default to 1.\n   - Send this number to the 'sesion' field.\n\n---\n\n### 🛠️ TOOLBOX & USAGE RULES\n\n**1. 📅 APPOINTMENT SCHEDULING & HISTORY**\n- **Tools:** \n    - `Client_Get_History`: Returns the LIST of existing appointments.\n    - `Client_Check_Availability`: Checks if a specific date/time is free.\n    - `Client_Create_Appointment`: BOOKS the slot.\n\n**2. ❌ CANCELLATION**\n- **Tool:** `Client_Cancel_Appointment`.\n- **Trigger:** Follow the \"ESTRATEGIA DE CANCELACIÓN\" above strictly.\n\n**3. ℹ️ INFORMATION**\n- Use `Client_Get_Treatments`, `Client_Get_Laser_Prices`, `Client_Get_Products`.\n- **Formatting:** **NEVER** include image URLs."
+        }
+      },
+      "id": "ec630b2e-6c93-455e-b1aa-ec4609ba55f9",
+      "name": "AI Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1,
+      "position": [
+        1968,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o",
+        "options": {}
+      },
+      "id": "7b746d2e-1da5-42c9-a2c7-30710d01eb91",
+      "name": "OpenAI Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1,
+      "position": [
+        1248,
+        640
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "6029NsKjx1mTQ9Tt",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "id": "3757e71f-4d8d-4d22-acb0-eaeee9c52202",
+      "name": "Window Buffer Memory",
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1,
+      "position": [
+        1408,
+        640
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"output\": $json.output } }}",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              }
+            ]
+          }
+        }
+      },
+      "id": "f6cedc2c-80d3-4e76-832c-6d1e5151f8ab",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        2800,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "toolDescription": "Crea una nueva cita. REQUIERE: 'user_id' (ID numérico del paciente), 'appointment_date' (fecha en formato YYYY-MM-DD), 'service' (nombre del servicio/tratamiento). OPCIONAL: 'comments' (notas adicionales).",
+        "method": "POST",
+        "url": "https://x1xv-egpg-1mua.b2.xano.io/api:-E-1dvfg/appointment",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "user_id",
+              "value": "={{ $fromAI(\"user_id\") }}"
+            },
+            {
+              "name": "appointment_date",
+              "value": "={{ $fromAI(\"appointment_date\") }}"
+            },
+            {
+              "name": "status",
+              "value": "={{ $fromAI(\"status\") }}"
+            },
+            {
+              "name": "service",
+              "value": "={{ $fromAI(\"service\") }}"
+            },
+            {
+              "name": "comments",
+              "value": "={{ $fromAI(\"comments\") }}"
+            },
+            {
+              "name": "sesion",
+              "value": "={{ $fromAI(\"sesion\") }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.3,
+      "position": [
+        1568,
+        640
+      ],
+      "id": "574e94e5-e959-4203-b9b6-6493fff82661",
+      "name": "Create Appointment",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "MktND4LeT01vR0VS",
+          "name": "Header Auth Xano"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "whatsapp-cliente",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -128,
+        128
+      ],
+      "id": "9fd4c508-d380-4a3d-9c62-6bdc270d15eb",
+      "name": "Webhook2",
+      "webhookId": "3d443154-5e2d-4b94-9503-9ab51ded7cc7"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "c73847a2-2dd1-488b-8e0c-9d94eda19426",
+              "name": "chatInput",
+              "value": "={{ $('Webhook2').item.json.body.entry[0].changes[0].value.messages[0].text.body }}",
+              "type": "string"
+            },
+            {
+              "id": "1e1de234-0c2a-40c9-8cc8-5f3e73d6d468",
+              "name": "senderPhone",
+              "value": "={{ $('Webhook2').item.json.body.entry[0].changes[0].value.messages[0].from }}",
+              "type": "string"
+            },
+            {
+              "id": "2aeed215-c158-4cdf-adca-365da7059628",
+              "name": "source",
+              "value": "whatsapp",
+              "type": "string"
+            },
+            {
+              "id": "da67251c-b51b-4ac0-a5ba-6a83be0a4c0a",
+              "name": "userTimezone",
+              "value": "America/Santiago",
+              "type": "string"
+            },
+            {
+              "id": "7d6d3d3e-bf82-4ae8-a949-79b9184fe372",
+              "name": "user_id",
+              "value": "={{ $('Identify User').item.json }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1152,
+        32
+      ],
+      "id": "3bfdcf25-fd07-430c-a130-77ceed99f3b6",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1504,
+        224
+      ],
+      "id": "457f6c74-ca26-4f07-baca-804f5d745d9c",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "37065a19-1860-434a-8f94-91c7ba4ede68",
+              "leftValue": "={{ $('Merge').item.json.source }}",
+              "rightValue": "whatsapp",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2576,
+        224
+      ],
+      "id": "24deec9e-a0c5-4ef3-b2af-c3dd3e1e5ce4",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://graph.facebook.com/v21.0/859073053961225/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\": \"{{ $('Edit Fields').item.json.senderPhone }}\",\n  \"text\": { \"body\": {{ JSON.stringify($json.output) }} }\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        2800,
+        128
+      ],
+      "id": "275b61f7-65e5-4658-bd33-2067660ea471",
+      "name": "HTTP Request",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "TmLWC4a1s3Okk3DV",
+          "name": "Header Auth account whatsapp"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "OK.",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        416,
+        16
+      ],
+      "id": "8b27d9fe-db2a-4e43-9649-f837e02145e5",
+      "name": "Respond to Webhook2"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "d0a77cf5-27da-410c-8f7b-96092da5262a",
+              "leftValue": "={{ $json.body.entry[0].changes[0].value.messages }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        112,
+        128
+      ],
+      "id": "6d3d8277-7b3c-4e44-9525-836dc59b98fd",
+      "name": "If1"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1661a126-623a-4cf2-93b4-39a78e97f227",
+              "name": "source",
+              "value": "web",
+              "type": "string"
+            },
+            {
+              "id": "fc5b21b0-9f3b-4e60-a884-e6eaaeace696",
+              "name": "userTimezone",
+              "value": "={{ $json.body.userTimezone }}",
+              "type": "string"
+            },
+            {
+              "id": "00005aee-4bf9-4d11-a3a4-ce32991d643d",
+              "name": "user_id",
+              "value": "={{ $json.body.userId }}",
+              "type": "string"
+            },
+            {
+              "id": "d7231fe2-34da-4842-90e8-0f55ff7be1ff",
+              "name": "chatInput",
+              "value": "={{ $json.body.message }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        960,
+        384
+      ],
+      "id": "4709773c-b428-4f89-baaf-980bf8ec73a8",
+      "name": "Edit Fields1"
+    },
+    {
+      "parameters": {
+        "toolDescription": "Call this tool to get the list of products for sale, including their prices and stock.",
+        "url": "https://x1xv-egpg-1mua.b2.xano.io/api:SzJNIj2V/product",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.3,
+      "position": [
+        1744,
+        640
+      ],
+      "id": "4699db61-c33c-49c3-85aa-b55d8e70d7b6",
+      "name": "GET Products",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "MktND4LeT01vR0VS",
+          "name": "Header Auth Xano"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "toolDescription": "Usa esta herramienta cuando el usuario pregunte por precios de tratamientos generales como cavitación,Láserlipólisis, Facial con radiofrecuencia, o pida una lista general de servicios. Úsala cuando el usuario pida 'lista de precios', 'qué servicios tienen' o pregunte por un tratamiento específico, esto significa que tienes que sacar la informacion de esta api y de tratamientos-zona que es la tool llamada precio depilacion laser",
+        "url": "https://x1xv-egpg-1mua.b2.xano.io/api:SzJNIj2V/tratamientos",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.3,
+      "position": [
+        1920,
+        640
+      ],
+      "id": "69e7bcf8-fa5c-461e-817f-77f200aeed50",
+      "name": "Precio Tratamiento",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "MktND4LeT01vR0VS",
+          "name": "Header Auth Xano"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "toolDescription": "Obtiene la lista detallada de precios por zona para Depilación Láser.",
+        "url": "https://x1xv-egpg-1mua.b2.xano.io/api:SzJNIj2V/zonas-por-tratamiento",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "tratamiento_id",
+              "value": "2"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.3,
+      "position": [
+        2080,
+        640
+      ],
+      "id": "1b710420-3da3-429c-b7c2-f065628e9ed7",
+      "name": "Precio depilacion laser",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "MktND4LeT01vR0VS",
+          "name": "Header Auth Xano"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "toolDescription": "Obtiene las citas del usuario. No requiere parámetros, el sistema lo inyecta automáticamente.",
+        "url": "https://x1xv-egpg-1mua.b2.xano.io/api:SzJNIj2V/client_get_appointments",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "user_id",
+              "value": "={{ $('Merge').item.json.user_id }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.3,
+      "position": [
+        2240,
+        640
+      ],
+      "id": "f1147789-aae1-42c7-a360-d894b055c9f5",
+      "name": "Get My Appointments",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "MktND4LeT01vR0VS",
+          "name": "Header Auth Xano"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "toolDescription": "Cancela una cita. IMPORTANTE: 'id' y 'sesion' deben ser NÚMEROS ENTEROS (ej: 184, 1). NUNCA envíes fechas ni texto en estos campos.",
+        "method": "PATCH",
+        "url": "=https://x1xv-egpg-1mua.b2.xano.io/api:-E-1dvfg/appointment/user/{{ $fromAI(\"id\") }}/",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n   \"status\": \"CANCELADA\",\n   \"sesion\": \"{{ $fromAI(\"sesion\") }}\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.3,
+      "position": [
+        2432,
+        640
+      ],
+      "id": "13107b5c-67d2-49ed-881a-6cc93eccbe2e",
+      "name": "Cancel My Appointment",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "MktND4LeT01vR0VS",
+          "name": "Header Auth Xano"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "https://x1xv-egpg-1mua.b2.xano.io/api:SzJNIj2V/get_user_id_by_phone",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "phone",
+              "value": "={{ $json.body.entry[0].changes[0].value.messages[0].from }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        912,
+        32
+      ],
+      "id": "1f11f5a1-b07f-413f-beb5-22c6b8d0472e",
+      "name": "Identify User",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "MktND4LeT01vR0VS",
+          "name": "Header Auth Xano"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ $json.query['hub.challenge'] }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        400,
+        192
+      ],
+      "id": "213ddb1c-49a2-4b2c-8569-9070b1b2ef42",
+      "name": "Respond to Webhook1"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.body.entry[0].changes[0].value.messages[0].from }}",
+                    "rightValue": "56948879401",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "c681ee05-2d59-425b-b701-f7a2b2e042c7"
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.3,
+      "position": [
+        640,
+        16
+      ],
+      "id": "0ca7d68f-8ecd-48b8-b8ad-028b7a3f6955",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://kinesiologia.app.n8n.cloud/webhook/webhook/whatsapp",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.body) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        928,
+        -128
+      ],
+      "id": "183cf919-4652-4f0c-b5e5-4ccf6631e373",
+      "name": "HTTP Request1"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Window Buffer Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Appointment": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook2": {
+      "main": [
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Respond to Webhook2": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If1": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook2",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond to Webhook1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields1": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET Products": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Precio Tratamiento": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Precio depilacion laser": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get My Appointments": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cancel My Appointment": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Identify User": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Identify User",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "versionId": "c70e7efa-ea50-469a-82a1-5de0c1002fe2",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "21f8575bd0d27876eaa98ef5e25907a565138b1a6ef12b351e0c355a5f0dc751"
+  },
+  "id": "YQrlUZqwULtSpr4U",
+  "tags": []
+}

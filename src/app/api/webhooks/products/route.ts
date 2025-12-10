@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 // Constants
-const XANO_GENERAL = "https://x8ki-letl-twmt.n7.xano.io/api:SzJNIj2V";
+const XANO_GENERAL = "https://x1xv-egpg-1mua.b2.xano.io/api:SzJNIj2V";
 
 export async function GET(req: Request): Promise<Response> {
     try {
@@ -68,3 +68,4 @@ export async function GET(req: Request): Promise<Response> {
         );
     }
 }
+

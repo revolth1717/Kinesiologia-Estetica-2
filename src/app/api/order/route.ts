@@ -20,7 +20,7 @@ const API_URL =
   process.env.NEXT_PUBLIC_XANO_CONTENT_API ||
   process.env.NEXT_PUBLIC_XANO_CONTENT_API ||
   process.env.NEXT_PUBLIC_XANO_AUTH_API ||
-  "https://x8ki-letl-twmt.n7.xano.io/api:-E-1dvfg";
+  "https://x1xv-egpg-1mua.b2.xano.io/api:-E-1dvfg";
 const CONTENT_API_URL =
   process.env.NEXT_PUBLIC_XANO_CONTENT_API ||
   process.env.NEXT_PUBLIC_XANO_CONTENT_API ||
@@ -31,7 +31,7 @@ const AUTH_API_URL =
 const ORDERS_PATH = process.env.NEXT_PUBLIC_ORDERS_PATH || "/order";
 const PRODUCTS_PATH = process.env.NEXT_PUBLIC_PRODUCTS_PATH || "/product";
 // URL específica para productos (stock) y pagos
-const PRODUCT_API_URL = process.env.NEXT_PUBLIC_XANO_PAYMENT_API || "https://x8ki-letl-twmt.n7.xano.io/api:SzJNIj2V";
+const PRODUCT_API_URL = process.env.NEXT_PUBLIC_XANO_PAYMENT_API || "https://x1xv-egpg-1mua.b2.xano.io/api:SzJNIj2V";
 
 async function getMe(origin: string, cookieHeader: string): Promise<any> {
   const res = await fetch(`${origin}/api/auth/me`, {
@@ -403,3 +403,4 @@ export async function PATCH(req: Request): Promise<Response> {
     );
   }
 }
+

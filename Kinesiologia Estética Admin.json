@@ -1,0 +1,858 @@
+{
+  "name": "Kinesiologia Estética Admin",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "prueba",
+        "responseMode": "responseNode",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              },
+              {
+                "name": "Access-Control-Allow-Methods",
+                "value": "POST, OPTIONS"
+              },
+              {
+                "name": "Access-Control-Allow-Headers",
+                "value": "Content-Type"
+              }
+            ]
+          }
+        }
+      },
+      "id": "5f268a84-ad23-49b0-8c58-60e9e70218e5",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        64,
+        416
+      ],
+      "webhookId": "prueba"
+    },
+    {
+      "parameters": {
+        "agent": "openAiFunctionsAgent",
+        "text": "={{ $json.chatInput ? $json.chatInput : $json.body.message }}",
+        "options": {
+          "systemMessage": "=You are \"KineBot\", the professional and efficient AI assistant for the \"Kinesiología Estética\" clinic in Chile. Your goal is to assist administrators in managing the clinic by providing accurate data, calculating finances, and managing appointments.\n\nGLOBAL SETTINGS:\n\nTimezone: America/Santiago (UTC-3).\nTone: Professional, polite, and organized.\nFormat: Use Bold for key data (names, prices, dates). Use Emojis to categorize information (e.g., 📅, 💰, 📦, 👤).\n\n🛠️ TOOLBOX & USAGE RULES\nYou have access to specific tools. Use them PRECISELY as defined below:\n\n1. 📅 APPOINTMENT MANAGEMENT\n\nTools: Get Appointments, Create Appointment, Update Appointment Status.\nReading Dates: Month is 0-indexed in some systems, so if you see \"2025-10-XX\" and it's November, double-check.\nConflict Check (CRITICAL): Before using Create Appointment, ALWAYS use Get Appointments to check availability. If the slot is taken, REJECT the request.\nTimezone Rule: Convert User's Chile Time to UTC before saving. (Chile Time + 3 Hours = UTC).\nSessions: Extract the number of sessions (default to 1 if not specified) and save it in the 'sesion' field.\n\n2. 📦 INVENTORY & PRODUCTS\n\nTools: Get inventory (Internal Supplies), GET Products (For Sale).\nRule: If the admin asks about \"stock for sale\" or \"prices for clients\", use GET Products. If they ask about \"clinic supplies\" (gloves, gel), use Get inventory.\nFormatting Rule: When listing products, NEVER include the image URL or the markdown image syntax (like ![Image](...)). Only show the Name, Price, Stock, and a brief Description.\n\n3. 👤 CLIENT MANAGEMENT\n\nTool: Consulta clientes.\nUsage: Use this to list registered users, find a specific client's contact info, or verify if a user exists.\n\n4. 💰 PRICES & FINANCE\n\nTools: \n- Precio Tratamiento (General)\n- Precio depilacion laser (Laser Zones) \n- Get Financial Summary (Use for TOTALS/REVENUE)\n- Get Payment Details (Use for SPECIFIC HISTORY/DEBTS)\n\nUSAGE RULES:\n- GLOBAL REVENUE: If the user asks \"How much did we make?\", \"Total earnings\", \"Sales summary\", or \"Total for the month\", YOU MUST USE 'Get Financial Summary'.\n  *   This tool returns the EXACT calculated sum from the database.\n  *   Do NOT attempt to calculate sums yourself from a list of payments. Trust this tool's number.\n\n- INDIVIDUAL PAYMENTS & DEBT: If the user asks \"Did Juan pay?\", \"Check payment ID #30\", or \"Debt for X\", YOU MUST USE 'Get Payment Details'.\n  *   This returns the list of transactions. Use this to find specific items.\n\nPrice Lookup: ALWAYS check official prices using Precio Tratamiento or Precio depilacion laser before giving quotes or calculating debts.\n\n🧠 BUSINESS LOGIC & INTELLIGENCE\nA. PAYMENT ANALYSIS & DEBT CALCULATION (The 50% Rule)\nWhen an admin asks \"How much does X owe?\" or \"Check payment ID Y\":\n1.  Call 'Get Payment Details'.\n2.  Analyze Items: Look at the items list in the tool output.\n3.  Categorize:\n    *   Products (Creams, Gels) = 100% Paid. Debt = $0.\n    *   Treatments (Laser, Cavitation, Massage) = 50% Deposit Paid. Debt = Remaining 50%.\n4.  Cross-Reference:\n    *   Identify the treatment name (e.g., \"Láserlipólisis\").\n    *   Call Precio Tratamiento or Precio depilacion laser to get the OFFICIAL FULL PRICE.\n5.  Calculate:\n    *   Total Debt = Official Price - Amount Paid for Treatment.\n6.  Report: State clearly what was paid and what is missing.\n\nB. CANCELLATION FLOW\nIf asked to cancel an appointment:\n1.  Use Update Appointment Status to change status to \"Cancelled\".\n2.  Confirm the cancellation to the admin.\n\n🎨 AESTHETIC RESPONSE GUIDELINES\nWhen responding, structure your message beautifully:\n\nExample for Payment Analysis:\n\n💰 Análisis del Pago ID #30\n\nCliente: 👤 Matías (Detectado por sistema)\n\nDetalle de la Compra:\n\n✅ Crema Celu-stop: $17.000 (Pagado 100%)\n⚠️ Cavitación: $8.500 (Abono del 50%)\nEstado Financiero: El tratamiento tiene un valor total de $17.000 (según lista de precios). 📉 Deuda Pendiente: $8.500\n\nPor favor, cobrar el saldo restante en la próxima visita.\n\nExample for Appointment Listing:\n\n📅 Citas Próximas\n\n10:00 AM - 👤 Juan Pérez - Depilación Láser\n11:30 AM - 👤 María González - Evaluación\nTotal de citas hoy: 2\n\nFINAL INSTRUCTION: Always think step-by-step. Check tools first, calculate second, format beautifully third."
+        }
+      },
+      "id": "c2114123-c4a6-4937-afce-5d1335870289",
+      "name": "AI Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1,
+      "position": [
+        976,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o",
+        "options": {}
+      },
+      "id": "e2474f13-18bd-4e3e-a3a9-2dc16d939ad1",
+      "name": "OpenAI Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1,
+      "position": [
+        80,
+        720
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "6029NsKjx1mTQ9Tt",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "id": "111d9e8f-98d1-4e75-8c67-126ed63b3caa",
+      "name": "Window Buffer Memory",
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1,
+      "position": [
+        240,
+        720
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"output\": $json.output } }}",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              }
+            ]
+          }
+        }
+      },
+      "id": "9e20f3ff-06c6-4489-8354-58d7e6ed5e1b",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1808,
+        416
+      ]
+    },
+    {
+      "parameters": {
+        "toolDescription": "Obtiene el listado completo de citas agendadas. IMPORTANTE: 1) Usa el campo 'fecha_legible' para ver la fecha/hora correcta (ignora el timestamp). 2) Antes de cancelar o modificar, DEBES usar esta herramienta para buscar el 'id' correcto de la cita.",
+        "url": "https://x1xv-egpg-1mua.b2.xano.io/api:SzJNIj2V/get_appointments",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.3,
+      "position": [
+        432,
+        720
+      ],
+      "id": "a691b2ca-c612-4115-9ca1-8c63ffc28392",
+      "name": "Get Appointments",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "MktND4LeT01vR0VS",
+          "name": "Header Auth Xano"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "https://x1xv-egpg-1mua.b2.xano.io/api:SzJNIj2V/inventory",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.3,
+      "position": [
+        576,
+        720
+      ],
+      "id": "ec8b707c-02c9-4e6b-85c9-8256fb0f71b0",
+      "name": "Get inventary",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "MktND4LeT01vR0VS",
+          "name": "Header Auth Xano"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "toolDescription": "Actualiza una cita existente (Cancelar/Confirmar). REGLA CRÍTICA: Debes llamar PRIMERO a 'Get Appointments' para encontrar el 'id' correcto buscando por nombre y fecha. NUNCA adivines el ID. Una vez tengas el ID real de la lista, úsalo aquí",
+        "method": "PATCH",
+        "url": "=https://x1xv-egpg-1mua.b2.xano.io/api:-E-1dvfg/appointment/{{ $fromAI(\"id\") }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "status",
+              "value": "={{ $fromAI(\"status\") }}"
+            },
+            {
+              "name": "sesion",
+              "value": "={{ $fromAI(\"sesion\") }}"
+            },
+            {
+              "name": "appointment_date",
+              "value": "={{ $fromAI(\"appointment_date\") }} {{ $fromAI(\"appointment_time\") }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.3,
+      "position": [
+        736,
+        720
+      ],
+      "id": "ac6406d6-23c5-46cc-ad9a-c5f7cb315d2a",
+      "name": "Update Appointment Status",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "MktND4LeT01vR0VS",
+          "name": "Header Auth Xano"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "toolDescription": "Crea una nueva cita. REQUIERE: 'user_id' (ID numérico del paciente), 'appointment_date' (fecha en formato YYYY-MM-DD), 'service' (nombre del servicio/tratamiento). OPCIONAL: 'comments' (notas adicionales).",
+        "method": "POST",
+        "url": "https://x1xv-egpg-1mua.b2.xano.io/api:-E-1dvfg/appointment",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "user_id",
+              "value": "={{ $fromAI(\"user_id\") }}"
+            },
+            {
+              "name": "appointment_date",
+              "value": "={{ $fromAI(\"appointment_date\") }}"
+            },
+            {
+              "name": "status",
+              "value": "={{ $fromAI(\"status\") }}"
+            },
+            {
+              "name": "service",
+              "value": "={{ $fromAI(\"service\") }}"
+            },
+            {
+              "name": "comments",
+              "value": "={{ $fromAI(\"comments\") }}"
+            },
+            {
+              "name": "sesion",
+              "value": "={{ $fromAI(\"sesion\") }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.3,
+      "position": [
+        912,
+        720
+      ],
+      "id": "c10fb37e-92b7-430d-88a2-c9c8ffee411d",
+      "name": "Create Appointment",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "MktND4LeT01vR0VS",
+          "name": "Header Auth Xano"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "webhook/whatsapp",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -432,
+        224
+      ],
+      "id": "e8a425f9-639a-42d0-8f8e-25cafb9582c7",
+      "name": "Webhook2",
+      "webhookId": "3d443154-5e2d-4b94-9503-9ab51ded7cc7"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "c73847a2-2dd1-488b-8e0c-9d94eda19426",
+              "name": "chatInput",
+              "value": "={{ $json.body.entry[0].changes[0].value.messages[0].text.body }}",
+              "type": "string"
+            },
+            {
+              "id": "1e1de234-0c2a-40c9-8cc8-5f3e73d6d468",
+              "name": "senderPhone",
+              "value": "={{ $json.body.entry[0].changes[0].value.messages[0].from }}",
+              "type": "string"
+            },
+            {
+              "id": "2aeed215-c158-4cdf-adca-365da7059628",
+              "name": "source",
+              "value": "whatsapp",
+              "type": "string"
+            },
+            {
+              "id": "da67251c-b51b-4ac0-a5ba-6a83be0a4c0a",
+              "name": "userTimezone",
+              "value": "America/Santiago",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        288,
+        208
+      ],
+      "id": "ef9ce0d7-43bd-4489-b00a-72846b9577a6",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        512,
+        320
+      ],
+      "id": "4ed2d36d-0976-48b8-9c7f-d9916bd92009",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "37065a19-1860-434a-8f94-91c7ba4ede68",
+              "leftValue": "={{ $('Merge').item.json.source }}",
+              "rightValue": "whatsapp",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1584,
+        320
+      ],
+      "id": "8c05657e-4563-4728-b035-de27a814c30f",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://graph.facebook.com/v21.0/859073053961225/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\": \"{{ $('Edit Fields').item.json.senderPhone }}\",\n  \"text\": { \"body\": {{ JSON.stringify($json.output) }} }\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        1808,
+        224
+      ],
+      "id": "7caadf54-dca5-4ee4-9bc7-bb48fa8a5e9e",
+      "name": "HTTP Request",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "TmLWC4a1s3Okk3DV",
+          "name": "Header Auth account whatsapp"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "OK.",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        64,
+        208
+      ],
+      "id": "9ca3af87-3f10-4160-af33-9552b6572845",
+      "name": "Respond to Webhook2"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "d0a77cf5-27da-410c-8f7b-96092da5262a",
+              "leftValue": "={{ $json.body.entry[0].changes[0].value.messages }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -160,
+        224
+      ],
+      "id": "9d8dc01a-afd6-4850-8194-0026d6c278c6",
+      "name": "If1"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1661a126-623a-4cf2-93b4-39a78e97f227",
+              "name": "source",
+              "value": "web",
+              "type": "string"
+            },
+            {
+              "id": "fc5b21b0-9f3b-4e60-a884-e6eaaeace696",
+              "name": "userTimezone",
+              "value": "={{ $json.body.userTimezone }}",
+              "type": "string"
+            },
+            {
+              "id": "00005aee-4bf9-4d11-a3a4-ce32991d643d",
+              "name": "userId",
+              "value": "={{ $json.body.userId }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        288,
+        416
+      ],
+      "id": "f6941075-4760-4dff-85db-8e6916075d77",
+      "name": "Edit Fields1"
+    },
+    {
+      "parameters": {
+        "toolDescription": "Call this tool to get the list of products for sale, including their prices and stock.",
+        "url": "https://x1xv-egpg-1mua.b2.xano.io/api:SzJNIj2V/product",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.3,
+      "position": [
+        1072,
+        720
+      ],
+      "id": "a999da48-3143-4448-bf3e-9cdc171401de",
+      "name": "GET Products",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "MktND4LeT01vR0VS",
+          "name": "Header Auth Xano"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "toolDescription": "\"Obtener Usuarios (Admin)\"",
+        "url": "https://x1xv-egpg-1mua.b2.xano.io/api:-E-1dvfg/user",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.3,
+      "position": [
+        1216,
+        720
+      ],
+      "id": "8eccf2a1-1956-4a85-939d-02f2a4f7f83c",
+      "name": "Consulta clientes",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "MktND4LeT01vR0VS",
+          "name": "Header Auth Xano"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "toolDescription": "Usa esta herramienta cuando el usuario pregunte por precios de tratamientos generales como cavitación,Láserlipólisis, Facial con radiofrecuencia, o pida una lista general de servicios. Úsala cuando el usuario pida 'lista de precios', 'qué servicios tienen' o pregunte por un tratamiento específico, esto significa que tienes que sacar la informacion de esta api y de tratamientos-zona que es la tool llamada precio depilacion laser",
+        "url": "https://x1xv-egpg-1mua.b2.xano.io/api:SzJNIj2V/tratamientos",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.3,
+      "position": [
+        1392,
+        720
+      ],
+      "id": "5b65c724-0c73-4df1-ac58-fa02b4559acd",
+      "name": "Precio Tratamiento",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "MktND4LeT01vR0VS",
+          "name": "Header Auth Xano"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "toolDescription": "Obtiene la lista detallada de precios por zona para Depilación Láser.",
+        "url": "https://x1xv-egpg-1mua.b2.xano.io/api:SzJNIj2V/zonas-por-tratamiento",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.3,
+      "position": [
+        1552,
+        720
+      ],
+      "id": "f8502e60-c527-4877-b62e-285a58761af5",
+      "name": "Precio depilacion laser",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "MktND4LeT01vR0VS",
+          "name": "Header Auth Xano"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "toolDescription": "Obtiene el monto TOTAL EXACTO de ganancias recaudadas hasta la fecha. Úsalo SIEMPRE que pregunten por 'ganancias', 'total de ventas' o 'cuánto dinero hemos hecho'. Devuelve un solo número con la suma total.",
+        "url": "https://x1xv-egpg-1mua.b2.xano.io/api:SzJNIj2V/payment_total",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.3,
+      "position": [
+        1872,
+        720
+      ],
+      "id": "40fbb707-4773-404b-bbd5-e79fa3fd3755",
+      "name": "Get Financial Summary",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "MktND4LeT01vR0VS",
+          "name": "Header Auth Xano"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "toolDescription": "Obtiene el historial completo de pagos y transacciones. Úsala cuando el usuario (Admin) pregunte por ganancias, ingresos, ventas de la semana/mes, o detalles de pagos.",
+        "url": "https://x1xv-egpg-1mua.b2.xano.io/api:SzJNIj2V/payment",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.3,
+      "position": [
+        1712,
+        720
+      ],
+      "id": "4793c86b-d4ab-4a55-a27a-e33a47c18232",
+      "name": "Get Payment Details",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "MktND4LeT01vR0VS",
+          "name": "Header Auth Xano"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Window Buffer Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Appointments": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get inventary": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Appointment Status": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Appointment": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook2": {
+      "main": [
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Respond to Webhook2": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If1": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields1": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET Products": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consulta clientes": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Precio Tratamiento": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Precio depilacion laser": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Financial Summary": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Payment Details": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1ec1ca54-beb5-4130-a3ae-ef8b050d87ef",
+  "meta": {
+    "instanceId": "21f8575bd0d27876eaa98ef5e25907a565138b1a6ef12b351e0c355a5f0dc751"
+  },
+  "id": "aPXNF0YLlMF9rOTI",
+  "tags": []
+}

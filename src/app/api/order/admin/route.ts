@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 // Admin orders endpoint
-const API_URL = "https://x8ki-letl-twmt.n7.xano.io/api:-E-1dvfg";
+const API_URL = "https://x1xv-egpg-1mua.b2.xano.io/api:-E-1dvfg";
 const ADMIN_ORDERS_PATH = "/orderAllAdmin";
 
 export async function GET(req: Request): Promise<Response> {

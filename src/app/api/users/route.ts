@@ -2,8 +2,8 @@ import { NextResponse, NextRequest } from "next/server";
 import { cookies } from "next/headers";
 
 const clean = (s?: string) => String(s || "").trim().replace(/^`+|`+$/g, "").replace(/^"+|"+$/g, "").replace(/^'+|'+$/g, "");
-const XANO_GENERAL = clean(process.env.NEXT_PUBLIC_XANO_CONTENT_API) || clean(process.env.NEXT_PUBLIC_XANO_CONTENT_API) || "https://x8ki-letl-twmt.n7.xano.io/api:SzJNIj2V";
-const XANO_AUTH = clean(process.env.NEXT_PUBLIC_XANO_AUTH_API) || clean(process.env.NEXT_PUBLIC_XANO_AUTH_API) || "https://x8ki-letl-twmt.n7.xano.io/api:-E-1dvfg";
+const XANO_GENERAL = clean(process.env.NEXT_PUBLIC_XANO_CONTENT_API) || clean(process.env.NEXT_PUBLIC_XANO_CONTENT_API) || "https://x1xv-egpg-1mua.b2.xano.io/api:SzJNIj2V";
+const XANO_AUTH = clean(process.env.NEXT_PUBLIC_XANO_AUTH_API) || clean(process.env.NEXT_PUBLIC_XANO_AUTH_API) || "https://x1xv-egpg-1mua.b2.xano.io/api:-E-1dvfg";
 
 function readTokenFromRequest(req: Request): string | undefined {
   const cookieHeader = req.headers.get("cookie") || "";

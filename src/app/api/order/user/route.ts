@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 // Orders endpoint uses a different API than auth
-const API_URL = "https://x8ki-letl-twmt.n7.xano.io/api:-E-1dvfg";
+const API_URL = "https://x1xv-egpg-1mua.b2.xano.io/api:-E-1dvfg";
 const ORDERS_PATH = "/order";
 
 export async function GET(req: Request): Promise<Response> {

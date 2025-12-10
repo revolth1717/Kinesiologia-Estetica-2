@@ -8,11 +8,11 @@ const clean = (s?: string) =>
     .replace(/^"+|"+$/g, "")
     .replace(/^'+|'+$/g, "");
 // Force the general group for inventory as per user setup
-const XANO_GENERAL = "https://x8ki-letl-twmt.n7.xano.io/api:SzJNIj2V";
+const XANO_GENERAL = "https://x1xv-egpg-1mua.b2.xano.io/api:SzJNIj2V";
 const XANO_AUTH =
   clean(process.env.NEXT_PUBLIC_XANO_AUTH_API) ||
   clean(process.env.NEXT_PUBLIC_XANO_AUTH_API) ||
-  "https://x8ki-letl-twmt.n7.xano.io/api:-E-1dvfg";
+  "https://x1xv-egpg-1mua.b2.xano.io/api:-E-1dvfg";
 
 function readTokenFromRequest(req: Request): string | undefined {
   const cookieHeader = req.headers.get("cookie") || "";
