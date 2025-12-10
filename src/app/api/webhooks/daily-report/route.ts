@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
 
 // Constants from other files
-const XANO_GENERAL = "https://x8ki-letl-twmt.n7.xano.io/api:SzJNIj2V";
+const XANO_GENERAL = process.env.XANO_GENERAL_API_URL || "https://x1xv-egpg-1mua.b2.xano.io/api:SzJNIj2V";
 const XANO_AUTH =
     process.env.XANO_AUTH_API_URL ||
     process.env.NEXT_PUBLIC_AUTH_URL ||
-    "https://x8ki-letl-twmt.n7.xano.io/api:-E-1dvfg";
+    "https://x1xv-egpg-1mua.b2.xano.io/api:-E-1dvfg";
 
 export async function GET(req: Request): Promise<Response> {
     try {

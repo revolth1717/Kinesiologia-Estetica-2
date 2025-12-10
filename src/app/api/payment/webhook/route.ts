@@ -45,7 +45,7 @@ async function updateAppointment(id: number, status: string) {
 // Helper para crear pago en Xano
 async function createPaymentInXano(paymentData: any, userId: any) {
     // Usamos la URL específica para pagos provista por el usuario
-    const API_URL = process.env.NEXT_PUBLIC_XANO_PAYMENT_API || "https://x8ki-letl-twmt.n7.xano.io/api:SzJNIj2V";
+    const API_URL = process.env.NEXT_PUBLIC_XANO_PAYMENT_API || "https://x1xv-egpg-1mua.b2.xano.io/api:SzJNIj2V";
     const PAYMENT_PATH = "/payment"; 
     
     try {
