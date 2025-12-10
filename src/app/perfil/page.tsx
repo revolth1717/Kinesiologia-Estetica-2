@@ -1066,9 +1066,9 @@ export default function PerfilPage() {
                       orders.map(o => (
                         <div
                           key={String(o.id)}
-                          className="p-6 flex items-center justify-between"
+                          className="p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
                         >
-                          <div className="flex items-center">
+                          <div className="flex items-center w-full sm:w-auto">
                             {o.product_image_url ? (
                               <Image
                                 src={String(o.product_image_url)}
@@ -1107,8 +1107,8 @@ export default function PerfilPage() {
                               </div>
                             </div>
                           </div>
-                          <div className="text-right">
-                            <div className="text-sm font-semibold text-gray-900">
+                            <div className="text-left sm:text-right w-full sm:w-auto mt-2 sm:mt-0">
+                              <div className="text-sm font-semibold text-gray-900">
                               ${Number(o.total).toLocaleString()}
                             </div>
                             <span

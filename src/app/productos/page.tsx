@@ -102,7 +102,7 @@ export default function ProductosPage() {
 
       if (data.success) {
         const list = Array.isArray(data.data) ? data.data : [];
-        const mapped = list.map(normalize).filter(p => !!p && !!p.nombre && p.nombre.trim().length > 0);
+        const mapped = list.map(normalize).filter((p: Producto) => !!p && !!p.nombre && p.nombre.trim().length > 0);
         const uniq: Producto[] = [];
         const seen = new Set<string>();
         for (const p of mapped) {
@@ -169,7 +169,7 @@ export default function ProductosPage() {
       <div className="bg-pink-600 text-white py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
-            <h1 className="text-4xl font-bold mb-4">Nuestros Productos</h1>
+            <h1 className="text-3xl md:text-4xl font-bold mb-4">Nuestros Productos</h1>
             <p className="text-xl text-pink-100">
               Descubre nuestra línea de productos profesionales para el cuidado de tu piel
             </p>
