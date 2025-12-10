@@ -1,7 +1,7 @@
 import { NextResponse, NextRequest } from "next/server";
 
 // Configuración del backend de contenido
-const CONTENT_API_URL = process.env.NEXT_PUBLIC_CONTENT_API_URL || process.env.NEXT_PUBLIC_API_URL || "https://x8ki-letl-twmt.n7.xano.io/api:SzJNIj2V";
+const CONTENT_API_URL = process.env.NEXT_PUBLIC_CONTENT_API_URL || process.env.NEXT_PUBLIC_API_URL || "https://x1xv-egpg-1mua.b2.xano.io/api:SzJNIj2V";
 const ZONES_BY_TREATMENT_PATH = process.env.NEXT_PUBLIC_ZONES_BY_TREATMENT_PATH || "/zonas-por-tratamiento";
 
 export async function GET(
